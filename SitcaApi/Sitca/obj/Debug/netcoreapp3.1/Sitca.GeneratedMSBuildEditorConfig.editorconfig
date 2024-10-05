@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = Sitca
+build_property.ProjectDir = /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

@@ -1,0 +1,10 @@
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\bin\Release\netstandard2.0\Utilities.deps.json
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\bin\Release\netstandard2.0\Utilities.dll
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\bin\Release\netstandard2.0\Utilities.pdb
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.csproj.AssemblyReference.cache
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.GeneratedMSBuildEditorConfig.editorconfig
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.AssemblyInfoInputs.cache
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.AssemblyInfo.cs
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.csproj.CoreCompileInputs.cache
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.dll
+C:\Proyectos\Sitca\sitca-2.0\NETCORE\SitcaApi\Utilities\obj\Release\netstandard2.0\Utilities.pdb
