@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = Sitca.DataAccess
+build_property.ProjectDir = /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

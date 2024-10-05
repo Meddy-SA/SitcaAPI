@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20210325132117_pais-empresa.cs" />
+    <Compile Remove="Migrations\20210325132117_pais-empresa.Designer.cs" />
+    <Compile Remove="Migrations\20210405185817_archivos.cs" />
+    <Compile Remove="Migrations\20210405185817_archivos.Designer.cs" />
+    <Compile Remove="Migrations\20210415125437_proceso-certificacion.cs" />
+    <Compile Remove="Migrations\20210415125437_proceso-certificacion.Designer.cs" />
+    <Compile Remove="Migrations\20210426210100_test.cs" />
+    <Compile Remove="Migrations\20210426210100_test.Designer.cs" />
+    <Compile Remove="Migrations\20210426210728_test.cs" />
+    <Compile Remove="Migrations\20210426210728_test.Designer.cs" />
+    <Compile Remove="Migrations\20210426210910_asd.cs" />
+    <Compile Remove="Migrations\20210426210910_asd.Designer.cs" />
+    <Compile Remove="Migrations\20210507201458_cuestionarioItem-History-y-fk-certi-cuestionario.cs" />
+    <Compile Remove="Migrations\20210507201458_cuestionarioItem-History-y-fk-certi-cuestionario.Designer.cs" />
+    <Compile Remove="Migrations\20210718195553_user-enabled-disabled.cs" />
+    <Compile Remove="Migrations\20210718195553_user-enabled-disabled.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="8.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.8" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sitca.Models\Sitca.Models.csproj" />
+    <ProjectReference Include="..\Utilities\Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libwkhtmltox.dll">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

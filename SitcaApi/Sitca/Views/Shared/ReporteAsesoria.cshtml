@@ -1,0 +1,561 @@
+﻿@model Sitca.Models.ViewModels.CuestionarioDetailsVm
+
+<style>
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+        page-break-inside: avoid;
+    }
+
+    td, th {
+        border: 1px solid black;
+        text-align: left;
+        padding: 8px;
+        page-break-inside: avoid;
+        page-break-after:auto;
+        font-size: 18px
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+        page-break-inside: avoid;
+        page-break-after:avoid;
+    }
+
+    .center {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        width: 50%;
+    }
+    .small{
+        font-size: 14px;
+    }
+</style>
+
+@if (Model.Lang == "en")
+{
+
+    <p align="center" style="font-size:65px">SICCS</p>
+@*<img class="center" src="@Model.path/Resources/Files/logo-caratula-SICCS.png" />*@
+<img class="center" src="data:image/png;base64,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" />
+
+<p style="font-size:38px">File Number <b>@Model.Expediente</b></p>
+
+<p style="font-size:38px">Company/Institution: <b>@Model.Empresa.name</b></p>
+
+<p style="font-size:38px">Asesor: <b>@Model.Asesor.fullName</b></p>
+
+<p style="font-size:38px">
+    Asesor Card Nº:
+    @if (string.IsNullOrEmpty(Model.Asesor.codigo))
+    {
+        <b>______________</b>
+    }
+    else
+    {
+        <b>@Model.Asesor.codigo</b>
+    }
+
+</p>
+
+<p style="font-size:38px">Standard: <b>@Model.Tipologia.name</b></p>
+
+<p style="font-size:38px">Date: <b>@Model.FechaFinalizacion</b></p>
+
+<div style='page-break-after: always;'></div>
+
+
+    int index = 0;
+    int index2 = 0;
+
+
+@foreach (var item in Model.Modulos)
+{
+    index++;
+    <h2>@*@item.Nomenclatura*@ @if(index < 5){@index} @item.Nombre Module</h2>
+
+    <table>
+        <tr>
+            <td style="width:15%">Requirement</td>
+            <td style="width:60%">Question</td>
+            <td style="width:10%">Yes/No</td>
+            <td>Verification Mode</td>
+        </tr>
+
+        @foreach (var subItem in item.Items)
+        {
+            <tr>
+                <td>
+                    @subItem.Nomenclatura
+                    @if (subItem.Obligatoria)
+                    {
+                        <span>(O)</span>
+                    }
+                </td>
+                <td>@subItem.Text</td>
+                <td>
+
+                    @switch (subItem.Result)
+                    {
+                        case -1:
+                            <span><b>No</b></span>
+                            break;
+                        case 1:
+                            <span><b>Yes</b></span>
+                            break;
+                        case 2:
+                            <span><b>N/A</b></span>
+                            break;
+
+                    }
+
+                </td>
+                <td>
+                    @*@if(subItem.Id % 2 == 0)
+                    {
+                        <div style='page-break-after: always;'></div>
+                    }*@
+                </td>
+            </tr>
+                
+            }
+
+    </table>
+
+
+    <h3>Company results</h3>
+    <h2>Results report</h2>
+
+    <table>
+        <tr>
+            <td colspan="7">results by module @item.Nomenclatura @item.Nombre </td>
+        </tr>
+        <tr>
+            <td>
+                Module
+            </td>
+
+            <td>
+                Mandatory
+                Evaluated
+            </td>
+            <td>
+                Complementary
+                Evaluated
+            </td>
+
+
+            <td>
+                Mandatory
+                Compliance
+            </td>
+
+            <td>
+                Complementary
+                Compliance
+            </td>
+
+            <td>
+                Percentaje
+                Mandatory
+            </td>
+
+            <td>
+                Percentaje
+                Complementary
+            </td>
+        </tr>
+        <tr>
+            <td>@index</td>
+            <td>@item.Resultados.TotalObligatorias</td>
+            <td>@item.Resultados.TotalComplementarias</td>
+
+            <td>@item.Resultados.ObligCumple</td>
+            <td>@item.Resultados.ComplementCumple</td>
+
+            <td>@item.Resultados.PorcObligCumple</td>
+            <td>@item.Resultados.PorcComplementCumple</td>
+        </tr>
+        <tr>
+            <td colspan="7">
+                <b>Sugested Result: @item.Resultados.ResultModulo</b>
+            </td>
+        </tr>
+    </table>
+
+    <div style='page-break-after: always;'></div>
+}
+
+
+<h2>Results report</h2>
+@foreach (var item in Model.Modulos)
+{
+    index2++;
+    <h2>@item.Nomenclatura @item.Nombre</h2>
+
+
+    <table>
+        <tr>
+            <td colspan="7">Results Module @item.Nomenclatura @item.Nombre </td>
+        </tr>
+        <tr>
+            <td>
+                Module
+            </td>
+
+            <td>
+                Mandatory
+                Evaluated
+            </td>
+            <td>
+                Complementary
+                Evaluated
+            </td>
+
+
+            <td>
+                Mandatory
+                Compliance
+            </td>
+
+            <td>
+                Complementary
+                Compliance
+            </td>
+
+            <td>
+                Percentaje
+                Mandatory
+            </td>
+
+            <td>
+                Percentaje
+                Complementary
+            </td>
+        </tr>
+        <tr>
+            <td>@index2</td>
+            <td>@item.Resultados.TotalObligatorias</td>
+            <td>@item.Resultados.TotalComplementarias</td>
+
+            <td>@item.Resultados.ObligCumple</td>
+            <td>@item.Resultados.ComplementCumple</td>
+
+            <td>@item.Resultados.PorcObligCumple</td>
+            <td>@item.Resultados.PorcComplementCumple</td>
+        </tr>
+        <tr>
+            <td colspan="7">
+                <b>Sugested Result: @item.Resultados.ResultModulo</b>
+            </td>
+        </tr>
+    </table>
+
+    
+}
+<div style='page-break-after: always;'></div>
+
+
+@foreach (var item in Model.Modulos)
+{
+    <h3>Exhibit @item.Nomenclatura @item.Nombre Audit Photographic Report SICCS</h3>
+
+    <table>
+
+        <tr>
+            <td style="width:15%">Item</td>
+            <td style="width:30%">Document</td>
+            <td>Image</td>
+        </tr>
+        @foreach (var subItem in item.Items)
+        {
+            if (subItem.Archivos != null)
+            {
+                foreach (var archivo in subItem.Archivos)
+                {
+                    <tr>
+                        <td>
+                            @subItem.Nomenclatura
+                        </td>
+                        <td>
+                            @archivo.Nombre 
+                            <p style="font-size:18px">@subItem.Text</p>
+                        </td>
+                        <td>
+                            <img style="max-height:500px;" src="@Model.path/Resources/Files/@archivo.Ruta" />
+                        </td>
+                    </tr>
+                }
+
+            }
+
+
+
+
+        }
+
+    </table>
+
+        <div style='page-break-after: always;'></div>
+
+    }
+
+}
+else
+{
+
+    <!--ESPAÑOL-->
+    <div style="writing-mode: vertical-rl;text-orientation: mixed;">
+            <p align="center" style="font-size:30px;writing-mode: vertical-rl;text-orientation: mixed;">Sistema Integrado Centroamericano de calidad y sostenibilidad</p>
+<img class="center" src="@Model.path/Resources/Files/logo-caratula-SICCS.png" style="width:200px" />
+
+<p style="font-size:28px">Número de Expediente <b>@Model.Expediente</b></p>
+
+<p style="font-size:28px">Nombre del Establecimiento: <b>@Model.Empresa.name</b></p>
+
+<p style="font-size:28px">Asesor: <b>@Model.Asesor.fullName</b></p>
+
+<p style="font-size:28px">
+    Codigo Asesor:
+    @if (string.IsNullOrEmpty(Model.Asesor.codigo))
+    {
+        <b>______________</b>
+    }
+    else
+    {
+        <b>@Model.Asesor.codigo</b>
+    }
+
+</p>
+
+<p style="font-size:28px">Norma: <b>@Model.Tipologia.name</b></p>
+
+<p style="font-size:28px">Fecha: <b>@Model.FechaFinalizacion</b></p>
+    </div>
+
+
+<div style='page-break-after: always;'></div>
+
+
+    int index = 0;
+    int index2 = 0;
+
+
+@foreach (var item in Model.Modulos)
+{
+    index++;
+    <h2>@*@item.Nomenclatura*@ Módulo @if(index < 5){@item.Nomenclatura}  @item.Nombre</h2>
+
+    <table>
+        <tr>
+            <td style="width:10%">Requerimiento</td>
+            <td style="width:83%">Pregunta</td>
+            <td style="width:7%">Si/No</td>
+           
+        </tr>
+
+        @foreach (var subItem in item.Items)
+        {
+            <tr>
+                <td>
+                    @subItem.Nomenclatura
+                    @if (subItem.Obligatoria)
+                    {
+                        <span>(O)</span>
+                    }
+                </td>
+                <td>
+                    <p style:"font-size:14px">@subItem.Text</p>
+                    
+                    @if (subItem.Archivos != null && subItem.Archivos.Count > 0)
+                    {
+
+                        <table>
+                            <tr>
+                                @foreach (var archivo in subItem.Archivos)
+                                {
+                                    <td style="width:50%">
+                                        @*<img style="max-height:65px;" src="@Model.path/Resources/Files/@archivo.Ruta" />*@
+                                        <img style="max-height:65px;" src="@archivo.Base64Str"/>
+                                        @*<img style="max-height:65px;" src="data:image/png;base64,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" />*@
+                                        <br />
+                                        <b class="small">Archivo: <a target="_blank" href="https://api.sitca.info/Resources/Files/@archivo.Ruta" >@archivo.Nombre</a>  </b>
+                                    </td>                                                                
+                                }  
+
+                                
+                            </tr>
+                            
+                        </table>                        
+                    }
+            
+                    <br>
+                    @if (!string.IsNullOrEmpty(subItem.Observacion))
+                    {
+                        <hr />
+                        <b>Observaciones: </b>
+                        @subItem.Observacion
+                    }
+
+                </td>
+                <td>
+
+                    @switch (subItem.Result)
+                    {
+                        case -1:
+                            <span><b>No</b></span>
+                            break;
+                        case 1:
+                            <span><b>Si</b></span>
+                            break;
+                        case 2:
+                            <span><b>N/A</b></span>
+                            break;
+
+                    }
+
+                </td>
+            
+            </tr>
+        }
+
+    </table>
+
+
+    <h3>Resumen de Resultados de la Empresa</h3>
+    <h2>Cuadro Resumen de resultados</h2>
+
+    <table>
+        <tr>
+            <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
+        </tr>
+        <tr>
+            <td>
+                Modulo
+            </td>
+
+            <td>
+                Obligatorios
+                Evaluados
+            </td>
+            <td>
+                Complementarios
+                Evaluados
+            </td>
+
+
+            <td>
+                Obligatiorios
+                Cumplidos
+            </td>
+
+            <td>
+                Complementarios
+                Cumplidos
+            </td>
+
+            <td>
+                Porcentaje
+                Obligatiorios
+            </td>
+
+            <td>
+                Porcentaje
+                Complementarios
+            </td>
+        </tr>
+        <tr>
+            @*<td>@index</td>*@
+            <td>@item.Nomenclatura</td>
+            <td>@item.Resultados.TotalObligatorias</td>
+            <td>@item.Resultados.TotalComplementarias</td>
+
+            <td>@item.Resultados.ObligCumple</td>
+            <td>@item.Resultados.ComplementCumple</td>
+
+            <td>@item.Resultados.PorcObligCumple</td>
+            <td>@item.Resultados.PorcComplementCumple</td>
+        </tr>
+        <tr>
+            <td colspan="7">
+                <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
+            </td>
+        </tr>
+    </table>
+
+    <div style='page-break-after: always;'></div>
+}
+
+
+<h2>Cuadro Resumen de resultados</h2>
+@foreach (var item in Model.Modulos)
+{
+    index2++;
+    <h2>@item.Nomenclatura @item.Nombre</h2>
+
+
+    <table>
+        <tr>
+            <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
+        </tr>
+        <tr>
+            <td>
+                Modulo
+            </td>
+
+            <td>
+                Obligatorios
+                Evaluados
+            </td>
+            <td>
+                Complementarios
+                Evaluados
+            </td>
+
+
+            <td>
+                Obligatiorios
+                Cumplidos
+            </td>
+
+            <td>
+                Complementarios
+                Cumplidos
+            </td>
+
+            <td>
+                Porcentaje
+                Obligatiorios
+            </td>
+
+            <td>
+                Porcentaje
+                Complementarios
+            </td>
+        </tr>
+        <tr>
+            <td>@*@index2*@ @item.Nomenclatura</td>
+            <td>@item.Resultados.TotalObligatorias</td>
+            <td>@item.Resultados.TotalComplementarias</td>
+
+            <td>@item.Resultados.ObligCumple</td>
+            <td>@item.Resultados.ComplementCumple</td>
+
+            <td>@item.Resultados.PorcObligCumple</td>
+            <td>@item.Resultados.PorcComplementCumple</td>
+        </tr>
+        <tr>
+            <td colspan="7">
+                <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
+            </td>
+        </tr>
+    </table>
+
+    
+}
+
+    
+}
+

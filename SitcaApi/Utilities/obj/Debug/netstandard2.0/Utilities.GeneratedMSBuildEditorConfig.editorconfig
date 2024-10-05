@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = Utilities
+build_property.ProjectDir = /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
