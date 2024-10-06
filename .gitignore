@@ -1,3 +1,10 @@
 /Sitca/Resources/Files/*
-/bin/
-/obj/
+
+/Sitca/bin/*
+/Sitca.DataAccess/bin/*
+/Sitca.Models/bin/*
+/Utilities/bin/*
+/Sitca/obj/*
+/Sitca.DataAccess/obj/*
+/Sitca.Models/obj/*
+/Utilities/obj/*
