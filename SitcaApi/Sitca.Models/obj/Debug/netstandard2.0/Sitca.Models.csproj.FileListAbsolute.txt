@@ -20,3 +20,4 @@ C:/Proyectos/Sitca/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/Debug/netstandard
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/Debug/netstandard2.0/EFCoreSqlServerNetTopologySuite.cs
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/Debug/netstandard2.0/Sitca.Models.dll
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/Debug/netstandard2.0/Sitca.Models.pdb
+/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/Debug/netstandard2.0/Sitca.Models.sourcelink.json

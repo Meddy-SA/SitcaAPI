@@ -18,3 +18,4 @@ C:/Proyectos/Sitca/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/Debug/netstandard2.0
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/Debug/netstandard2.0/Utilities.csproj.CoreCompileInputs.cache
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/Debug/netstandard2.0/Utilities.dll
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/Debug/netstandard2.0/Utilities.pdb
+/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/Debug/netstandard2.0/Utilities.sourcelink.json
