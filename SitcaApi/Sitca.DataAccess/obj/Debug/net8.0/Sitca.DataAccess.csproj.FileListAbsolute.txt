@@ -16,3 +16,4 @@
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/obj/Debug/net8.0/refint/Sitca.DataAccess.dll
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/obj/Debug/net8.0/Sitca.DataAccess.pdb
 /Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/obj/Debug/net8.0/ref/Sitca.DataAccess.dll
+/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/obj/Debug/net8.0/Sitca.DataAccess.sourcelink.json

@@ -1,4 +1,5 @@
 /Sitca/Resources/Files/*
+SitcaApi/Sitca/Resources/Files/*
 
 /Sitca/bin/*
 /Sitca.DataAccess/bin/*
@@ -8,3 +9,12 @@
 /Sitca.DataAccess/obj/*
 /Sitca.Models/obj/*
 /Utilities/obj/*
+
+SitcaApi/Sitca/bin/
+SitcaApi/Sitca.DataAccess/bin/
+SitcaApi/Sitca.Models/bin/
+SitcaApi/Utilities/bin/
+SitcaApi/Sitca/obj/
+SitcaApi/Sitca.DataAccess/obj/
+SitcaApi/Sitca.Models/obj/
+SitcaApi/Utilities/obj/
