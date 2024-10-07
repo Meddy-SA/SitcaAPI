@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "H5jjOrJEx8tfAF8wnWb74OO/Gg+tTlG9fM+T+0OLGLdbd8X0i1A0i7wRyfG+SW3HVdt5783j7EjyYQGmbiO2ag==",
+  "dgSpecHash": "jrkbNeRjFbhpK8UJVnXzQ/IXYTDL14+CJlilyb/okqEmqU/v8InDNDVThcvhcA9oy0Tt4JrpX1qaCsGrHjZbsQ==",
   "success": true,
-  "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+  "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
   "expectedPackageFiles": [
     "/Users/leonardoillanez/.nuget/packages/azure.core/1.35.0/azure.core.1.35.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/azure.identity/1.10.3/azure.identity.1.10.3.nupkg.sha512",
