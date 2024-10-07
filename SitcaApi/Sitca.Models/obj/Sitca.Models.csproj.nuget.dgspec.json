@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj": {}
+    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {}
   },
   "projects": {
-    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+        "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
         "projectName": "Sitca.Models",
-        "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+        "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
         "packagesPath": "/Users/leonardoillanez/.nuget/packages/",
-        "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/obj/",
+        "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/leonardoillanez/.nuget/NuGet/NuGet.Config"

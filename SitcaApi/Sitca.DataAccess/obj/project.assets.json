@@ -10152,11 +10152,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "projectName": "Sitca.DataAccess",
-      "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "packagesPath": "/Users/leonardoillanez/.nuget/packages/",
-      "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.DataAccess/obj/",
+      "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/leonardoillanez/.nuget/NuGet/NuGet.Config"
@@ -10172,11 +10172,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
-              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj"
+            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
             },
-            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj": {
-              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj"
+            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
+              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj"
             }
           }
         }

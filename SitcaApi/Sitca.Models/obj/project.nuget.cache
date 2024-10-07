@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "we228LQ6blt6sQ6NqwoGr68LDK/esmmZ/GzErYLdCsS50UzjzOPIzuZUPdB0UwMta+RXyBE5knty8ruPch6y6Q==",
+  "dgSpecHash": "CxAMdO9zhD8KhDkO5z592fx7zjxwtOVk7FBiapJ9cAVfTYuaqnCXb4KATYJzbflxkHIn94XzuAJ5pMd4C/DG2A==",
   "success": true,
-  "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+  "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
   "expectedPackageFiles": [
     "/Users/leonardoillanez/.nuget/packages/microsoft.aspnetcore.antiforgery/2.2.0/microsoft.aspnetcore.antiforgery.2.2.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/microsoft.aspnetcore.authentication.abstractions/2.2.0/microsoft.aspnetcore.authentication.abstractions.2.2.0.nupkg.sha512",

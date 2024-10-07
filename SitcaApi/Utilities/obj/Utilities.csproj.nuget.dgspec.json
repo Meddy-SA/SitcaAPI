@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj": {}
+    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {}
   },
   "projects": {
-    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj": {
+    "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj",
+        "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
         "projectName": "Utilities",
-        "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/Utilities.csproj",
+        "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
         "packagesPath": "/Users/leonardoillanez/.nuget/packages/",
-        "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/NETCORE/SitcaApi/Utilities/obj/",
+        "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/leonardoillanez/.nuget/NuGet/NuGet.Config"
