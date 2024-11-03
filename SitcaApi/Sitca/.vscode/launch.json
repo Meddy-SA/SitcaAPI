@@ -1,9 +1,8 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "name": ".NET Back-end",
+      "name": ".NET Back-end Sitca",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -13,12 +12,11 @@
       "stopAtEntry": false,
       "serverReadyAction": {
         "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "%s/swagger/index.html"
+        "pattern": "\\bNow listening on:\\s+(http?://\\S+)"
       },
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "https://localhost:44303;http://localhost:5000"
+        "ASPNETCORE_URLS": "http://localhost:5000"
       },
       "sourceFileMap": {
         "/Views": "${workspaceFolder}/"

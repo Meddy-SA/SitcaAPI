@@ -1,11 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "S0VUAjDy8AUeb2Sd3fO6KcgvIn7l03CcFElAqQ7tgluGNuntxj76faErKXfL03nZtaxoYycJjIvtklLUiFaQ8w==",
+  "dgSpecHash": "7rCSaRLZ4Jtxbep+nhnMyYnGOfRSeGhZIinmZYskLrU917xACRblpm4I/ScA0vxhli3lCwoikfl29KQcnNsCEg==",
   "success": true,
   "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
-  "expectedPackageFiles": [
-    "/Users/leonardoillanez/.nuget/packages/microsoft.netcore.platforms/1.1.0/microsoft.netcore.platforms.1.1.0.nupkg.sha512",
-    "/Users/leonardoillanez/.nuget/packages/netstandard.library/2.0.3/netstandard.library.2.0.3.nupkg.sha512"
-  ],
+  "expectedPackageFiles": [],
   "logs": []
 }

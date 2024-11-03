@@ -1,33 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace Sitca.Models.ViewModels;
 
-namespace Sitca.Models.ViewModels
+public class DatosCapacitacion
 {
-    public class DatosCapacitacion
-    {
-        public string nombre { get; set; }
-        public string descripcion { get; set; }
-        public string tipo { get; set; }
-        public string url { get; set; }
-    }
-
-    public class ArchivoVm
-    {
-        public int Id { get; set; }
-        public string  Ruta { get; set; }
-        public string Nombre { get; set; }
-        public string Tipo { get; set; }
-        public string FechaCarga { get; set; }
-        public string Cargador { get; set; }
-
-        public bool Propio { get; set; }
-    }
-
-    public class ArchivoFilterVm
-    {
-        public int? idPregunta { get; set; }
-        public int? idCuestionario { get; set; }
-        public string type { get; set; }        
-    }
+  public string nombre { get; set; } = null!;
+  public string descripcion { get; set; } = null!;
+  public string tipo { get; set; } = null!;
+  public string url { get; set; } = null!;
 }
+
+public class ArchivoVm
+{
+  public int Id { get; set; }
+  public string Ruta { get; set; } = null!;
+  public string Nombre { get; set; } = null!;
+  public string Tipo { get; set; } = null!;
+  public string FechaCarga { get; set; } = null!;
+  public string Cargador { get; set; } = null!;
+
+  public bool Propio { get; set; }
+}
+
+public class ArchivoFilterVm
+{
+  public int? idPregunta { get; set; }
+  public int? idCuestionario { get; set; }
+  public string type { get; set; } = null!;
+}
+

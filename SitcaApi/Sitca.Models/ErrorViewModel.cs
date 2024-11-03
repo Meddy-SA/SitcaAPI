@@ -1,11 +1,10 @@
-using System;
 
 namespace Sitca.Models
 {
-    public class ErrorViewModel
-    {
-        public string RequestId { get; set; }
+  public class ErrorViewModel
+  {
+    public string RequestId { get; set; } = null!;
 
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-    }
+    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+  }
 }

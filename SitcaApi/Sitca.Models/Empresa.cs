@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Sitca.Models
@@ -10,40 +8,39 @@ namespace Sitca.Models
     [Key]
     public int Id { get; set; }
     [StringLength(200)]
-    public string Nombre { get; set; }
-
+    public string Nombre { get; set; } = null!;
 
     [StringLength(150)]
-    public string NombreRepresentante { get; set; }
+    public string NombreRepresentante { get; set; } = null!;
 
     [StringLength(60)]
-    public string CargoRepresentante { get; set; }
+    public string CargoRepresentante { get; set; } = null!;
 
     [StringLength(50)]
-    public string Ciudad { get; set; }
+    public string Ciudad { get; set; } = null!;
 
     [StringLength(15)]
-    public string IdNacional { get; set; }
+    public string IdNacional { get; set; } = null!;
 
     [StringLength(15)]
-    public string Telefono { get; set; }
+    public string Telefono { get; set; } = null!;
 
     [StringLength(150)]
-    public string Calle { get; set; }
+    public string Calle { get; set; } = null!;
     [StringLength(60)]
-    public string Numero { get; set; }
+    public string Numero { get; set; } = null!;
     [StringLength(150)]
-    public string Direccion { get; set; }
+    public string Direccion { get; set; } = null!;
     [StringLength(20)]
-    public string Longitud { get; set; }
+    public string Longitud { get; set; } = null!;
     [StringLength(20)]
-    public string Latitud { get; set; }
+    public string Latitud { get; set; } = null!;
 
     [StringLength(50)]
-    public string Email { get; set; }
+    public string Email { get; set; } = null!;
 
     [StringLength(100)]
-    public string WebSite { get; set; }
+    public string WebSite { get; set; } = null!;
 
     //public NetTopologySuite.Geometries.Point Location { get; set; }
 
@@ -58,25 +55,21 @@ namespace Sitca.Models
 
     public int? PaisId { get; set; }
 
-    public string ResultadoSugerido { get; set; }
-
-    public string ResultadoActual { get; set; }
+    public string ResultadoSugerido { get; set; } = null!;
+    public string ResultadoActual { get; set; } = null!;
 
     public DateTime? ResultadoVencimiento { get; set; }
 
     public bool EsHomologacion { get; set; }
 
-    public Pais Pais { get; set; }
+    public Pais Pais { get; set; } = null!;
 
     public DateTime? FechaAutoNotif { get; set; }
 
-    public ICollection<TipologiasEmpresa> Tipologias { get; set; }
-
-    public ICollection<Archivo> Archivos { get; set; }
-
-    public ICollection<ProcesoCertificacion> Certificaciones { get; set; }
-
-    public ICollection<Homologacion> Homologaciones { get; set; }
+    public ICollection<TipologiasEmpresa> Tipologias { get; set; } = [];
+    public ICollection<Archivo> Archivos { get; set; } = [];
+    public ICollection<ProcesoCertificacion> Certificaciones { get; set; } = [];
+    public ICollection<Homologacion> Homologaciones { get; set; } = [];
 
   }
 }

@@ -1,35 +1,37 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Sitca.DataAccess.Data.Repository.IRepository
 {
-    public interface IUnitOfWork:IDisposable
-    {
-        IItemTemplateRepository ItemTemplate { get; }
+  public interface IUnitOfWork : IDisposable
+  {
+    IItemTemplateRepository ItemTemplate { get; }
 
-        IEmpresaRepository Empresa { get; }
-        IModuloRepository Modulo { get; }
+    IEmpresaRepository Empresa { get; }
 
-        IPreguntasRepository Pregunta { get; }
+    IModuloRepository Modulo { get; }
 
-        IArchivoRepository Archivo { get; }
+    IPreguntasRepository Pregunta { get; }
 
-        IUsersRepository Users { get; }
+    IArchivoRepository Archivo { get; }
 
-        ICertificacionRepository ProcesoCertificacion { get; }
+    IUsersRepository Users { get; }
 
-        IReporteRepository Reportes { get; }
+    ICertificacionRepository ProcesoCertificacion { get; }
 
-        INotificationRepository Notificacion { get; }
-        ICapacitacionesRepository Capacitaciones { get; }
+    IReporteRepository Reportes { get; }
 
-        ICompañiasAuditorasRepository CompañiasAuditoras { get; }
+    INotificationRepository Notificacion { get; }
 
-        ITipologiaRepository Tipologias { get; }
+    ICapacitacionesRepository Capacitaciones { get; }
 
-        IHomologacionRepository Homologacion { get; }
+    ICompañiasAuditorasRepository CompañiasAuditoras { get; }
 
-        void Save();
-    }
+    ITipologiaRepository Tipologias { get; }
+
+    IHomologacionRepository Homologacion { get; }
+
+    IAuthRepository Auth { get; }
+
+    void Save();
+  }
 }
