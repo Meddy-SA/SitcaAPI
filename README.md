@@ -63,3 +63,4 @@ dotnet run --project Sitca/
 La aplicación estará disponible en `https://localhost:5001` (o el puerto que haya configurado).
 
 
+    "ApiKey": "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",
