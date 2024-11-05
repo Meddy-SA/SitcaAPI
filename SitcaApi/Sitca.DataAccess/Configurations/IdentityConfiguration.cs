@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Sitca.Models;
 
-namespace Sitca.DataAccess.Extensions;
+namespace Sitca.DataAccess.Configurations;
 
 public static class IdentityConfiguration
 {

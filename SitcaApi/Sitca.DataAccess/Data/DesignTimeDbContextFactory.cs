@@ -18,7 +18,8 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 
     var configuration = new ConfigurationBuilder()
         .SetBasePath(mainProjectPath)
-        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddJsonFile("appsettings.json", optional: true)
+        .AddJsonFile("appsettings.Development.json", optional: true)
         .Build();
 
     var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
@@ -28,6 +29,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
     {
       throw new InvalidOperationException("No se encontró la cadena de conexión 'DefaultConnection' en appsettings.json");
     }
+
+    Console.WriteLine($"Usando cadena de conexión de: {(File.Exists(Path.Combine(mainProjectPath, "appsettings.Development.json")) ? "appsettings.Development.json" : "appsettings.json")}");
+    Console.WriteLine($"Cadena de conexión: {connectionString}");
 
     builder.UseSqlServer(connectionString);
 
