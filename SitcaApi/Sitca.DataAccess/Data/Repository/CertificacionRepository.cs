@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
@@ -78,12 +79,13 @@ namespace Sitca.DataAccess.Data.Repository
         };
         _db.ResultadoCertificacion.Add(resultado);
 
+        int toStatus = 8;
         var newStatus = new CertificacionStatusVm
         {
           CertificacionId = data.idProceso,
-          Status = "8 - Finalizado"
+          Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
         };
-        await ChangeStatus(newStatus, appUser, role);
+        await ChangeStatus(newStatus, toStatus);
 
         await _db.SaveChangesAsync();
       }
@@ -107,28 +109,27 @@ namespace Sitca.DataAccess.Data.Repository
         proceso.FechaSolicitudAuditoria = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        int toStatus = 4;
+
         var nuevoEstado = new CertificacionStatusVm
         {
           CertificacionId = proceso.Id,
-          Status = "4 - Para Auditar",
+          Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
         };
 
-        await ChangeStatus(nuevoEstado, appUser, role);
+        await ChangeStatus(nuevoEstado, toStatus);
         return proceso.Id;
       }
       catch
       {
         return 0;
       }
-
-
     }
 
     public async Task<CuestionarioDetailsMinVm> GenerarCuestionario(CuestionarioCreateVm data, string userGenerador, string role)
     {
       try
       {
-
         var cuestionario = new Cuestionario
         {
           FechaInicio = DateTime.UtcNow,
@@ -593,21 +594,14 @@ namespace Sitca.DataAccess.Data.Repository
       }).ToListAsync();
     }
 
-    public async Task<bool> ChangeStatus(CertificacionStatusVm data, ApplicationUser appUser, string role)
+    public async Task<bool> ChangeStatus(CertificacionStatusVm data, int status)
     {
-      //0 - Inicial
-      //1 - Para Asesorar
-      //2 - Asesoria en Proceso
-      //3 - Asesoria Finalizada
-      //4 - Para Auditar
-      //5 - Auditoria en Proceso
-      //6 - Auditoria Finalizada
-      //7 - En revisión de CTC
-      //8 - Finalizado
-      var certificacion = await _db.ProcesoCertificacion.Include("Empresa").FirstOrDefaultAsync(s => s.Id == data.CertificacionId);
+      var certificacion = await _db.ProcesoCertificacion
+        .Include("Empresa")
+        .FirstOrDefaultAsync(s =>
+            s.Id == data.CertificacionId);
       certificacion.Status = data.Status;
 
-      var status = Int32.Parse(data.Status[0].ToString());
       certificacion.Empresa.Estado = status;
 
       await _db.SaveChangesAsync();
@@ -692,24 +686,23 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<int> FinCuestionario(int idCuestionario, ApplicationUser appUser, string role)
     {
-      var cuestionario = await _db.Cuestionario.FirstOrDefaultAsync(s => s.Id == idCuestionario);
+      var cuestionario = await _db.Cuestionario
+        .FirstOrDefaultAsync(s => s.Id == idCuestionario);
 
       cuestionario.FechaFinalizado = DateTime.UtcNow;
       cuestionario.Resultado = 1;
 
-      var certificacion = cuestionario.ProcesoCertificacionId;
-
       await _db.SaveChangesAsync();
+
+      int toStatus = role == "Asesor" ? 3 : 6;
 
       var status = new CertificacionStatusVm
       {
         CertificacionId = cuestionario.ProcesoCertificacionId ?? 0,
-        Status = role == "Asesor" ? "3 - Asesoria Finalizada" : "6 - Auditoria Finalizada"
+        Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
       };
 
-
-
-      await ChangeStatus(status, appUser, role);
+      await ChangeStatus(status, toStatus);
       if (role == "Auditor")
       {
         var res = await SaveResultadoSugerido(idCuestionario, appUser, role);

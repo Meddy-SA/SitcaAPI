@@ -226,12 +226,15 @@ namespace Sitca.Controllers
     [Authorize]
     [HttpPost]
     [Route("ChangeStatus")]
-    public async Task<IActionResult> ChangeStatus(CertificacionStatusVm data)
+    public async Task<ActionResult> ChangeStatus(CertificacionStatusVm data)
     {
-      var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+      var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
       //recibir empresa, asesor y obtener el usuario que la genera
-      var result = await _unitOfWork.ProcesoCertificacion.ChangeStatus(data, appUser, role);
+
+      // Busca el estado y devuelve el id
+      int toStatus = StatusConstants.GetStatusId(data.Status, "es");
+      var result = await _unitOfWork.ProcesoCertificacion.ChangeStatus(data, toStatus);
 
       return Ok();
     }

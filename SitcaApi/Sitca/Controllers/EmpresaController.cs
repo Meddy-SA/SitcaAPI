@@ -347,7 +347,8 @@ namespace Sitca.Controllers
     {
       var appUser = await this.GetCurrentUserAsync(_userManager);
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      int EmpresaId = appUser.EmpresaId ?? 0;
+      var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
 
       return Ok(JsonConvert.SerializeObject(res, Formatting.None,
                   new JsonSerializerSettings()
@@ -356,40 +357,33 @@ namespace Sitca.Controllers
                   }));
     }
 
-    [Route("Details")]
-    [Authorize(Roles = "TecnicoPais, Admin, Asesor, Auditor,CTC")]
-    [HttpGet]
-    public async Task<IActionResult> Details(int Id)
+    [Authorize(Roles = "TecnicoPais, Admin, Asesor, Auditor, CTC")]
+    [HttpGet("Details/{id}")]
+    public async Task<ActionResult<EmpresaUpdateVm>> Details(int Id)
     {
+      const int toStatus = 7;
       var role = User.Claims.ToList()[2].Value;
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
 
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      var res = await _unitOfWork.Empresa.Data(Id, appUser);
 
-      if (User.IsInRole("CTC") && res.CertificacionActual != null && res.Estado < 7)
+      if (User.IsInRole("CTC") && res.CertificacionActual != null && res.Estado < toStatus)
       {
         //cambiar estado en certificacion
         var status = new CertificacionStatusVm
         {
           CertificacionId = res.CertificacionActual.Id,
-          Status = "7 - En revisión de CTC"
+          Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
         };
-        await _unitOfWork.ProcesoCertificacion.ChangeStatus(status, appUser, role);
+        await _unitOfWork.ProcesoCertificacion.ChangeStatus(status, toStatus);
 
-        res.Estado = 7;
-        res.CertificacionActual.Status = Utilities.Utilities.CambiarIdiomaEstado("7 - En revisión de CTC", appUser.Lenguage);
+        res.Estado = toStatus;
+        res.CertificacionActual.Status = StatusConstants.GetLocalizedStatus(toStatus, appUser.Lenguage);
       }
 
-      //var test = await _unitOfWork.ProcesoCertificacion.SaveResultadoSugerido(35, appUser, role);
-
-      return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
+      return Ok(res);
     }
 
     [Route("Estadisticas")]

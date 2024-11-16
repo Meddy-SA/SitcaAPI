@@ -612,13 +612,11 @@ namespace Sitca.DataAccess.Data.Repository
       {
         return null;
       }
-
     }
 
-    public async Task<EmpresaUpdateVm> Data(ApplicationUser user)
+    public async Task<EmpresaUpdateVm> Data(int empresaId, ApplicationUser user)
     {
       ArgumentNullException.ThrowIfNull(user, nameof(user));
-      ArgumentNullException.ThrowIfNull(user.EmpresaId, nameof(user.EmpresaId));
       try
       {
         var empresa = await _db.Empresa
@@ -627,12 +625,12 @@ namespace Sitca.DataAccess.Data.Repository
           .Include(t => t.Tipologias)
           .Include(x => x.Archivos.Where(a => a.Activo))
             .ThenInclude(c => c.UsuarioCarga)
-          .FirstOrDefaultAsync(s => s.Id == user.EmpresaId && s.Active);
+          .FirstOrDefaultAsync(s => s.Id == empresaId && s.Active);
 
         if (empresa == null)
         {
-          _logger.LogWarning("Empresa no encontrada o inactiva para el usuario {UserId}", user.Id);
-          throw new NotFoundException($"La empresa {user.EmpresaId} no existe o está inactiva.");
+          _logger.LogWarning("Empresa no encontrada o inactiva: {EmpresaId}", empresaId);
+          throw new NotFoundException($"La empresa {empresaId} no existe o está inactiva.");
         }
 
         // Obtener tipologías
@@ -651,7 +649,7 @@ namespace Sitca.DataAccess.Data.Repository
         var result = resultBuilder.Build();
 
         // Obtener y procesar certificaciones
-        await EnrichWithCertificationsAsync(result, user);
+        await EnrichWithCertificationsAsync(result, user, empresa.Id);
 
         return result;
       }
@@ -666,9 +664,9 @@ namespace Sitca.DataAccess.Data.Repository
       }
     }
 
-    private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user)
+    private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user, int companyId)
     {
-      result.Certificaciones = await GetCertificacionesAsync(user);
+      result.Certificaciones = await GetCertificacionesAsync(user, companyId);
 
       if (result.Certificaciones.Any())
       {
@@ -716,7 +714,7 @@ namespace Sitca.DataAccess.Data.Repository
           }).ToList();
     }
 
-    private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(ApplicationUser user)
+    private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(ApplicationUser user, int companyId)
     {
       var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
 
@@ -726,7 +724,7 @@ namespace Sitca.DataAccess.Data.Repository
           .Include(x => x.AsesorProceso)
           .Include(x => x.AuditorProceso)
           .Include(x => x.UserGenerador)
-          .Where(s => s.EmpresaId == user.EmpresaId)
+          .Where(s => s.EmpresaId == companyId)
           .Select(x => new CertificacionDetailsVm
           {
             Status = Utilities.Utilities.CambiarIdiomaEstado(x.Status, user.Lenguage),

@@ -22,3 +22,5 @@ SitcaApi/Sitca/appsettings.json
 /Sitca/appsettings.json
 /SitcaApi/Sitca/appsettings.json
 SitcaApi/Sitca/appsettings.json
+SitcaApi/Sitca/bin/Debug/net8.0
+SitcaApi/Sitca.DataAccess/obj/Debug/net8.0

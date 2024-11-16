@@ -59,12 +59,16 @@ public class EmpresaUpdateBuilder
 
   public EmpresaUpdateBuilder WithTipologias(List<Tipologia> allTipologias)
   {
-    _vm.Tipologias = allTipologias.Select(x => new CommonVm
-    {
-      name = _user.Lenguage == "es" ? x.Name : x.NameEnglish,
-      id = x.Id,
-      isSelected = _empresa.Tipologias.Any(z => z.IdTipologia == x.Id)
-    }).ToList();
+    _vm.Tipologias = allTipologias
+      .Select(x =>
+        new CommonVm
+        {
+          name = _user.Lenguage == "es" ? x.Name : x.NameEnglish,
+          id = x.Id,
+          isSelected = _empresa.Tipologias
+            .Any(z =>
+                z.IdTipologia == x.Id)
+        }).ToList();
     return this;
   }
 

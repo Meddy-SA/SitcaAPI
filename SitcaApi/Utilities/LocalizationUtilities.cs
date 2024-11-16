@@ -69,4 +69,34 @@ public static class LocalizationUtilities
 
     return string.Empty;
   }
+
+  public static int? GetStatusIdExact(string statusText, string lang)
+  {
+    if (string.IsNullOrWhiteSpace(statusText))
+      return null;
+
+    return StatusTranslations
+        .FirstOrDefault(x =>
+            (lang == "es" && x.Value.Es.Equals(statusText, StringComparison.OrdinalIgnoreCase)) ||
+            (lang == "en" && x.Value.En.Equals(statusText, StringComparison.OrdinalIgnoreCase)))
+        .Key;
+  }
+
+  public static int? GetStatusId(string statusText, string lang)
+  {
+    if (string.IsNullOrWhiteSpace(statusText))
+      return null;
+
+    // Normalizar el texto de búsqueda removiendo números y guiones al inicio
+    var normalizedSearchText = statusText.Trim()
+        .Replace("- ", "")
+        .TrimStart("0123456789 -".ToCharArray())
+        .Trim();
+
+    return StatusTranslations
+        .FirstOrDefault(x =>
+            (lang == "es" && x.Value.Es.EndsWith(normalizedSearchText, StringComparison.OrdinalIgnoreCase)) ||
+            (lang == "en" && x.Value.En.EndsWith(normalizedSearchText, StringComparison.OrdinalIgnoreCase)))
+        .Key;
+  }
 }

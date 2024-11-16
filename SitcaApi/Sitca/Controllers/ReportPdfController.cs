@@ -60,7 +60,7 @@ namespace Sitca.Controllers
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      var res = await _unitOfWork.Empresa.Data(empresaId, appUser);
       res.Language = appUser.Lenguage;
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
       try
@@ -205,7 +205,7 @@ namespace Sitca.Controllers
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      var res = await _unitOfWork.Empresa.Data(empresaId, appUser);
       res.CertificacionActual.FechaFin = DateTime.Parse(res.CertificacionActual.FechaFin).ToString("dd/MM/yyyy");
       res.Language = appUser.Lenguage;
       var MesHoy = DateTime.Now.ToString("MMMM", CultureInfo.CreateSpecificCulture(res.Language));
@@ -261,7 +261,8 @@ namespace Sitca.Controllers
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      int EmpresaId = appUser.EmpresaId ?? 0;
+      var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
       try
       {
@@ -285,7 +286,8 @@ namespace Sitca.Controllers
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.Data(appUser);
+      int EmpresaId = appUser.EmpresaId ?? 0;
+      var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
 
       res.CertificacionActual.TipologiaName = res.Tipologias.First(s => s.isSelected).name;
@@ -311,7 +313,9 @@ namespace Sitca.Controllers
     {
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
-      var res = await _unitOfWork.Empresa.Data(appUser);
+
+      int EmpresaId = appUser.EmpresaId ?? 0;
+      var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
 
       res.CertificacionActual.TipologiaName = res.Tipologias.First(s => s.isSelected).name;

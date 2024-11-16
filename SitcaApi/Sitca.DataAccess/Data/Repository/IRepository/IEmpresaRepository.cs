@@ -33,7 +33,7 @@ public interface IEmpresaRepository : IRepository<Empresa>
 
   Task<List<EstadisticaItemVm>> EstadisticasCtc(int idPais, string lang);
 
-  Task<EmpresaUpdateVm> Data(ApplicationUser user);
+  Task<EmpresaUpdateVm> Data(int companyId, ApplicationUser user);
 
   Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter);
 
