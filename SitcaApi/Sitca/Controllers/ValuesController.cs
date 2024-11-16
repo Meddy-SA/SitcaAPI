@@ -1,8 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.Extensions;
+using Sitca.Models.Constants;
+using Sitca.Models.ViewModels;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Sitca.Controllers
 {
@@ -11,52 +16,62 @@ namespace Sitca.Controllers
   public class ValuesController : ControllerBase
   {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<ValuesController> _logger;
 
-    public ValuesController(IUnitOfWork unitOfWork)
+    public ValuesController(
+      IUnitOfWork unitOfWork,
+      ILogger<ValuesController> logger)
     {
-      _unitOfWork = unitOfWork;
+      _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+      _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    [HttpGet]
-    [Route("tipologias")]
-    public async Task<IActionResult> Tipologias(string lang = "es")
+    [HttpGet("tipologias")]
+    public async Task<ActionResult<List<CommonVm>>> Tipologias(string lang = LanguageCodes.Spanish)
     {
-      var result = await _unitOfWork.Tipologias.SelectList(lang);
-      return Ok(result);
+      try
+      {
+        var result = await _unitOfWork.Tipologias.SelectList(lang);
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        return this.HandleError(ex, "Distintivos", lang);
+      }
     }
 
-    [HttpGet]
-    [Route("estados")]
-    public async Task<IActionResult> Estados(string lang = "es")
+    [HttpGet("estados")]
+    public async Task<ActionResult<List<CommonVm>>> Estados(string lang = LanguageCodes.Spanish)
     {
-      var result = await _unitOfWork.ProcesoCertificacion.GetStatusList(lang);
-      return Ok(result);
+      try
+      {
+        var result = await _unitOfWork.ProcesoCertificacion.GetStatusList(lang);
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        return this.HandleError(ex, "Distintivos", lang);
+      }
     }
 
-    [HttpGet]
-    [Route("distintivos")]
-    public async Task<IActionResult> GetDistintivos(string lang = "es")
+    [HttpGet("distintivos")]
+    public async Task<ActionResult<List<CommonVm>>> GetDistintivos(string lang = LanguageCodes.Spanish)
     {
-      var result = await _unitOfWork.ProcesoCertificacion.GetDistintivos(lang);
-      return Ok(result);
+      try
+      {
+        var result = await _unitOfWork.ProcesoCertificacion.GetDistintivos(lang);
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        return this.HandleError(ex, "Distintivos", lang);
+      }
     }
 
-    // POST api/<ValuesController>
-    [HttpPost]
-    public void Post([FromBody] string value)
+    private ActionResult<List<CommonVm>> HandleError(Exception ex, string operation, string lang)
     {
-    }
-
-    // PUT api/<ValuesController>/5
-    [HttpPut("{id}")]
-    public void Put(int id, [FromBody] string value)
-    {
-    }
-
-    // DELETE api/<ValuesController>/5
-    [HttpDelete("{id}")]
-    public void Delete(int id)
-    {
+      _logger.LogError(ex, "Error {Operation} with language {Lang}", operation, lang);
+      return this.HandleResponse<List<CommonVm>>(null, false, StatusCodes.Status500InternalServerError);
     }
   }
 }

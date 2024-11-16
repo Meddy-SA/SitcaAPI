@@ -38,6 +38,7 @@ namespace Sitca.DataAccess.Data
     public DbSet<Modulo> Modulo { get; set; }
     // N
     public DbSet<Notificacion> Notificacion { get; set; }
+    public DbSet<NotificacionesEnviadas> NotificacionesEnviadas { get; set; }
     public DbSet<NotificationCustomUsers> NotificationCustomUsers { get; set; }
     public DbSet<NotificationGroups> NotificationGroups { get; set; }
     // P

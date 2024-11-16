@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Pdf;
 using Sitca.DataAccess.Services.ViewToString;
+using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.ViewModels;
 using System;
@@ -56,12 +57,10 @@ namespace Sitca.Controllers
     [Route("GenerarRecomendacionCTC")]
     public async Task<IActionResult> GenerarRecomendacionCTC(int empresaId)
     {
+      var appUser = await this.GetCurrentUserAsync(_userManager);
+      if (appUser == null) return Unauthorized();
 
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-      var IdentityUser = await _userManager.FindByEmailAsync(user);
-      ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-      var res = await _unitOfWork.Empresa.Data(empresaId, appUser.Id);
+      var res = await _unitOfWork.Empresa.Data(appUser);
       res.Language = appUser.Lenguage;
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
       try
@@ -203,12 +202,10 @@ namespace Sitca.Controllers
     [Route("GenerarDictamen")]
     public async Task<IActionResult> GenerarDictamen(int empresaId)
     {
+      var appUser = await this.GetCurrentUserAsync(_userManager);
+      if (appUser == null) return Unauthorized();
 
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-      var IdentityUser = await _userManager.FindByEmailAsync(user);
-      ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-      var res = await _unitOfWork.Empresa.Data(empresaId, appUser.Id);
+      var res = await _unitOfWork.Empresa.Data(appUser);
       res.CertificacionActual.FechaFin = DateTime.Parse(res.CertificacionActual.FechaFin).ToString("dd/MM/yyyy");
       res.Language = appUser.Lenguage;
       var MesHoy = DateTime.Now.ToString("MMMM", CultureInfo.CreateSpecificCulture(res.Language));
@@ -261,14 +258,10 @@ namespace Sitca.Controllers
     [HttpGet]
     public async Task<IActionResult> Get()
     {
+      var appUser = await this.GetCurrentUserAsync(_userManager);
+      if (appUser == null) return Unauthorized();
 
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-
-      var IdentityUser = await _userManager.FindByEmailAsync(user);
-
-      ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-      var res = await _unitOfWork.Empresa.Data(appUser.EmpresaId ?? 0, appUser.Id);
+      var res = await _unitOfWork.Empresa.Data(appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
       try
       {
@@ -289,13 +282,10 @@ namespace Sitca.Controllers
     //[Authorize]
     public async Task<IActionResult> SolicitudCertificacion()
     {
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
+      var appUser = await this.GetCurrentUserAsync(_userManager);
+      if (appUser == null) return Unauthorized();
 
-      var IdentityUser = await _userManager.FindByEmailAsync(user);
-
-      ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-      var res = await _unitOfWork.Empresa.Data(appUser.EmpresaId ?? 0, IdentityUser.Id);
+      var res = await _unitOfWork.Empresa.Data(appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
 
       res.CertificacionActual.TipologiaName = res.Tipologias.First(s => s.isSelected).name;
@@ -319,11 +309,9 @@ namespace Sitca.Controllers
     //[Authorize]
     public async Task<IActionResult> SolicitudReCertificacion()
     {
-      var user = User.Claims.First().Value;
-      var IdentityUser = await _userManager.FindByEmailAsync(user);
-      ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-      var res = await _unitOfWork.Empresa.Data(appUser.EmpresaId ?? 0, IdentityUser.Id);
+      var appUser = await this.GetCurrentUserAsync(_userManager);
+      if (appUser == null) return Unauthorized();
+      var res = await _unitOfWork.Empresa.Data(appUser);
       res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
 
       res.CertificacionActual.TipologiaName = res.Tipologias.First(s => s.isSelected).name;

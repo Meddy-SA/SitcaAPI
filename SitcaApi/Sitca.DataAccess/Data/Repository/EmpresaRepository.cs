@@ -6,22 +6,47 @@ using Utilities;
 using Sitca.Models.ViewModels;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Sitca.Models.DTOs;
+using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Data.Repository.Constants;
+using Sitca.DataAccess.Data.Repository.Specifications;
+using Sitca.DataAccess.Middlewares;
+using Sitca.DataAccess.Builders;
+using Sitca.DataAccess.Services.Notification;
 
 namespace Sitca.DataAccess.Data.Repository
 {
   public class EmpresaRepository : Repository<Empresa>, IEmpresaRepository
   {
     private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<EmpresaRepository> _logger;
 
-    public EmpresaRepository(ApplicationDbContext db, ILogger<EmpresaRepository> logger) : base(db)
+    public EmpresaRepository(
+        ApplicationDbContext db,
+        INotificationService notificationService,
+        ILogger<EmpresaRepository> logger) : base(db)
     {
       _db = db;
+      _notificationService = notificationService;
       _logger = logger;
+    }
+
+    public async Task<int> GetCompanyStatusAsync(int CompanyId)
+    {
+      var proccess = await _db.Empresa
+        .AsNoTracking()
+        .FirstOrDefaultAsync(e => e.Id == CompanyId);
+
+      if (proccess == null)
+      {
+        return 0;
+      }
+
+      return proccess.Estado == null ? 0 : (int)proccess.Estado;
     }
 
 
@@ -114,41 +139,82 @@ namespace Sitca.DataAccess.Data.Repository
       return empresa.Id;
     }
 
-
-
-    public List<EmpresaVm> GetList(int? idEstado, int idPais = 0, int idTipologia = 0, string q = null, string leng = "es")
+    public async Task<List<EmpresaVm>> GetCompanyListAsync(CompanyFilterDTO filter, string language = "es")
     {
-      var empresas = _db.Empresa.Include(x => x.Tipologias).Include(s => s.Certificaciones).Where(x => x.Nombre != null
-      && (x.PaisId == idPais || idPais == 0)
-      && !x.EsHomologacion
-      && (x.Estado == idEstado || idEstado == null)
-      && (idTipologia == 0 || (x.Tipologias.Any(z => z.IdTipologia == idTipologia)))
-      );
-
-      if (q != null)
+      try
       {
-        empresas = empresas.Where(s => s.Nombre.Contains(q));
+        var query = _db.Empresa
+          .AsNoTracking()
+          .Include(x => x.Pais)
+          .Include(x => x.Tipologias)
+              .ThenInclude(t => t.Tipologia)
+          .Include(x => x.Certificaciones)
+              .ThenInclude(c => c.Resultados)
+                  .ThenInclude(r => r.Distintivo)
+          .Where(x => x.Nombre != null && !x.EsHomologacion);
+
+
+        // Aplicar filtros
+        Distintivo distintivo = null;
+        if (filter.DistinctiveId > 0)
+        {
+          distintivo = await _db.Distintivo
+            .AsNoTracking()
+            .Where(d => d.Id == filter.DistinctiveId)
+            .FirstOrDefaultAsync();
+        }
+        query = ApplyFilters(query, filter, distintivo);
+
+        var companies = await query
+          .Select(x => new EmpresaVm
+          {
+            Id = x.Id,
+            Nombre = x.Nombre,
+            Certificacion = x.Certificaciones
+                  .OrderByDescending(c => c.Id)
+                  .Select(c => c.Id.ToString())
+                  .FirstOrDefault(),
+            Pais = x.Pais.Name,
+            Recertificacion = x.Certificaciones.Count > 1 || x.Certificaciones.Any(s => s.Recertificacion),
+            Status = ((int)x.Estado).ToLocalizedString(language),
+            Responsable = _db.ApplicationUser
+                  .Where(s => s.EmpresaId == x.Id)
+                  .Select(s => s.FirstName)
+                  .FirstOrDefault(),
+            Tipologias = x.Tipologias.Select(z => language == "es"
+                ? z.Tipologia.Name
+                : z.Tipologia.NameEnglish)
+                  .ToList(),
+            Distintivo = x.ResultadoActual,
+          })
+          .ToListAsync();
+        return companies;
       }
-
-      var result = empresas.Select(x => new EmpresaVm
+      catch (Exception ex)
       {
-        Nombre = x.Nombre,
-        Certificacion = x.Certificaciones.Any() ? x.Certificaciones.First().Id.ToString() : null,
-        Pais = x.Pais.Name,
-        Id = x.Id,
-        Recertificacion = x.Certificaciones.Count > 1 || x.Certificaciones.Any(s => s.Recertificacion),
-        Status = x.Estado.ToString(),
-        Responsable = _db.ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id).FirstName,
-        Tipologias = x.Tipologias.Any() ? x.Tipologias.Select(z => leng == "es" ? z.Tipologia.Name : z.Tipologia.NameEnglish).ToList() : null
-      }).ToList();
-
-
-      foreach (var item in result)
-      {
-        item.Status = item.Status.ToDecimal().GetEstado(leng);
+        _logger.LogError(ex, "Error getting company list with filter {@Filter}", filter);
+        throw;
       }
+    }
 
-      return result;
+    private static IQueryable<Empresa> ApplyFilters(IQueryable<Empresa> query, CompanyFilterDTO filter, Distintivo distintivo = null)
+    {
+      if (filter.CountryId > 0)
+        query = query.Where(x => x.PaisId == filter.CountryId);
+
+      if (filter.StatusId.HasValue)
+        query = query.Where(x => x.Estado == filter.StatusId);
+
+      if (filter.TypologyId > 0)
+        query = query.Where(x => x.Tipologias.Any(z => z.IdTipologia == filter.TypologyId));
+
+      if (!string.IsNullOrWhiteSpace(filter.Name))
+        query = query.Where(s => s.Nombre.Contains(filter.Name));
+
+      if (distintivo != null)
+        query = query.Where(x => x.ResultadoActual == distintivo.Name);
+
+      return query;
     }
 
     public List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data)
@@ -249,13 +315,6 @@ namespace Sitca.DataAccess.Data.Repository
       foreach (var item in result)
       {
         item.Status = item.Status.ToDecimal().GetEstado(data.lang);
-        //if(item.Certificacion == "Green Badge")
-        //{
-        //    if (item.Certificacion.ToLower() == data.certificacion.ToLower())
-        //    {
-        //        var a = 1;
-        //    }
-        //}
       }
 
       if (data.certificacion != "Todas")
@@ -337,63 +396,107 @@ namespace Sitca.DataAccess.Data.Repository
       return listaEmpresas;
     }
 
-    public async Task<List<EmpresaVm>> ListForRole(ApplicationUser user, string role)
+    public async Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter)
     {
-
-      if (role == "Asesor")
+      try
       {
-        var empresas = _db.ProcesoCertificacion.Include(g => g.Empresa).ThenInclude(x => x.Tipologias)
-            .Where(s => s.AsesorId == user.Id && s.Status != "8 - Finalizado" && !s.Empresa.EsHomologacion).Select(x => new EmpresaVm
-            {
-              Id = x.EmpresaId,
-              Status = Utilities.Utilities.GetEstado(x.Empresa.Estado, user.Lenguage),
-              Pais = x.Empresa.Pais.Name,
-              Nombre = x.Empresa.Nombre,
-              Recertificacion = x.Recertificacion,
-              Tipologias = x.Empresa.Tipologias.Any() ? x.Empresa.Tipologias.Select(z => z.Tipologia.Name).ToList() : null,
-              Responsable = x.Empresa.NombreRepresentante,
-            }).ToListAsync();
+        if (string.IsNullOrEmpty(role))
+          throw new ArgumentNullException(nameof(role));
 
-        return await empresas;
+        if (user == null)
+          throw new ArgumentNullException(nameof(user));
+
+        var query = _db.ProcesoCertificacion
+              .Include(x => x.Empresa)
+                  .ThenInclude(e => e.Pais)
+              .Include(x => x.Empresa)
+                  .ThenInclude(e => e.Tipologias)
+                      .ThenInclude(t => t.Tipologia)
+              .Include(x => x.Resultados)
+                  .ThenInclude(r => r.Distintivo)
+              .AsNoTracking();
+
+        // Aplicar filtros según el rol
+        query = role switch
+        {
+          RoleConstants.Asesor => EmpresaSpecifications.ForAsesor(query, user.Id),
+          RoleConstants.Auditor => EmpresaSpecifications.ForAuditor(query, user.Id),
+          RoleConstants.CTC => EmpresaSpecifications.ForCTC(query, user.PaisId ?? 0),
+          _ => throw new ArgumentException($"Role {role} not supported", nameof(role))
+        };
+
+        // Aplicar filtros adicionales
+        if (filter != null)
+        {
+          query = ApplyCompanyFilters(query, filter);
+        }
+
+        var companies = await query
+          .Select(x => new EmpresaVm
+          {
+            Id = x.EmpresaId,
+            Status = ((int)x.Empresa.Estado).ToLocalizedString(user.Lenguage),
+            Pais = x.Empresa.Pais.Name,
+            Nombre = x.Empresa.Nombre,
+            Recertificacion = x.Recertificacion,
+            Tipologias = x.Empresa.Tipologias.Any()
+                ? GetTipologias(x.Empresa.Tipologias, user.Lenguage)
+                : null,
+            Responsable = x.Empresa.NombreRepresentante,
+            Distintivo = x.Resultados
+                  .Where(r => r.Aprobado)
+                  .OrderByDescending(r => r.Id)
+                  .Select(r => user.Lenguage == "es" ? r.Distintivo.Name : r.Distintivo.NameEnglish)
+                  .FirstOrDefault() ?? "Sin Distintivo"
+          }).ToListAsync();
+
+        return companies;
       }
-
-      if (role == "Auditor")
+      catch (Exception ex)
       {
-        var empresas = _db.ProcesoCertificacion.Include("Empresa")
-            .Where(s => s.AuditorId == user.Id && s.Status != "8 - Finalizado").Select(x => new EmpresaVm
-            {
-              Id = x.EmpresaId,
-              Status = Utilities.Utilities.GetEstado(x.Empresa.Estado, user.Lenguage),
-              Pais = x.Empresa.Pais.Name,
-              Nombre = x.Empresa.Nombre,
-              Recertificacion = x.Recertificacion,
-              Tipologias = x.Empresa.Tipologias.Any() ? user.Lenguage == "es" ? x.Empresa.Tipologias.Select(z => z.Tipologia.Name).ToList() : x.Empresa.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList() : null,
-              Responsable = x.Empresa.NombreRepresentante,
-            }).ToListAsync();
-
-        return await empresas;
+        _logger.LogError(ex, "Error getting company list for role with filter {@Filter}", filter);
+        throw;
       }
-
-      if (role == "CTC")
-      {
-        var empresas = _db.ProcesoCertificacion.Include("Empresa")
-            .Where(s => s.Empresa.PaisId == user.PaisId && s.Empresa.Estado > 5 && s.Empresa.Estado < 8 && !s.Status.Contains("8")).Select(x => new EmpresaVm
-            {
-              Id = x.EmpresaId,
-              Status = Utilities.Utilities.GetEstado(x.Empresa.Estado, user.Lenguage),
-              Pais = x.Empresa.Pais.Name,
-              Recertificacion = x.Recertificacion,
-              Nombre = x.Empresa.Nombre,
-              Tipologias = x.Empresa.Tipologias.Any() ? user.Lenguage == "es" ? x.Empresa.Tipologias.Select(z => z.Tipologia.Name).ToList() : x.Empresa.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList() : null,
-              Responsable = x.Empresa.NombreRepresentante,
-            }).ToListAsync();
-
-        return await empresas;
-      }
-
-
-      return null;
     }
+
+    private static IQueryable<ProcesoCertificacion> ApplyCompanyFilters(
+        IQueryable<ProcesoCertificacion> query,
+        CompanyFilterDTO filter)
+    {
+      if (filter == null) return query;
+
+      if (filter.CountryId > 0)
+      {
+        query = query.Where(x => x.Empresa.PaisId == filter.CountryId);
+      }
+
+      if (filter.TypologyId > 0)
+        query = query.Where(x => x.Empresa.Tipologias.Any(z => z.IdTipologia == filter.TypologyId));
+
+      if (filter.DistinctiveId > 0)
+      {
+        query = query.Where(x => x.Resultados
+            .OrderByDescending(r => r.Id)
+            .Any(r => r.Aprobado && r.DistintivoId == filter.DistinctiveId));
+      }
+
+      if (!string.IsNullOrEmpty(filter.Name))
+      {
+        query = query.Where(x => x.Empresa.Nombre.Contains(filter.Name));
+      }
+
+      if (filter.StatusId.HasValue)
+      {
+        query = query.Where(x => x.Empresa.Estado == filter.StatusId.Value);
+      }
+
+      return query;
+    }
+
+    private static List<string> GetTipologias(IEnumerable<TipologiasEmpresa> tipologias, string language) =>
+    language == "es"
+        ? tipologias.Select(z => z.Tipologia.Name).ToList()
+        : tipologias.Select(z => z.Tipologia.NameEnglish).ToList();
 
     public async Task<bool> SolicitaAuditoria(int idEmpresa)
     {
@@ -512,107 +615,180 @@ namespace Sitca.DataAccess.Data.Repository
 
     }
 
-    public async Task<EmpresaUpdateVm> Data(int empresaId, string userId)
+    public async Task<EmpresaUpdateVm> Data(ApplicationUser user)
     {
-      var user = await _db.ApplicationUser.FindAsync(userId);
-
-      var empresa = await _db.Empresa.Include(p => p.Pais).Include(t => t.Tipologias).Include(x => x.Archivos).ThenInclude(c => c.UsuarioCarga).FirstOrDefaultAsync(s => s.Id == empresaId && s.Active);
-
-
-
-      var allTipologias = await _db.Tipologia.ToListAsync();
-      var result = new EmpresaUpdateVm
+      ArgumentNullException.ThrowIfNull(user, nameof(user));
+      ArgumentNullException.ThrowIfNull(user.EmpresaId, nameof(user.EmpresaId));
+      try
       {
-        Language = user.Lenguage,
-        Nombre = empresa.Nombre,
-        Pais = new CommonVm
-        {
-          id = empresa.Pais.Id,
-          name = empresa.Pais.Name
-        },
-        Id = empresa.Id,
-        ResultadoSugerido = empresa.ResultadoSugerido,
-        Estado = empresa.Estado ?? 0,
-        CargoRepresentante = empresa.CargoRepresentante,
-        Ciudad = empresa.Ciudad,
-        Telefono = empresa.Telefono,
-        Responsable = empresa.NombreRepresentante,
-        Direccion = empresa.Direccion,
-        Website = empresa.WebSite,
-        Email = empresa.Email,
-        IdNacionalRepresentante = empresa.IdNacional,
-        Tipologias = allTipologias.Select(x => new CommonVm
-        {
-          name = user.Lenguage == "es" ? x.Name : x.NameEnglish,
-          id = x.Id,
-          isSelected = empresa.Tipologias.Any(z => z.IdTipologia == x.Id)
-        }).ToList(),
-        MesHoy = DateTime.Now.ToString("MMMM", CultureInfo.CreateSpecificCulture("es")),
-        Archivos = empresa.Archivos != null ? empresa.Archivos.Where(s => s.Activo).Select(z => new ArchivoVm
-        {
-          Id = z.Id,
-          Nombre = z.Nombre,
-          Ruta = z.Ruta,
-          Tipo = z.Tipo,
-          Cargador = z.UsuarioCarga.FirstName + " " + z.UsuarioCarga.LastName,
-          FechaCarga = z.FechaCarga.ToUtc(),
-          Propio = z.UsuarioCargaId == userId
-        }).ToList() : null
-      };
+        var empresa = await _db.Empresa
+          .AsNoTracking()
+          .Include(p => p.Pais)
+          .Include(t => t.Tipologias)
+          .Include(x => x.Archivos.Where(a => a.Activo))
+            .ThenInclude(c => c.UsuarioCarga)
+          .FirstOrDefaultAsync(s => s.Id == user.EmpresaId && s.Active);
 
-      var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
+        if (empresa == null)
+        {
+          _logger.LogWarning("Empresa no encontrada o inactiva para el usuario {UserId}", user.Id);
+          throw new NotFoundException($"La empresa {user.EmpresaId} no existe o está inactiva.");
+        }
 
-      var certificaciones = _db.ProcesoCertificacion.Include(i => i.Resultados).ThenInclude(it => it.Distintivo).Where(s => s.EmpresaId == empresaId).Select(x => new CertificacionDetailsVm
+        // Obtener tipologías
+        var allTipologias = await _db.Tipologia
+          .AsNoTracking()
+          .ToListAsync();
+
+        // Construir el resultado usando un builder pattern
+        var resultBuilder = new EmpresaUpdateBuilder(empresa, user)
+            .WithBasicInfo()
+            .WithLocation()
+            .WithContactInfo()
+            .WithTipologias(allTipologias)
+            .WithArchivos();
+
+        var result = resultBuilder.Build();
+
+        // Obtener y procesar certificaciones
+        await EnrichWithCertificationsAsync(result, user);
+
+        return result;
+      }
+      catch (NotFoundException)
       {
-        Status = Utilities.Utilities.CambiarIdiomaEstado(x.Status, user.Lenguage),
-        FechaInicio = x.FechaInicio.ToUtc(),
-        FechaFin = x.FechaFinalizacion.ToUtc(),
-        Expediente = x.NumeroExpediente,
-        Recertificacion = x.Recertificacion,
-        Asesor = new CommonUserVm
-        {
-          email = x.AsesorProceso.Email,
-          fullName = x.AsesorProceso.FirstName + " " + x.AsesorProceso.LastName,
-          id = x.AsesorId,
-          phone = x.AsesorProceso.PhoneNumber,
-          codigo = x.AsesorProceso.NumeroCarnet
-        },
-        Auditor = x.AuditorId != null ? new CommonUserVm
-        {
-          email = x.AuditorProceso.Email,
-          fullName = x.AuditorProceso.FirstName + " " + x.AuditorProceso.LastName,
-          id = x.AuditorId,
-          phone = x.AuditorProceso.PhoneNumber,
-          codigo = x.AuditorProceso.NumeroCarnet
-        } : null,
-        Generador = new CommonUserVm
-        {
-          email = x.UserGenerador.Email,
-          fullName = x.UserGenerador.FirstName + " " + x.UserGenerador.LastName,
-          id = x.UserGeneraId
-        },
-        Resultado = x.Resultados.Any() ? x.Resultados.First().Aprobado ? user.Lenguage == "es" ? x.Resultados.First().Distintivo.Name : x.Resultados.First().Distintivo.NameEnglish : noCertificado : "",
-        FechaVencimiento = x.FechaVencimiento.ToStringArg(),
-        Id = x.Id
-      }).ToListAsync();
+        throw;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al obtener datos de empresa para usuario {UserId}", user.Id);
+        throw new BusinessException("Error al obtener datos de la empresa.", ex);
+      }
+    }
 
-      result.Certificaciones = await certificaciones;
+    private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user)
+    {
+      result.Certificaciones = await GetCertificacionesAsync(user);
 
       if (result.Certificaciones.Any())
       {
-        result.CertificacionActual = result.Certificaciones.OrderByDescending(s => s.Id).First();
-        if (result.CertificacionActual.FechaVencimiento != null)
-        {
-          var dueDate = DateTime.Now.AddMonths(6);
-          var vencimientoSello = result.CertificacionActual.FechaVencimiento.ToDateArg();
-          if (vencimientoSello < dueDate)
+        result.CertificacionActual = ProcessCurrentCertification(result.Certificaciones);
+        await CheckAndNotifyExpirationAsync(result.CertificacionActual, user);
+      }
+    }
+
+    private async Task CheckAndNotifyExpirationAsync(CertificacionDetailsVm certification, ApplicationUser user)
+    {
+      if (certification.alertaVencimiento && !await _notificationService.HasBeenNotifiedAsync(user.Id, certification.Id))
+      {
+        await _notificationService.SendExpirationNotificationAsync(user, certification);
+      }
+    }
+
+    private static List<CommonVm> MapTipologias(
+    List<Tipologia> allTipologias,
+    ICollection<TipologiasEmpresa> empresaTipologias,
+    string language)
+    {
+      return allTipologias.Select(x => new CommonVm
+      {
+        name = language == "es" ? x.Name : x.NameEnglish,
+        id = x.Id,
+        isSelected = empresaTipologias.Any(z => z.IdTipologia == x.Id)
+      }).ToList();
+    }
+
+    private static List<ArchivoVm> MapArchivos(ICollection<Archivo> archivos, string userId)
+    {
+      if (archivos == null) return null;
+
+      return archivos
+          .Where(s => s.Activo)
+          .Select(z => new ArchivoVm
           {
-            result.CertificacionActual.alertaVencimiento = true;
-          }
+            Id = z.Id,
+            Nombre = z.Nombre,
+            Ruta = z.Ruta,
+            Tipo = z.Tipo,
+            Cargador = $"{z.UsuarioCarga.FirstName} {z.UsuarioCarga.LastName}",
+            FechaCarga = z.FechaCarga.ToUtc(),
+            Propio = z.UsuarioCargaId == userId
+          }).ToList();
+    }
+
+    private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(ApplicationUser user)
+    {
+      var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
+
+      return await _db.ProcesoCertificacion
+          .Include(i => i.Resultados)
+              .ThenInclude(it => it.Distintivo)
+          .Include(x => x.AsesorProceso)
+          .Include(x => x.AuditorProceso)
+          .Include(x => x.UserGenerador)
+          .Where(s => s.EmpresaId == user.EmpresaId)
+          .Select(x => new CertificacionDetailsVm
+          {
+            Status = Utilities.Utilities.CambiarIdiomaEstado(x.Status, user.Lenguage),
+            FechaInicio = x.FechaInicio.ToUtc(),
+            FechaFin = x.FechaFinalizacion.ToUtc(),
+            Expediente = x.NumeroExpediente,
+            Recertificacion = x.Recertificacion,
+            Asesor = MapCommonUser(x.AsesorProceso),
+            Auditor = x.AuditorId != null ? MapCommonUser(x.AuditorProceso) : null,
+            Generador = MapCommonUser(x.UserGenerador),
+            Resultado = GetResultado(x.Resultados, user.Lenguage, noCertificado),
+            FechaVencimiento = x.FechaVencimiento.ToStringArg(),
+            Id = x.Id
+          })
+          .ToListAsync();
+    }
+
+    private static CommonUserVm MapCommonUser(ApplicationUser user)
+    {
+      return new CommonUserVm
+      {
+        email = user.Email,
+        fullName = $"{user.FirstName} {user.LastName}",
+        id = user.Id,
+        phone = user.PhoneNumber,
+        codigo = user.NumeroCarnet
+      };
+    }
+
+    private static string GetResultado(
+        ICollection<ResultadoCertificacion> resultados,
+        string language,
+        string noCertificado)
+    {
+      if (!resultados.Any()) return string.Empty;
+
+      var firstResult = resultados.First();
+      return firstResult.Aprobado
+          ? language == "es"
+              ? firstResult.Distintivo.Name
+              : firstResult.Distintivo.NameEnglish
+          : noCertificado;
+    }
+
+    private static CertificacionDetailsVm ProcessCurrentCertification(
+        List<CertificacionDetailsVm> certificaciones)
+    {
+      var currentCertification = certificaciones
+        .OrderByDescending(s => s.Id)
+        .First();
+
+      if (currentCertification.FechaVencimiento != null)
+      {
+        var dueDate = DateTime.Now.AddMonths(6);
+        var vencimientoSello = currentCertification.FechaVencimiento.ToDateArg();
+        if (vencimientoSello < dueDate)
+        {
+          currentCertification.alertaVencimiento = true;
         }
       }
 
-      return result;
+      return currentCertification;
     }
 
 

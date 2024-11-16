@@ -2,7 +2,9 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.ViewToString;
 using Sitca.Models;
@@ -11,292 +13,494 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace Sitca.DataAccess.Services.JobsService
+namespace Sitca.DataAccess.Services.JobsService;
+
+public class JobsService : IJobsServices
 {
-    public class JobsService: IJobsServices
+  private readonly ApplicationDbContext _db;
+  private readonly IEmailSender _emailSender;
+  private readonly IViewRenderService _viewRenderService;
+  private readonly IDapper _dapper;
+  private readonly IConfiguration _config;
+  private readonly ILogger<JobsService> _logger;
+
+  public JobsService(
+      ApplicationDbContext db,
+      IEmailSender emailSender,
+      IViewRenderService viewRenderService,
+      IDapper dapper,
+      IConfiguration config,
+      ILogger<JobsService> logger)
+  {
+    _db = db ?? throw new ArgumentNullException(nameof(db));
+    _emailSender = emailSender ?? throw new ArgumentNullException(nameof(emailSender));
+    _viewRenderService = viewRenderService ?? throw new ArgumentNullException(nameof(viewRenderService));
+    _dapper = dapper ?? throw new ArgumentNullException(nameof(dapper));
+    _config = config ?? throw new ArgumentNullException(nameof(config));
+    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+  }
+
+  public async Task<bool> EnviarRecordatorio()
+  {
+    try
     {
-        private readonly ApplicationDbContext _db;
-        private readonly IEmailSender _emailSender;
-        private readonly IViewRenderService _viewRenderService;
-        private readonly IDapper _dapper;
-        private readonly IConfiguration _config;
+      _logger.LogInformation("Iniciando proceso de envío de recordatorios");
 
-        public JobsService(ApplicationDbContext db, IEmailSender emailSender, IViewRenderService viewRenderService, IDapper dapper, IConfiguration config)
+      // Cargar datos necesarios de una sola vez
+      var limitDate = DateTime.Now.AddMonths(6);
+      var senderEmail = _config["EmailSender:SenderEmail"];
+
+      // Obtener empresas que necesitan notificación
+      var empresas = await _db.Empresa
+          .Where(z => z.ResultadoVencimiento != null &&
+                     z.ResultadoVencimiento < limitDate &&
+                     z.Estado == 8 &&
+                     z.FechaAutoNotif == null)
+          .ToListAsync();
+
+      if (!empresas.Any())
+      {
+        _logger.LogInformation("No hay empresas que requieran notificación");
+        return true;
+      }
+
+      // Cargar plantilla de notificación
+      var notifDataMain = await GetNotificationTemplate(NotificationTypes.Expiracion);
+
+      if (notifDataMain == null)
+      {
+        _logger.LogError("No se encontró la plantilla de notificación principal");
+        return false;
+      }
+
+      // Cargar cuentas especiales
+      var cuentasEspeciales = await _db.NotificationCustomUsers
+        .AsNoTracking()
+        .ToListAsync();
+
+      foreach (var empresa in empresas)
+      {
+        try
         {
-            _db = db;
-            _emailSender = emailSender;
-            _viewRenderService = viewRenderService;
-            _dapper = dapper;
-            _config = config;
-        }
+          await ProcesarNotificacionEmpresa(
+              empresa,
+              notifDataMain,
+              cuentasEspeciales,
+              senderEmail);
 
-        public async Task<bool> EnviarRecordatorio()
+          empresa.FechaAutoNotif = DateTime.UtcNow;
+        }
+        catch (Exception ex)
         {
-            var limitDate = DateTime.Now.AddMonths(6);
-
-            //La empresa tiene un distintivo que vence en menos de 6 meses y que no han sido notificadas
-            var empresas = _db.Empresa.Where(z => z.ResultadoVencimiento != null && z.ResultadoVencimiento < limitDate && z.Estado == 8 && z.FechaAutoNotif == null).ToList();
-            
-            var UsersToNotify = new List<UsersListVm>();
-
-            var notifDataMain = await _db.Notificacion.Include(x => x.NotificationGroups).FirstOrDefaultAsync(s => s.Status == -10);
-
-            
-            //var senderEmail = "notificaciones@siccs.info";
-            //var senderEmail = "notificaciones@calidadcentroamerica.com";
-            var senderEmail = _config["EmailSender:UserName"];
-
-            #region CUENTAS ESPECIALES NOTIFICACION
-
-            var cuentasEspeciales = _db.NotificationCustomUsers.ToList();            
-
-            #endregion
-
-            foreach (var item in empresas)
-            {
-                var notifData = new Notificacion
-                {
-                    NotificationGroups = notifDataMain.NotificationGroups,
-                    TextoInterno = notifDataMain.TextoInterno,
-                    TextoInternoEn = notifDataMain.TextoInternoEn,
-                    TextoParaEmpresa = notifDataMain.TextoParaEmpresa,
-                    TextoParaEmpresaEn = notifDataMain.TextoParaEmpresaEn,
-                    TituloInterno = notifDataMain.TituloInterno,
-                    TituloInternoEn = notifDataMain.TituloInternoEn,
-                    TituloParaEmpresa = notifDataMain.TituloParaEmpresa,
-                    TituloParaEmpresaEn = notifDataMain.TituloParaEmpresaEn,
-                    Status = notifDataMain.Status,
-                };
-
-                if (item.IdPais == 1)
-                {
-                    //belize textos en ingles
-                    notifData = SetTextLanguages(notifData, "en");
-                }
-
-                foreach (var cuenta in cuentasEspeciales.Where(s => s.PaisId == item.PaisId || s.Global))
-                {
-                    var userSitca = new UsersListVm
-                    {
-                        Email = cuenta.Email,
-                        FirstName = cuenta.Name,
-                        Rol = "Admin"
-                    };
-
-                    var sitcaNotificacion = new NotificacionSigleVm
-                    {
-                        Data = notifData,
-                        User = userSitca
-                    };
-                    var SitcaView = await _viewRenderService.RenderToStringAsync("EmailStatusTemplate", sitcaNotificacion);
-
-                    try
-                    {
-                        var addr = new System.Net.Mail.MailAddress(item.Email);
-                        _emailSender.SendEmailAsync(senderEmail, cuenta.Email, notifData.TituloInterno, SitcaView);
-                    }
-                    catch
-                    {
-
-                    }
-
-                }
-
-                #region Cuentas empresa
-
-                if (!item.EsHomologacion)
-                {
-                    var encargado = await _db.ApplicationUser.FirstOrDefaultAsync(x => x.EmpresaId == item.Id);
-                    var empresaUser = new UsersListVm
-                    {
-                        Rol = "Empresa",
-                        FirstName = item.Nombre ?? encargado.FirstName + " " + encargado.LastName,
-                        Email = encargado.Email,
-                        Lang = encargado.Lenguage
-                    };
-
-                    UsersToNotify.Add(empresaUser);
-
-                    var empresaNotificacion = new NotificacionSigleVm
-                    {
-                        Data = notifData,
-                        User = empresaUser
-                    };
-                    var view = await _viewRenderService.RenderToStringAsync("EmailStatusTemplate", empresaNotificacion);
-
-                    try
-                    {
-                        //envia tambien al mail que agrego la empresa
-                        if (!string.IsNullOrEmpty(item.Email))
-                        {
-                            try
-                            {
-                                var addr = new System.Net.Mail.MailAddress(item.Email);
-                                _emailSender.SendEmailAsync(senderEmail, item.Email, notifData.TituloParaEmpresa, view);
-                            }
-                            catch
-                            {
-
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                    _emailSender.SendEmailAsync(senderEmail, empresaUser.Email, notifData.TituloParaEmpresa, view);
-                }
-
-                
-                item.FechaAutoNotif = DateTime.UtcNow;
-                #endregion
-
-                #region Cuentas Sitca
-
-                var Pais = item.PaisId;
-
-                var dbPara = new DynamicParameters();
-
-                var roles = _db.Roles.Where(s => s.Name == "Admin" || s.Name == "TecnicoPais");
-
-                var UsersByRole = new List<UsersListVm>();                
-
-                foreach (var role in roles)
-                {
-                    dbPara.Add("Pais", Pais);
-                    dbPara.Add("Role", roles.First(s => s.Name == role.Name).Id);
-
-                    var res = await Task.FromResult(_dapper.GetAll<UsersListVm>("[dbo].[GetUsersByRole]", dbPara, commandType: CommandType.StoredProcedure));
-                    if (res.Any())
-                    {
-                        res = res.Where(s => s.Notificaciones && s.Active).ToList();
-                        UsersByRole.AddRange(res);
-                    }
-                }
-
-                foreach (var sitcaUser in UsersByRole)
-                {
-                    var notificatioItem = new NotificacionSigleVm
-                    {
-                        Data = notifData,
-                        User = sitcaUser
-                    };
-
-                    var view1 = await _viewRenderService.RenderToStringAsync("EmailStatusTemplate", notificatioItem);                    
-                    view1 = view1.Replace("{0}", item.Nombre);
-
-                    _emailSender.SendEmailAsync(senderEmail, sitcaUser.Email, notifData.TituloInterno, view1);
-                }
-
-                #endregion
-            }
-
-            try
-            {
-                _db.SaveChanges();
-            }
-            catch (Exception e)
-            {
-            }
-            
-            return true;
+          _logger.LogError(ex,
+              "Error procesando notificaciones para empresa {EmpresaId}: {EmpresaNombre}",
+              empresa.Id,
+              empresa.Nombre);
         }
+      }
 
-        public async Task<bool> NotificarVencimientoCarnets()
-        {
-            var vencimiento = DateTime.UtcNow.AddMonths(6);
-
-            //carnets que no han sido notificados y que estan por vencer en los proximos meses
-            var porVencer = await _db.ApplicationUser.Where(s => (s.VencimientoCarnet != null && s.VencimientoCarnet < vencimiento) && s.AvisoVencimientoCarnet == null).ToListAsync();
-            var UsersToNotify = new List<UsersListVm>();
-
-            var notifDataMain = await _db.Notificacion.Include(x => x.NotificationGroups).FirstOrDefaultAsync(s => s.Status == -15);
-            var senderEmail = _config["EmailSender:UserName"];
-            var paises = await _db.Pais.ToListAsync();
-
-            foreach (var item in porVencer)
-            {
-                var notifData = new Notificacion
-                {
-                    NotificationGroups = notifDataMain.NotificationGroups,
-                    TextoInterno = notifDataMain.TextoInterno,
-                    TextoInternoEn = notifDataMain.TextoInternoEn,
-                    TextoParaEmpresa = notifDataMain.TextoParaEmpresa,
-                    TextoParaEmpresaEn = notifDataMain.TextoParaEmpresaEn,
-                    TituloInterno = notifDataMain.TituloInterno,
-                    TituloInternoEn = notifDataMain.TituloInternoEn,
-                    TituloParaEmpresa = notifDataMain.TituloParaEmpresa,
-                    TituloParaEmpresaEn = notifDataMain.TituloParaEmpresaEn,
-                    Status = notifDataMain.Status,
-                };
-
-                #region Cuentas Sitca
-
-
-                var Pais = item.PaisId;
-                var dbPara = new DynamicParameters();
-                var roles = _db.Roles.Where(s => s.Name == "Admin" || s.Name == "TecnicoPais");
-                var UsersByRole = new List<UsersListVm>();
-
-                var personaPrincipal = new UsersListVm
-                {
-                    FirstName = item.FirstName,
-                    LastName = item.LastName,
-                    PaisId = item.PaisId??0,
-                    Email = item.Email,
-                };
-                UsersByRole.Add(personaPrincipal);
-
-                foreach (var role in roles)
-                {
-                    dbPara.Add("Pais", Pais);
-                    dbPara.Add("Role", roles.First(s => s.Name == role.Name).Id);
-
-                    var res = await Task.FromResult(_dapper.GetAll<UsersListVm>("[dbo].[GetUsersByRole]", dbPara, commandType: CommandType.StoredProcedure));
-                    if (res.Any())
-                    {
-                        res = res.Where(s => s.Notificaciones && s.Active).ToList();
-                        UsersByRole.AddRange(res);
-                    }
-                }
-
-                foreach (var sitcaUser in UsersByRole)
-                {
-                    var notificatioItem = new NotificacionSigleVm
-                    {
-                        Data = notifData,
-                        User = sitcaUser
-                    };
-
-                    var view1 = await _viewRenderService.RenderToStringAsync("EmailStatusTemplate", notificatioItem);
-                    view1 = view1.Replace("{user}", item.FirstName + " (" + paises.FirstOrDefault(s =>s.Id == item.PaisId).Name + ")") ;
-                    view1 = view1.Replace("{fecha}", item.VencimientoCarnet.Value.ToString("dd/MM/yyyy"));
-
-                    _emailSender.SendEmailAsync(senderEmail, sitcaUser.Email, notifData.TituloInterno, view1);
-                }
-
-                #endregion
-            }
-
-
-
-            return true; 
-        }
-
-        public Notificacion SetTextLanguages(Notificacion notificationData, string language)
-        {
-            if (language == "en")
-            {
-                notificationData.TextoInterno = notificationData.TextoInternoEn ?? notificationData.TextoInterno;
-                notificationData.TextoParaEmpresa = notificationData.TextoParaEmpresaEn ?? notificationData.TextoParaEmpresa;
-                notificationData.TituloInterno = notificationData.TituloInternoEn ?? notificationData.TituloInterno;
-                notificationData.TituloParaEmpresa = notificationData.TituloParaEmpresaEn ?? notificationData.TituloParaEmpresa;
-            }
-
-            return notificationData;
-        }
+      await _db.SaveChangesAsync();
+      return true;
     }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error general en EnviarRecordatorio");
+      throw;
+    }
+  }
+
+  private async Task<Notificacion> GetNotificationTemplate(NotificationTypes type)
+  {
+    return await _db.Notificacion
+        .AsNoTracking()
+        .Include(x => x.NotificationGroups)
+        .FirstOrDefaultAsync(s => s.Status == (int)type);
+  }
+
+  private async Task ProcesarNotificacionEmpresa(
+      Empresa empresa,
+      Notificacion notifDataMain,
+      List<NotificationCustomUsers> cuentasEspeciales,
+      string senderEmail)
+  {
+    var notifData = CrearNotificacionBase(notifDataMain);
+
+    // Aplicar idioma si es necesario
+    if (empresa.IdPais == 1)
+    {
+      notifData = SetTextLanguages(notifData, "en");
+    }
+
+    // 1. Notificar a cuentas especiales
+    await NotificarCuentasEspeciales(
+        empresa,
+        notifData,
+        cuentasEspeciales,
+        senderEmail);
+
+    // 2. Notificar a la empresa si no es homologación
+    if (!empresa.EsHomologacion)
+    {
+      await NotificarEmpresa(
+          empresa,
+          notifData,
+          senderEmail);
+    }
+
+    // 3. Notificar a usuarios SITCA
+    await NotificarUsuariosSITCA(
+        empresa,
+        notifData,
+        senderEmail);
+  }
+
+  private async Task NotificarCuentasEspeciales(
+      Empresa empresa,
+      Notificacion notifData,
+      List<NotificationCustomUsers> cuentasEspeciales,
+      string senderEmail)
+  {
+    var cuentasRelevantes = cuentasEspeciales
+        .Where(s => s.PaisId == empresa.PaisId || s.Global);
+
+    foreach (var cuenta in cuentasRelevantes)
+    {
+      try
+      {
+        var userSitca = new UsersListVm
+        {
+          Email = cuenta.Email,
+          FirstName = cuenta.Name,
+          Rol = "Admin"
+        };
+
+        var notificacion = new NotificacionSigleVm
+        {
+          Data = notifData,
+          User = userSitca
+        };
+
+        var contenidoEmail = await _viewRenderService
+            .RenderToStringAsync("EmailStatusTemplate", notificacion);
+
+        await _emailSender.SendEmailBrevoAsync(
+            cuenta.Email,
+            notifData.TituloInterno,
+            contenidoEmail);
+
+        _logger.LogInformation(
+            "Notificación enviada a cuenta especial {Email} para empresa {EmpresaId}",
+            cuenta.Email,
+            empresa.Id);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error enviando notificación a cuenta especial {Email}",
+            cuenta.Email);
+      }
+    }
+  }
+
+  private async Task NotificarEmpresa(
+      Empresa empresa,
+      Notificacion notifData,
+      string senderEmail)
+  {
+    var encargado = await _db.ApplicationUser
+      .AsNoTracking()
+      .FirstOrDefaultAsync(x => x.EmpresaId == empresa.Id);
+
+    if (encargado == null)
+    {
+      _logger.LogWarning(
+          "No se encontró encargado para la empresa {EmpresaId}",
+          empresa.Id);
+      return;
+    }
+
+    var empresaUser = new UsersListVm
+    {
+      Rol = "Empresa",
+      FirstName = empresa.Nombre ?? $"{encargado.FirstName} {encargado.LastName}",
+      Email = encargado.Email,
+      Lang = encargado.Lenguage
+    };
+
+    var notificacion = new NotificacionSigleVm
+    {
+      Data = notifData,
+      User = empresaUser
+    };
+
+    var contenidoEmail = await _viewRenderService
+        .RenderToStringAsync("EmailStatusTemplate", notificacion);
+
+    // Enviar al email del encargado
+    await _emailSender.SendEmailBrevoAsync(
+        empresaUser.Email,
+        notifData.TituloParaEmpresa,
+        contenidoEmail);
+
+    // Enviar al email adicional de la empresa si existe
+    if (!string.IsNullOrEmpty(empresa.Email))
+    {
+      try
+      {
+        await _emailSender.SendEmailBrevoAsync(
+            empresa.Email,
+            notifData.TituloParaEmpresa,
+            contenidoEmail);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error enviando notificación al email adicional de la empresa {Email}",
+            empresa.Email);
+      }
+    }
+  }
+
+  private async Task NotificarUsuariosSITCA(
+      Empresa empresa,
+      Notificacion notifData,
+      string senderEmail)
+  {
+    var roles = await _db.Roles
+        .Where(s => s.Name == "Admin" || s.Name == "TecnicoPais")
+        .ToListAsync();
+
+    foreach (var role in roles)
+    {
+      var dbPara = new DynamicParameters();
+      dbPara.Add("Pais", empresa.PaisId);
+      dbPara.Add("Role", role.Id);
+
+      var usuarios = await Task.FromResult(_dapper.GetAll<UsersListVm>(
+          "[dbo].[GetUsersByRole]",
+          dbPara,
+          commandType: CommandType.StoredProcedure));
+
+      foreach (var usuario in usuarios.Where(s => s.Notificaciones && s.Active))
+      {
+        try
+        {
+          var notificacion = new NotificacionSigleVm
+          {
+            Data = notifData,
+            User = usuario
+          };
+
+          var contenidoEmail = await _viewRenderService
+              .RenderToStringAsync("EmailStatusTemplate", notificacion);
+          contenidoEmail = contenidoEmail.Replace("{0}", empresa.Nombre);
+
+          await _emailSender.SendEmailBrevoAsync(
+              usuario.Email,
+              notifData.TituloInterno,
+              contenidoEmail);
+
+          _logger.LogInformation(
+              "Notificación enviada a usuario SITCA {Email} para empresa {EmpresaId}",
+              usuario.Email,
+              empresa.Id);
+        }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex,
+              "Error enviando notificación a usuario SITCA {Email}",
+              usuario.Email);
+        }
+      }
+    }
+  }
+
+  public async Task<bool> NotificarVencimientoCarnets()
+  {
+    try
+    {
+      var vencimiento = DateTime.UtcNow.AddMonths(6);
+      var senderEmail = _config["EmailSender:SenderEmail"];
+
+      var notifDataMain = await _db.Notificacion
+        .AsNoTracking()
+        .Include(x => x.NotificationGroups)
+        .FirstOrDefaultAsync(s => s.Status == -15);
+
+      if (notifDataMain == null)
+      {
+        _logger.LogWarning("No se encontró la plantilla de notificación para vencimientos de carnet");
+        return false;
+      }
+
+      var paises = await _db.Pais
+        .AsNoTracking()
+        .ToDictionaryAsync(p => p.Id, p => p.Name);
+
+      // Obtener usuarios con carnets por vencer
+      var porVencer = await _db.ApplicationUser
+        .Where(s => s.VencimientoCarnet != null
+            && s.VencimientoCarnet < vencimiento
+            && s.AvisoVencimientoCarnet == null)
+        .ToListAsync();
+
+      if (!porVencer.Any())
+      {
+        _logger.LogInformation("No hay carnets por vencer");
+        return true;
+      }
+
+      foreach (var usuario in porVencer)
+      {
+        try
+        {
+          await NotificarVencimientoCarnetUsuario(
+              usuario,
+              notifDataMain,
+              senderEmail,
+              paises.GetValueOrDefault(usuario.PaisId ?? 0, "País no especificado")
+              );
+          usuario.AvisoVencimientoCarnet = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex, "Error al notificar vencimiento de carnet para usuario {Email}", usuario.Email);
+        }
+      }
+
+      // Guardamos los cambios al final
+      await _db.SaveChangesAsync();
+      _logger.LogInformation("Proceso de notificación de carnets completado. {Count} usuarios notificados", porVencer.Count);
+      return true;
+    }
+    catch (Exception ex)
+    {
+      _logger.LogError(ex, "Error al notificar carnets");
+      throw;
+    }
+  }
+
+  private async Task NotificarVencimientoCarnetUsuario(
+      ApplicationUser user,
+      Notificacion notifDataMain,
+      string senderEmail,
+      string country)
+  {
+    var notifData = CrearNotificacionBase(notifDataMain);
+    var destinatarios = await ObtenerDestinatariosNotificacion(user);
+
+    foreach (var destinatario in destinatarios)
+    {
+      try
+      {
+        var notificationViewModel = new NotificacionSigleVm
+        {
+          Data = notifData,
+          User = destinatario
+        };
+
+        var contenidoEmail = await _viewRenderService
+          .RenderToStringAsync(
+              "EmailStatusTemplate",
+              notificationViewModel
+              );
+
+        contenidoEmail = contenidoEmail
+          .Replace("{user}", $"{user.FirstName} ({country})")
+          .Replace("{fecha}", user.VencimientoCarnet.Value.ToString("dd/MM/yyyy"));
+
+        await _emailSender.SendEmailBrevoAsync(
+            destinatario.Email,
+            notifData.TituloInterno,
+            contenidoEmail
+            );
+
+
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error al enviar notificación a {Email} para usuario {Usuario}",
+            destinatario.Email,
+            user.Email);
+      }
+    }
+  }
+
+  private async Task<List<UsersListVm>> ObtenerDestinatariosNotificacion(ApplicationUser usuario)
+  {
+    var destinatarios = new List<UsersListVm>();
+
+    // Agregar el usuario principal
+    destinatarios.Add(new UsersListVm
+    {
+      FirstName = usuario.FirstName,
+      LastName = usuario.LastName,
+      PaisId = usuario.PaisId ?? 0,
+      Email = usuario.Email,
+    });
+
+    // Obtener administradores y técnicos del país
+    var roles = await _db.Roles
+        .AsNoTracking()
+        .Where(s => s.Name == "Admin" || s.Name == "TecnicoPais")
+        .ToListAsync();
+
+    foreach (var role in roles)
+    {
+      var dbPara = new DynamicParameters();
+      dbPara.Add("Pais", usuario.PaisId);
+      dbPara.Add("Role", role.Id);
+
+      var usuariosRol = await Task.FromResult(
+          _dapper.GetAll<UsersListVm>(
+              "[dbo].[GetUsersByRole]",
+              dbPara,
+              commandType: CommandType.StoredProcedure
+          )
+      );
+
+      if (usuariosRol.Any())
+      {
+        destinatarios.AddRange(
+            usuariosRol.Where(s => s.Notificaciones && s.Active)
+        );
+      }
+    }
+
+    return destinatarios;
+  }
+
+  private Notificacion CrearNotificacionBase(Notificacion origen)
+  {
+    return new Notificacion
+    {
+      NotificationGroups = origen.NotificationGroups,
+      TextoInterno = origen.TextoInterno,
+      TextoInternoEn = origen.TextoInternoEn,
+      TextoParaEmpresa = origen.TextoParaEmpresa,
+      TextoParaEmpresaEn = origen.TextoParaEmpresaEn,
+      TituloInterno = origen.TituloInterno,
+      TituloInternoEn = origen.TituloInternoEn,
+      TituloParaEmpresa = origen.TituloParaEmpresa,
+      TituloParaEmpresaEn = origen.TituloParaEmpresaEn,
+      Status = origen.Status,
+    };
+  }
+
+  public Notificacion SetTextLanguages(Notificacion notificationData, string language)
+  {
+    if (language == "en")
+    {
+      notificationData.TextoInterno = notificationData.TextoInternoEn ?? notificationData.TextoInterno;
+      notificationData.TextoParaEmpresa = notificationData.TextoParaEmpresaEn ?? notificationData.TextoParaEmpresa;
+      notificationData.TituloInterno = notificationData.TituloInternoEn ?? notificationData.TituloInterno;
+      notificationData.TituloParaEmpresa = notificationData.TituloParaEmpresaEn ?? notificationData.TituloParaEmpresa;
+    }
+
+    return notificationData;
+  }
 }
+

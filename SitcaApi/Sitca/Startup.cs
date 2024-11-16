@@ -14,6 +14,7 @@ using Sitca.DataAccess.Services.JobsService;
 using Sitca.Extensions;
 using Sitca.Validators;
 using FluentValidation;
+using Sitca.DataAccess.Services;
 
 namespace Sitca
 {
@@ -48,10 +49,16 @@ namespace Sitca
       services.AddValidatorsFromAssemblyContaining<LoginDtoValidator>();
       services.AddControllersWithViews();
       services.AddRazorPages();
+      services.AddScoped<DbUserInitializer>();
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IDbInitializer dbInit, IRecurringJobManager recurringJobManager, IServiceProvider serviceProvider)
+    public void Configure(
+        IApplicationBuilder app,
+        IWebHostEnvironment env,
+        IDbInitializer dbInit,
+        IRecurringJobManager recurringJobManager,
+        IServiceProvider serviceProvider)
     {
 
       if (env.IsDevelopment())
@@ -65,19 +72,18 @@ namespace Sitca
       }
 
       app.UseHttpsRedirection()
-           .UseStaticFiles()
-           .UseStaticFiles(ConfigureStaticFiles())
-           .UseRouting()
-           .UseCors("cors")
-           .UseAuthentication()
-           .UseAuthorization()
-           .UseEndpoints(endpoints =>
-           {
-             endpoints.ConfigureApplicationEndpoints(Configuration);
-             endpoints.ConfigureApiEndpoints();
-           })
-           .UseHangfireDashboard();
-
+        .UseStaticFiles()
+        .UseStaticFiles(ConfigureStaticFiles())
+        .UseRouting()
+        .UseCors("cors")
+        .UseAuthentication()
+        .UseAuthorization()
+        .UseEndpoints(endpoints =>
+        {
+          endpoints.ConfigureApplicationEndpoints(Configuration);
+          endpoints.ConfigureApiEndpoints();
+        })
+        .UseHangfireDashboard();
       ConfigureHangfireJobs(recurringJobManager, serviceProvider);
     }
 

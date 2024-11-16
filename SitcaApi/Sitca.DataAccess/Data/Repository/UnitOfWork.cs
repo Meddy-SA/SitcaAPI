@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Token;
 using Sitca.DataAccess.Services.ViewToString;
 using Sitca.Models;
@@ -14,6 +15,7 @@ namespace Sitca.DataAccess.Data.Repository
     private readonly ApplicationDbContext _db;
     private readonly IDapper _dapper;
     private readonly IEmailSender _emailSender;
+    private readonly INotificationService _notificationService;
     private readonly IViewRenderService _viewRenderService;
     private readonly IConfiguration _config;
     private readonly IJWTTokenGenerator _jwtToken;
@@ -23,6 +25,7 @@ namespace Sitca.DataAccess.Data.Repository
         ApplicationDbContext db,
         IDapper dapper,
         IEmailSender emailSender,
+        INotificationService notificationService,
         IViewRenderService viewRenderService,
         IConfiguration config,
         IJWTTokenGenerator jwtToken,
@@ -32,6 +35,7 @@ namespace Sitca.DataAccess.Data.Repository
       _db = db;
       _dapper = dapper;
       _emailSender = emailSender;
+      _notificationService = notificationService;
       _viewRenderService = viewRenderService;
       _config = config;
       _jwtToken = jwtToken;
@@ -39,13 +43,12 @@ namespace Sitca.DataAccess.Data.Repository
       _loggerFactory = loggerFactory;
 
       ItemTemplate = new ItemTemplateRepository(_db);
-      Empresa = new EmpresaRepository(_db, _loggerFactory.CreateLogger<EmpresaRepository>());
+      Empresa = new EmpresaRepository(_db, _notificationService, _loggerFactory.CreateLogger<EmpresaRepository>());
       Auth = new AuthRepository(_userManager, _jwtToken, _emailSender, _config, _viewRenderService, _loggerFactory.CreateLogger<AuthRepository>());
       Modulo = new ModulosRepository(_db);
       Pregunta = new PreguntasRepository(_db);
       Archivo = new ArchivoRepository(_db);
 
-      Notificacion = new NotificationRepository(_db, _dapper, _emailSender, _viewRenderService, config);
       ProcesoCertificacion = new CertificacionRepository(_db, _config, _loggerFactory.CreateLogger<CertificacionRepository>());
       Reportes = new ReportesRepository(_db);
       Users = new UsersRepository(_db, _dapper);
@@ -70,8 +73,6 @@ namespace Sitca.DataAccess.Data.Repository
     public ICertificacionRepository ProcesoCertificacion { get; private set; }
 
     public IReporteRepository Reportes { get; private set; }
-
-    public INotificationRepository Notificacion { get; private set; }
 
     public ICapacitacionesRepository Capacitaciones { get; private set; }
 

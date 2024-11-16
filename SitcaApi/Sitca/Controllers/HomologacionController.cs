@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.Models;
 using Sitca.Models.ViewModels;
 using System;
@@ -25,17 +27,20 @@ namespace Sitca.Controllers
   {
     private readonly ILogger<HomologacionController> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly INotificationService _notificationService;
     private readonly IConfiguration _config;
     private readonly UserManager<ApplicationUser> _userManager;
     public HomologacionController(
         ILogger<HomologacionController> logger,
         IUnitOfWork unitOfWork,
+        INotificationService notificationService,
         IConfiguration config,
         UserManager<ApplicationUser> userManager
     )
     {
       _logger = logger;
       _unitOfWork = unitOfWork;
+      _notificationService = notificationService;
       _config = config;
       _userManager = userManager;
     }
@@ -51,7 +56,8 @@ namespace Sitca.Controllers
       var result = await _unitOfWork.Homologacion.BloquearEdicion(id);
       var homologacion = _unitOfWork.Homologacion.Get(id);
 
-      await _unitOfWork.Notificacion.SendNotificacionSpecial(homologacion.EmpresaId, -14, appUser.Lenguage);
+      await _notificationService.SendNotificacionSpecial(homologacion.EmpresaId,
+          NotificationTypes.Homologacion, appUser.Lenguage);
 
       return Ok(JsonConvert.SerializeObject(result, Formatting.None,
                   new JsonSerializerSettings()
@@ -134,7 +140,8 @@ namespace Sitca.Controllers
 
         var empresaId = await _unitOfWork.Homologacion.Create(empresa2, appUser);
 
-        await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -13, appUser.Lenguage);
+        await _notificationService.SendNotificacionSpecial(empresaId,
+          NotificationTypes.ExpedienteHomologacion, appUser.Lenguage);
 
         //AGREGO LOS ARCHIVOS
 
@@ -200,171 +207,6 @@ namespace Sitca.Controllers
 
           await _unitOfWork.Archivo.SaveFileData(archivoObj);
         }
-
-        //if (file.Length > 0)
-        //{
-
-        //    var uploadName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim('"');
-
-        //    var extension = Path.GetExtension(uploadName);
-
-        //    var fileName = DateTime.UtcNow.Ticks.ToString() + extension;
-
-        //    var fullPath = Path.Combine(pathToSave, fileName);
-        //    var dbPath = Path.Combine(folderName, fileName);
-
-        //    //#region resize
-
-        //    ///*
-        //    // * https://blog.elmah.io/upload-and-resize-an-image-natively-with-asp-net-core/
-        //    // * */
-
-        //    //try
-        //    //{
-
-        //    //    using (var stream = new FileStream(fullPath, FileMode.Create))
-        //    //    {
-        //    //        var image = Image.FromStream(file.OpenReadStream());
-        //    //        using var imageStream = new MemoryStream();
-        //    //        var newSize = 700;
-        //    //        decimal width = image.Width;
-
-        //    //        decimal proporcional = width / newSize;
-        //    //        decimal heigth = image.Height;
-
-
-        //    //        int newHeigth = (int)(heigth / proporcional);
-
-        //    //        var bitmap = new Bitmap(image, new Size(newSize, newHeigth));
-        //    //        bitmap.Save(imageStream, ImageFormat.Jpeg);
-
-
-        //    //        var optimizer = new ImageOptimizer();
-        //    //        imageStream.Seek(0, SeekOrigin.Begin);
-        //    //        //optimizer.Compress(imageStream);
-        //    //        var lala = optimizer.LosslessCompress(imageStream);
-
-        //    //        imageStream.WriteTo(stream);
-
-
-        //    //        await imageStream.CopyToAsync(stream);
-
-        //    //    }
-
-        //    //}
-        //    //catch (Exception e)
-        //    //{
-        //    //    using (var stream = new FileStream(fullPath, FileMode.Create))
-        //    //    {
-        //    //        await file.CopyToAsync(stream);
-
-        //    //    }
-
-        //    //}
-
-
-        //    //#endregion
-
-
-
-        //    //save reference to db
-        //    #region SAVETODB
-
-        //    var user = User.Claims.First().Value;
-        //    var IdentityUser = await _userManager.FindByEmailAsync(user);
-        //    var roles = await _userManager.GetRolesAsync(IdentityUser);
-        //    ApplicationUser appUser = (ApplicationUser)IdentityUser;
-
-        //    var archivoObj = new Archivo();
-        //    archivoObj = new Archivo
-        //    {
-        //        Activo = true,
-        //        FechaCarga = DateTime.UtcNow,
-        //        Ruta = fileName,
-        //        Tipo = extension,
-        //        UsuarioCargaId = IdentityUser.Id,
-        //        Nombre = nombre,
-        //    };
-
-
-        //    if (!empresa)
-        //    {
-        //        switch (tipo)
-        //        {
-        //            case "pregunta":
-        //                var preguntaId = Int32.Parse(formCollection["idPregunta"]);
-        //                var respuestaId = Int32.Parse(formCollection["idRespuesta"]);
-
-        //                archivoObj.CuestionarioItemId = preguntaId;
-        //                break;
-        //            default:
-        //                break;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        if (roles.Any(s => s.Contains("Empresa")))
-        //        {
-        //            empresaId = appUser.EmpresaId ?? 0;
-        //        }
-
-        //        archivoObj.EmpresaId = empresaId;
-        //    }
-
-        //    await _unitOfWork.Archivo.SaveFileData(archivoObj);
-
-        //    #endregion
-
-        //    if (nombre == "Protocolo Adhesión" || nombre == "Accession Protocol")
-        //    {
-        //        try
-        //        {
-        //            await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -2, appUser.Lenguage);
-        //        }
-        //        catch (Exception e)
-        //        {
-        //        }
-        //    }
-        //    if (nombre == "Solicitud de Certificación")
-        //    {
-        //        try
-        //        {
-        //            await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -3, appUser.Lenguage);
-        //        }
-        //        catch (Exception)
-        //        {
-        //        }
-        //    }
-
-        //    if (nombre == "Recomendación del Auditor al Ctc")
-        //    {
-        //        try
-        //        {
-        //            await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -11, appUser.Lenguage);
-        //        }
-        //        catch (Exception)
-        //        {
-        //        }
-        //    }
-
-        //    if (nombre == "Solicitud de ReCertificación")
-        //    {
-        //        try
-        //        {
-        //            await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -12, appUser.Lenguage);
-        //        }
-        //        catch (Exception)
-        //        {
-        //        }
-        //    }
-
-
-        //    return Ok(new { dbPath });
-        //}
-        //else
-        //{
-        //    return BadRequest();
-        //}
       }
       catch (Exception ex)
       {

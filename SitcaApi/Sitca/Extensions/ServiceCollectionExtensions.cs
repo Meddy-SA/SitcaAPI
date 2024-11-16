@@ -15,6 +15,7 @@ using Sitca.DataAccess.Data.Repository;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Email;
 using Sitca.DataAccess.Services.JobsService;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
 using Sitca.DataAccess.Services.Token;
 using Sitca.DataAccess.Services.ViewToString;
@@ -148,6 +149,9 @@ public static class ServiceCollectionExtensions
     services.AddHttpClient("BrevoClient");
     services.Configure<Models.DTOs.EmailConfiguration>(configuration.GetSection("EmailSender"));
     services.AddTransient<IEmailSender, EmailSender>();
+
+    // Notifications
+    services.AddScoped<INotificationService, NotificationService>();
 
     // PDF Services
     services.AddScoped<IReportService, ITextReportService>();

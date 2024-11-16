@@ -1,40 +1,43 @@
-﻿using System;
-using Sitca.Models;
+﻿using Sitca.Models;
 using System.Collections.Generic;
-using System.Text;
 using Sitca.Models.ViewModels;
 using System.Threading.Tasks;
+using Sitca.Models.DTOs;
 
-namespace Sitca.DataAccess.Data.Repository.IRepository
+namespace Sitca.DataAccess.Data.Repository.IRepository;
+public interface IEmpresaRepository : IRepository<Empresa>
 {
-    public interface IEmpresaRepository : IRepository<Empresa>
-    {
-        Task<ResponseListadoExterno> GetCertificadasParaExterior(ListadoExternoFiltro filtro);
+  Task<int> GetCompanyStatusAsync(int CompanyId);
 
-        Task<UrlResult> Delete(int id,int paisId, string role);
-        int SaveEmpresa(RegisterVm model);
-        List<EmpresaVm> GetList(int? idEstado,int idPais, int idTipologia, string q, string leng );
+  Task<ResponseListadoExterno> GetCertificadasParaExterior(ListadoExternoFiltro filtro);
 
-        List<EmpresaVm> GetListReporte(FiltroEmpresaReporteVm data);
-   
-        Task<List<EmpresasCalificadas>> EvaluadasEnCtc(int idPais, string language);
+  Task<UrlResult> Delete(int id, int paisId, string role);
 
-        List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data);
-        List<EmpresaVm> GetListRenovacionReporte(FiltroEmpresaReporteVm data);        
+  int SaveEmpresa(RegisterVm model);
 
-        List<EmpresaPersonalVm> GetListReportePersonal(FiltroEmpresaReporteVm data);
+  Task<List<EmpresaVm>> GetCompanyListAsync(CompanyFilterDTO filter, string language);
 
-        EstadisticasVm Estadisticas(string lang);
+  List<EmpresaVm> GetListReporte(FiltroEmpresaReporteVm data);
 
-        Task<List<EstadisticaItemVm>> EnCertificacion(int idPais, string lenguage);
+  Task<List<EmpresasCalificadas>> EvaluadasEnCtc(int idPais, string language);
 
-        Task<List<EstadisticaItemVm>> EstadisticasCtc(int idPais, string lang);
+  List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data);
 
-        Task<EmpresaUpdateVm>  Data(int empresaId, string userId);
+  List<EmpresaVm> GetListRenovacionReporte(FiltroEmpresaReporteVm data);
 
-        Task<List<EmpresaVm>> ListForRole(ApplicationUser user, string role);
-        bool ActualizarDatos(EmpresaUpdateVm datos, string user, string role);
+  List<EmpresaPersonalVm> GetListReportePersonal(FiltroEmpresaReporteVm data);
 
-        Task<bool> SolicitaAuditoria(int idEmpresa);
-    }
+  EstadisticasVm Estadisticas(string lang);
+
+  Task<List<EstadisticaItemVm>> EnCertificacion(int idPais, string lenguage);
+
+  Task<List<EstadisticaItemVm>> EstadisticasCtc(int idPais, string lang);
+
+  Task<EmpresaUpdateVm> Data(ApplicationUser user);
+
+  Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter);
+
+  bool ActualizarDatos(EmpresaUpdateVm datos, string user, string role);
+
+  Task<bool> SolicitaAuditoria(int idEmpresa);
 }

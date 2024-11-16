@@ -15,6 +15,7 @@ namespace Sitca.Models.ViewModels
     public string Status { get; set; } = null!;
     public string Certificacion { get; set; } = null!;
     public string Vencimiento { get; set; } = null!;
+    public string Distintivo { get; set; } = null!;
 
     public bool Recertificacion { get; set; }
   }

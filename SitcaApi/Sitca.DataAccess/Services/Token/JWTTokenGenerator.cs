@@ -27,7 +27,7 @@ namespace Sitca.DataAccess.Services.Token
         claims.Add(new Claim(ClaimTypes.Role, role));
       }
 
-      var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Token:Key"]));
+      var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"]));
 
       var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
@@ -36,7 +36,7 @@ namespace Sitca.DataAccess.Services.Token
         Subject = new ClaimsIdentity(claims),
         Expires = DateTime.Now.AddDays(7),
         SigningCredentials = creds,
-        Issuer = _config["Token:Issuer"],
+        Issuer = _config["JwtSettings:Issuer"],
       };
 
       var tokenHandler = new JwtSecurityTokenHandler();

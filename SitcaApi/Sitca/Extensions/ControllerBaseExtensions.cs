@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Sitca.Models;
 
 namespace Sitca.Extensions;
@@ -67,11 +68,20 @@ public static class ControllerBaseExtensions
     return (user, role);
   }
 
-  public static ActionResult<T> HandleResponse<T>(this ControllerBase controller, T response, int statusCode = StatusCodes.Status200OK)
+  public static ActionResult<T> HandleResponse<T>(
+      this ControllerBase controller,
+      T response,
+      bool isJsonResponse = false,
+      int statusCode = StatusCodes.Status200OK)
   {
     switch (statusCode)
     {
       case StatusCodes.Status200OK:
+        if (isJsonResponse)
+        {
+          return controller.Ok(JsonConvert.SerializeObject(response, Formatting.None,
+            new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }));
+        }
         return controller.Ok(response);
       case StatusCodes.Status201Created:
         return controller.Created("", response);

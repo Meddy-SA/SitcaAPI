@@ -42,9 +42,6 @@ namespace Sitca.Models
     [StringLength(100)]
     public string WebSite { get; set; } = null!;
 
-    //public NetTopologySuite.Geometries.Point Location { get; set; }
-
-    //public Geography Location { get; set; }
     [Required]
     public int IdPais { get; set; }
     [Required]

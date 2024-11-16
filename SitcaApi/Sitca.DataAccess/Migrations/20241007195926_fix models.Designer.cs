@@ -2,1821 +2,1819 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sitca.DataAccess.Data;
 
 #nullable disable
 
 namespace Sitca.DataAccess.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241007195926_fix models")]
-    partial class fixmodels
+  [DbContext(typeof(ApplicationDbContext))]
+  [Migration("20241007195926_Fix Models")]
+  partial class FixModels
+  {
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
-        {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+      modelBuilder
+          .HasAnnotation("ProductVersion", "8.0.8")
+          .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+      SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
+          {
+            b.Property<string>("Id")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ConcurrencyStamp")
+                      .IsConcurrencyToken()
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("Name")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("NormalizedName")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
+            b.HasIndex("NormalizedName")
+                      .IsUnique()
+                      .HasDatabaseName("RoleNameIndex")
+                      .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
-                });
+            b.ToTable("AspNetRoles", (string)null);
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ClaimType")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ClaimValue")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("RoleId")
+                      .IsRequired()
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+            b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
-                });
+            b.ToTable("AspNetRoleClaims", (string)null);
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUser", b =>
+          {
+            b.Property<string>("Id")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("int");
+            b.Property<int>("AccessFailedCount")
+                      .HasColumnType("int");
 
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ConcurrencyStamp")
+                      .IsConcurrencyToken()
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(21)
-                        .HasColumnType("nvarchar(21)");
+            b.Property<string>("Discriminator")
+                      .IsRequired()
+                      .HasMaxLength(21)
+                      .HasColumnType("nvarchar(21)");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("Email")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("bit");
+            b.Property<bool>("EmailConfirmed")
+                      .HasColumnType("bit");
 
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("bit");
+            b.Property<bool>("LockoutEnabled")
+                      .HasColumnType("bit");
 
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("datetimeoffset");
+            b.Property<DateTimeOffset?>("LockoutEnd")
+                      .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("NormalizedEmail")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("NormalizedUserName")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("PasswordHash")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("PhoneNumber")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("bit");
+            b.Property<bool>("PhoneNumberConfirmed")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("SecurityStamp")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("bit");
+            b.Property<bool>("TwoFactorEnabled")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+            b.Property<string>("UserName")
+                      .HasMaxLength(256)
+                      .HasColumnType("nvarchar(256)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+            b.HasIndex("NormalizedEmail")
+                      .HasDatabaseName("EmailIndex");
 
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex")
-                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+            b.HasIndex("NormalizedUserName")
+                      .IsUnique()
+                      .HasDatabaseName("UserNameIndex")
+                      .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+            b.ToTable("AspNetUsers", (string)null);
 
-                    b.HasDiscriminator().HasValue("IdentityUser");
+            b.HasDiscriminator().HasValue("IdentityUser");
 
-                    b.UseTphMappingStrategy();
-                });
+            b.UseTphMappingStrategy();
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ClaimType")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ClaimValue")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UserId")
+                      .IsRequired()
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+            b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
-                });
+            b.ToTable("AspNetUserClaims", (string)null);
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
-                {
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+          {
+            b.Property<string>("LoginProvider")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("ProviderKey")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ProviderDisplayName")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UserId")
+                      .IsRequired()
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("LoginProvider", "ProviderKey");
+            b.HasKey("LoginProvider", "ProviderKey");
 
-                    b.HasIndex("UserId");
+            b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
-                });
+            b.ToTable("AspNetUserLogins", (string)null);
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+          {
+            b.Property<string>("UserId")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("RoleId")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("UserId", "RoleId");
+            b.HasKey("UserId", "RoleId");
 
-                    b.HasIndex("RoleId");
+            b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
-                });
+            b.ToTable("AspNetUserRoles", (string)null);
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+          {
+            b.Property<string>("UserId")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("LoginProvider")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("Name")
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("Value")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("UserId", "LoginProvider", "Name");
+            b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
-                });
+            b.ToTable("AspNetUserTokens", (string)null);
+          });
 
-            modelBuilder.Entity("Sitca.Models.ActivityLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.ActivityLog", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("Date")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+            b.Property<string>("Observaciones")
+                      .HasMaxLength(300)
+                      .HasColumnType("nvarchar(300)");
 
-                    b.Property<string>("User")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("User")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("ActivityLog");
-                });
+            b.ToTable("ActivityLog");
+          });
 
-            modelBuilder.Entity("Sitca.Models.AppMenu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.AppMenu", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Icon")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Icon")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("IconIsImage")
-                        .HasColumnType("bit");
+            b.Property<bool>("IconIsImage")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("MenuName")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("MenuName")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("MenuNameEn")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("MenuNameEn")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("MenuURL")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("MenuURL")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<int?>("Order")
-                        .HasColumnType("int");
+            b.Property<int?>("Order")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("Parent_MenuID")
-                        .HasColumnType("int");
+            b.Property<int?>("Parent_MenuID")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Roles")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+            b.Property<string>("Roles")
+                      .HasMaxLength(300)
+                      .HasColumnType("nvarchar(300)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("AppMenu");
-                });
+            b.ToTable("AppMenu");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Archivo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Archivo", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
+            b.Property<bool>("Activo")
+                      .HasColumnType("bit");
 
-                    b.Property<int?>("CuestionarioItemId")
-                        .HasColumnType("int");
+            b.Property<int?>("CuestionarioItemId")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("EmpresaId")
-                        .HasColumnType("int");
+            b.Property<int?>("EmpresaId")
+                      .HasColumnType("int");
 
-                    b.Property<DateTime>("FechaCarga")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaCarga")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Nombre")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Nombre")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Ruta")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("Ruta")
+                      .HasMaxLength(50)
+                      .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Tipo")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+            b.Property<string>("Tipo")
+                      .HasMaxLength(10)
+                      .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("UsuarioCargaId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UsuarioCargaId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("UsuarioId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UsuarioId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CuestionarioItemId");
+            b.HasIndex("CuestionarioItemId");
 
-                    b.HasIndex("EmpresaId");
+            b.HasIndex("EmpresaId");
 
-                    b.HasIndex("UsuarioCargaId");
+            b.HasIndex("UsuarioCargaId");
 
-                    b.HasIndex("UsuarioId");
+            b.HasIndex("UsuarioId");
 
-                    b.ToTable("Archivo");
-                });
+            b.ToTable("Archivo");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Capacitaciones", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Capacitaciones", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
+            b.Property<bool>("Activo")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
+            b.Property<string>("Descripcion")
+                      .HasMaxLength(250)
+                      .HasColumnType("nvarchar(250)");
 
-                    b.Property<DateTime>("FechaCarga")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaCarga")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Nombre")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Nombre")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Ruta")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+            b.Property<string>("Ruta")
+                      .HasMaxLength(500)
+                      .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Tipo")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+            b.Property<string>("Tipo")
+                      .HasMaxLength(10)
+                      .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("UsuarioCargaId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UsuarioCargaId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("UsuarioCargaId");
+            b.HasIndex("UsuarioCargaId");
 
-                    b.ToTable("Capacitaciones");
-                });
+            b.ToTable("Capacitaciones");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CompAuditoras", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.CompAuditoras", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("Direccion")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("Email")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<DateTime?>("FechaFinConcesion")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaFinConcesion")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaInicioConcesion")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaInicioConcesion")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("Name")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<string>("NumeroCertificado")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("NumeroCertificado")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<int>("PaisId")
-                        .HasColumnType("int");
+            b.Property<int>("PaisId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Representante")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("Representante")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("Special")
-                        .HasColumnType("bit");
+            b.Property<bool>("Special")
+                      .HasColumnType("bit");
 
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
+            b.Property<bool>("Status")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("Telefono")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Tipo")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Tipo")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("PaisId");
+            b.HasIndex("PaisId");
 
-                    b.ToTable("CompAuditoras");
-                });
+            b.ToTable("CompAuditoras");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AsesorId")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("AsesorId")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("AuditorId")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("AuditorId")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("FechaFinalizado")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaFinalizado")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("FechaGenerado")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaGenerado")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaInicio")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaVisita")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaVisita")
+                      .HasColumnType("datetime2");
 
-                    b.Property<int>("IdEmpresa")
-                        .HasColumnType("int");
+            b.Property<int>("IdEmpresa")
+                      .HasColumnType("int");
 
-                    b.Property<int>("IdTipologia")
-                        .HasColumnType("int");
+            b.Property<int>("IdTipologia")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("ProcesoCertificacionId")
-                        .HasColumnType("int");
+            b.Property<int?>("ProcesoCertificacionId")
+                      .HasColumnType("int");
 
-                    b.Property<bool>("Prueba")
-                        .HasColumnType("bit");
+            b.Property<bool>("Prueba")
+                      .HasColumnType("bit");
 
-                    b.Property<int>("Resultado")
-                        .HasColumnType("int");
+            b.Property<int>("Resultado")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("ProcesoCertificacionId");
+            b.HasIndex("ProcesoCertificacionId");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.ToTable("Cuestionario");
-                });
+            b.ToTable("Cuestionario");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CuestionarioId")
-                        .HasColumnType("int");
+            b.Property<int>("CuestionarioId")
+                      .HasColumnType("int");
 
-                    b.Property<DateTime?>("FechaActualizado")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaActualizado")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Nomenclatura")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("Nomenclatura")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<bool>("Obligatorio")
-                        .HasColumnType("bit");
+            b.Property<bool>("Obligatorio")
+                      .HasColumnType("bit");
 
-                    b.Property<int>("PreguntaId")
-                        .HasColumnType("int");
+            b.Property<int>("PreguntaId")
+                      .HasColumnType("int");
 
-                    b.Property<int>("Resultado")
-                        .HasColumnType("int");
+            b.Property<int>("Resultado")
+                      .HasColumnType("int");
 
-                    b.Property<bool>("ResultadoAuditor")
-                        .HasColumnType("bit");
+            b.Property<bool>("ResultadoAuditor")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Texto")
-                        .HasMaxLength(2500)
-                        .HasColumnType("nvarchar(2500)");
+            b.Property<string>("Texto")
+                      .HasMaxLength(2500)
+                      .HasColumnType("nvarchar(2500)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CuestionarioId");
+            b.HasIndex("CuestionarioId");
 
-                    b.HasIndex("PreguntaId");
+            b.HasIndex("PreguntaId");
 
-                    b.ToTable("CuestionarioItem");
-                });
+            b.ToTable("CuestionarioItem");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItemHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.CuestionarioItemHistory", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CuestionarioItemId")
-                        .HasColumnType("int");
+            b.Property<int>("CuestionarioItemId")
+                      .HasColumnType("int");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("Date")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Item")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("Item")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<int>("Result")
-                        .HasColumnType("int");
+            b.Property<int>("Result")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Type")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("Type")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CuestionarioItemId");
+            b.HasIndex("CuestionarioItemId");
 
-                    b.ToTable("CuestionarioItemHistories");
-                });
+            b.ToTable("CuestionarioItemHistories");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItemObservaciones", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.CuestionarioItemObservaciones", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CuestionarioItemId")
-                        .HasColumnType("int");
+            b.Property<int>("CuestionarioItemId")
+                      .HasColumnType("int");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("Date")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+            b.Property<string>("Observaciones")
+                      .HasMaxLength(1000)
+                      .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("UsuarioCargaId")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("UsuarioCargaId")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CuestionarioItemId");
+            b.HasIndex("CuestionarioItemId");
 
-                    b.ToTable("CuestionarioItemObservaciones");
-                });
+            b.ToTable("CuestionarioItemObservaciones");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Cumplimiento", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Cumplimiento", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DistintivoId")
-                        .HasColumnType("int");
+            b.Property<int>("DistintivoId")
+                      .HasColumnType("int");
 
-                    b.Property<int>("ModuloId")
-                        .HasColumnType("int");
+            b.Property<int>("ModuloId")
+                      .HasColumnType("int");
 
-                    b.Property<int>("PorcentajeMaximo")
-                        .HasColumnType("int");
+            b.Property<int>("PorcentajeMaximo")
+                      .HasColumnType("int");
 
-                    b.Property<int>("PorcentajeMinimo")
-                        .HasColumnType("int");
+            b.Property<int>("PorcentajeMinimo")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("DistintivoId");
+            b.HasIndex("DistintivoId");
 
-                    b.HasIndex("ModuloId");
+            b.HasIndex("ModuloId");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.ToTable("Cumplimiento");
-                });
+            b.ToTable("Cumplimiento");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CustomsToNotificate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.CustomsToNotificate", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CustomId")
-                        .HasColumnType("int");
+            b.Property<int>("CustomId")
+                      .HasColumnType("int");
 
-                    b.Property<int>("NotificacionId")
-                        .HasColumnType("int");
+            b.Property<int>("NotificacionId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CustomId");
+            b.HasIndex("CustomId");
 
-                    b.HasIndex("NotificacionId");
+            b.HasIndex("NotificacionId");
 
-                    b.ToTable("CustomsToNotificate");
-                });
+            b.ToTable("CustomsToNotificate");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Distintivo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Distintivo", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
+            b.Property<bool>("Activo")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("File")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("File")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<int?>("Importancia")
-                        .HasColumnType("int");
+            b.Property<int?>("Importancia")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+            b.Property<string>("Name")
+                      .HasMaxLength(40)
+                      .HasColumnType("nvarchar(40)");
 
-                    b.Property<string>("NameEnglish")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+            b.Property<string>("NameEnglish")
+                      .HasMaxLength(40)
+                      .HasColumnType("nvarchar(40)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("Distintivo");
-                });
+            b.ToTable("Distintivo");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Empresa", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Empresa", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
+            b.Property<bool>("Active")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Calle")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("Calle")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("CargoRepresentante")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("CargoRepresentante")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<string>("Ciudad")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("Ciudad")
+                      .HasMaxLength(50)
+                      .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("Direccion")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("Email")
+                      .HasMaxLength(50)
+                      .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool>("EsHomologacion")
-                        .HasColumnType("bit");
+            b.Property<bool>("EsHomologacion")
+                      .HasColumnType("bit");
 
-                    b.Property<decimal?>("Estado")
-                        .HasColumnType("decimal(18,2)");
+            b.Property<decimal?>("Estado")
+                      .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("FechaAutoNotif")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaAutoNotif")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("IdNacional")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
+            b.Property<string>("IdNacional")
+                      .HasMaxLength(15)
+                      .HasColumnType("nvarchar(15)");
 
-                    b.Property<int>("IdPais")
-                        .HasColumnType("int");
+            b.Property<int>("IdPais")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Latitud")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("Latitud")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Longitud")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("Longitud")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Nombre")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("Nombre")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("NombreRepresentante")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("NombreRepresentante")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("Numero")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("Numero")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<int?>("PaisId")
-                        .HasColumnType("int");
+            b.Property<int?>("PaisId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("ResultadoActual")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ResultadoActual")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ResultadoSugerido")
-                        .HasColumnType("nvarchar(max)");
+            b.Property<string>("ResultadoSugerido")
+                      .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ResultadoVencimiento")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("ResultadoVencimiento")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
+            b.Property<string>("Telefono")
+                      .HasMaxLength(15)
+                      .HasColumnType("nvarchar(15)");
 
-                    b.Property<string>("WebSite")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("WebSite")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("PaisId");
+            b.HasIndex("PaisId");
 
-                    b.ToTable("Empresa");
-                });
+            b.ToTable("Empresa");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Homologacion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Homologacion", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CertificacionId")
-                        .HasColumnType("int");
+            b.Property<int>("CertificacionId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("DatosProceso")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+            b.Property<string>("DatosProceso")
+                      .HasMaxLength(1000)
+                      .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Distintivo")
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
+            b.Property<string>("Distintivo")
+                      .HasMaxLength(70)
+                      .HasColumnType("nvarchar(70)");
 
-                    b.Property<string>("DistintivoExterno")
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
+            b.Property<string>("DistintivoExterno")
+                      .HasMaxLength(70)
+                      .HasColumnType("nvarchar(70)");
 
-                    b.Property<int>("EmpresaId")
-                        .HasColumnType("int");
+            b.Property<int>("EmpresaId")
+                      .HasColumnType("int");
 
-                    b.Property<bool?>("EnProcesoSiccs")
-                        .HasColumnType("bit");
+            b.Property<bool?>("EnProcesoSiccs")
+                      .HasColumnType("bit");
 
-                    b.Property<DateTime?>("FechaCreacion")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaCreacion")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("FechaOtorgamiento")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaOtorgamiento")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaUltimaEdicion")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaUltimaEdicion")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("FechaVencimiento")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaVencimiento")
+                      .HasColumnType("datetime2");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CertificacionId");
+            b.HasIndex("CertificacionId");
 
-                    b.HasIndex("EmpresaId");
+            b.HasIndex("EmpresaId");
 
-                    b.ToTable("Homologacion");
-                });
+            b.ToTable("Homologacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ItemTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.ItemTemplate", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("BarCode")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("BarCode")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+            b.Property<string>("Description")
+                      .HasMaxLength(500)
+                      .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(250)
-                        .HasColumnType("nvarchar(250)");
+            b.Property<string>("Name")
+                      .HasMaxLength(250)
+                      .HasColumnType("nvarchar(250)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("ItemTemplate");
-                });
+            b.ToTable("ItemTemplate");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Modulo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Modulo", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("EnglishName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("EnglishName")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Nombre")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Nombre")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Nomenclatura")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+            b.Property<string>("Nomenclatura")
+                      .HasMaxLength(10)
+                      .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("Orden")
-                        .HasColumnType("int");
+            b.Property<int>("Orden")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.Property<bool>("Transversal")
-                        .HasColumnType("bit");
+            b.Property<bool>("Transversal")
+                      .HasColumnType("bit");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.ToTable("Modulo");
-                });
+            b.ToTable("Modulo");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Notificacion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Notificacion", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Pais")
-                        .HasColumnType("int");
+            b.Property<int>("Pais")
+                      .HasColumnType("int");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+            b.Property<int>("Status")
+                      .HasColumnType("int");
 
-                    b.Property<string>("TextoInterno")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("TextoInterno")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("TextoInternoEn")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("TextoInternoEn")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("TextoParaEmpresa")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("TextoParaEmpresa")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("TextoParaEmpresaEn")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("TextoParaEmpresaEn")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("TituloInterno")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("TituloInterno")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("TituloInternoEn")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("TituloInternoEn")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("TituloParaEmpresa")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("TituloParaEmpresa")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("TituloParaEmpresaEn")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("TituloParaEmpresaEn")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("Notificacion");
-                });
+            b.ToTable("Notificacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.NotificationCustomUsers", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.NotificationCustomUsers", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("Email")
+                      .HasMaxLength(50)
+                      .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool>("Global")
-                        .HasColumnType("bit");
+            b.Property<bool>("Global")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+            b.Property<string>("Name")
+                      .HasMaxLength(150)
+                      .HasColumnType("nvarchar(150)");
 
-                    b.Property<int>("PaisId")
-                        .HasColumnType("int");
+            b.Property<int>("PaisId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("NotificationCustomUsers");
-                });
+            b.ToTable("NotificationCustomUsers");
+          });
 
-            modelBuilder.Entity("Sitca.Models.NotificationGroups", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.NotificationGroups", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("NotificationId")
-                        .HasColumnType("int");
+            b.Property<int>("NotificationId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("RoleId")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("RoleId")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("NotificationId");
+            b.HasIndex("NotificationId");
 
-                    b.ToTable("NotificationGroups");
-                });
+            b.ToTable("NotificationGroups");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Pais", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Pais", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
+            b.Property<bool>("Active")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("Name")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("Pais");
-                });
+            b.ToTable("Pais");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Pregunta", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Pregunta", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ModuloId")
-                        .HasColumnType("int");
+            b.Property<int>("ModuloId")
+                      .HasColumnType("int");
 
-                    b.Property<bool>("NoAplica")
-                        .HasColumnType("bit");
+            b.Property<bool>("NoAplica")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Nomenclatura")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("Nomenclatura")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<bool>("Obligatoria")
-                        .HasColumnType("bit");
+            b.Property<bool>("Obligatoria")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Orden")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+            b.Property<string>("Orden")
+                      .HasMaxLength(5)
+                      .HasColumnType("nvarchar(5)");
 
-                    b.Property<int?>("SeccionModuloId")
-                        .HasColumnType("int");
+            b.Property<int?>("SeccionModuloId")
+                      .HasColumnType("int");
 
-                    b.Property<bool>("Status")
-                        .HasColumnType("bit");
+            b.Property<bool>("Status")
+                      .HasColumnType("bit");
 
-                    b.Property<int?>("SubtituloSeccionId")
-                        .HasColumnType("int");
+            b.Property<int?>("SubtituloSeccionId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Text")
-                        .HasMaxLength(2500)
-                        .HasColumnType("nvarchar(2500)");
+            b.Property<string>("Text")
+                      .HasMaxLength(2500)
+                      .HasColumnType("nvarchar(2500)");
 
-                    b.Property<string>("Texto")
-                        .HasMaxLength(2500)
-                        .HasColumnType("nvarchar(2500)");
+            b.Property<string>("Texto")
+                      .HasMaxLength(2500)
+                      .HasColumnType("nvarchar(2500)");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("ModuloId");
+            b.HasIndex("ModuloId");
 
-                    b.HasIndex("SeccionModuloId");
+            b.HasIndex("SeccionModuloId");
 
-                    b.HasIndex("SubtituloSeccionId");
+            b.HasIndex("SubtituloSeccionId");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.ToTable("Pregunta");
-                });
+            b.ToTable("Pregunta");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AsesorId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("AsesorId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("AuditorId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("AuditorId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("EmpresaId")
-                        .HasColumnType("int");
+            b.Property<int>("EmpresaId")
+                      .HasColumnType("int");
 
-                    b.Property<DateTime?>("FechaFijadaAuditoria")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaFijadaAuditoria")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaFinalizacion")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaFinalizacion")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime>("FechaInicio")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaSolicitudAuditoria")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaSolicitudAuditoria")
+                      .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FechaVencimiento")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("FechaVencimiento")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("NumeroExpediente")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+            b.Property<string>("NumeroExpediente")
+                      .HasMaxLength(40)
+                      .HasColumnType("nvarchar(40)");
 
-                    b.Property<bool>("Recertificacion")
-                        .HasColumnType("bit");
+            b.Property<bool>("Recertificacion")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Status")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("Status")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("UserGeneraId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+            b.Property<string>("UserGeneraId")
+                      .HasMaxLength(450)
+                      .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("AsesorId");
+            b.HasIndex("AsesorId");
 
-                    b.HasIndex("AuditorId");
+            b.HasIndex("AuditorId");
 
-                    b.HasIndex("EmpresaId");
+            b.HasIndex("EmpresaId");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.HasIndex("UserGeneraId");
+            b.HasIndex("UserGeneraId");
 
-                    b.ToTable("ProcesoCertificacion");
-                });
+            b.ToTable("ProcesoCertificacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ResultadoCertificacion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.ResultadoCertificacion", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Aprobado")
-                        .HasColumnType("bit");
+            b.Property<bool>("Aprobado")
+                      .HasColumnType("bit");
 
-                    b.Property<int>("CertificacionId")
-                        .HasColumnType("int");
+            b.Property<int>("CertificacionId")
+                      .HasColumnType("int");
 
-                    b.Property<int?>("DistintivoId")
-                        .HasColumnType("int");
+            b.Property<int?>("DistintivoId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("NumeroDictamen")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("NumeroDictamen")
+                      .HasMaxLength(50)
+                      .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+            b.Property<string>("Observaciones")
+                      .HasMaxLength(500)
+                      .HasColumnType("nvarchar(500)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("CertificacionId");
+            b.HasIndex("CertificacionId");
 
-                    b.HasIndex("DistintivoId");
+            b.HasIndex("DistintivoId");
 
-                    b.ToTable("ResultadoCertificacion");
-                });
+            b.ToTable("ResultadoCertificacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ModuloId")
-                        .HasColumnType("int");
+            b.Property<int>("ModuloId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+            b.Property<string>("Name")
+                      .HasMaxLength(500)
+                      .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("NameEnglish")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+            b.Property<string>("NameEnglish")
+                      .HasMaxLength(500)
+                      .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("Nomenclatura")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+            b.Property<string>("Nomenclatura")
+                      .HasMaxLength(10)
+                      .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("Orden")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+            b.Property<string>("Orden")
+                      .HasMaxLength(5)
+                      .HasColumnType("nvarchar(5)");
 
-                    b.Property<int?>("TipologiaId")
-                        .HasColumnType("int");
+            b.Property<int?>("TipologiaId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("ModuloId");
+            b.HasIndex("ModuloId");
 
-                    b.HasIndex("TipologiaId");
+            b.HasIndex("TipologiaId");
 
-                    b.ToTable("SeccionModulo");
-                });
+            b.ToTable("SeccionModulo");
+          });
 
-            modelBuilder.Entity("Sitca.Models.SubtituloSeccion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.SubtituloSeccion", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("Name")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("NameEnglish")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+            b.Property<string>("NameEnglish")
+                      .HasMaxLength(100)
+                      .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Nomenclatura")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+            b.Property<string>("Nomenclatura")
+                      .HasMaxLength(10)
+                      .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("Orden")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+            b.Property<string>("Orden")
+                      .HasMaxLength(5)
+                      .HasColumnType("nvarchar(5)");
 
-                    b.Property<int>("SeccionModuloId")
-                        .HasColumnType("int");
+            b.Property<int>("SeccionModuloId")
+                      .HasColumnType("int");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.HasIndex("SeccionModuloId");
+            b.HasIndex("SeccionModuloId");
 
-                    b.ToTable("SubtituloSeccion");
-                });
+            b.ToTable("SubtituloSeccion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Tipologia", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.Tipologia", b =>
+          {
+            b.Property<int>("Id")
+                      .ValueGeneratedOnAdd()
+                      .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
+            b.Property<bool>("Active")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(75)
-                        .HasColumnType("nvarchar(75)");
+            b.Property<string>("Name")
+                      .HasMaxLength(75)
+                      .HasColumnType("nvarchar(75)");
 
-                    b.Property<string>("NameEnglish")
-                        .HasMaxLength(75)
-                        .HasColumnType("nvarchar(75)");
+            b.Property<string>("NameEnglish")
+                      .HasMaxLength(75)
+                      .HasColumnType("nvarchar(75)");
 
-                    b.HasKey("Id");
+            b.HasKey("Id");
 
-                    b.ToTable("Tipologia");
-                });
+            b.ToTable("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.TipologiasEmpresa", b =>
-                {
-                    b.Property<int>("IdTipologia")
-                        .HasColumnType("int");
+      modelBuilder.Entity("Sitca.Models.TipologiasEmpresa", b =>
+          {
+            b.Property<int>("IdTipologia")
+                      .HasColumnType("int");
 
-                    b.Property<int>("IdEmpresa")
-                        .HasColumnType("int");
+            b.Property<int>("IdEmpresa")
+                      .HasColumnType("int");
 
-                    b.HasKey("IdTipologia", "IdEmpresa");
+            b.HasKey("IdTipologia", "IdEmpresa");
 
-                    b.HasIndex("IdEmpresa");
+            b.HasIndex("IdEmpresa");
 
-                    b.ToTable("TipologiasEmpresa");
-                });
+            b.ToTable("TipologiasEmpresa");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
-                {
-                    b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUser");
+      modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
+          {
+            b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUser");
 
-                    b.Property<bool>("Active")
-                        .HasColumnType("bit");
+            b.Property<bool>("Active")
+                      .HasColumnType("bit");
 
-                    b.Property<DateTime?>("AvisoVencimientoCarnet")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("AvisoVencimientoCarnet")
+                      .HasColumnType("datetime2");
 
-                    b.Property<string>("Ciudad")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("Ciudad")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<string>("Codigo")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("Codigo")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<int?>("CompAuditoraId")
-                        .HasColumnType("int");
+            b.Property<int?>("CompAuditoraId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Departamento")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("Departamento")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+            b.Property<string>("Direccion")
+                      .HasMaxLength(200)
+                      .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("DocumentoAcreditacion")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("DocumentoAcreditacion")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<string>("DocumentoIdentidad")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+            b.Property<string>("DocumentoIdentidad")
+                      .HasMaxLength(30)
+                      .HasColumnType("nvarchar(30)");
 
-                    b.Property<int?>("EmpresaId")
-                        .HasColumnType("int");
+            b.Property<int?>("EmpresaId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("FechaIngreso")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("FechaIngreso")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("FirstName")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("FirstName")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<string>("HojaDeVida")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("HojaDeVida")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<string>("LastName")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("LastName")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<string>("Lenguage")
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
+            b.Property<string>("Lenguage")
+                      .HasMaxLength(3)
+                      .HasColumnType("nvarchar(3)");
 
-                    b.Property<string>("Nacionalidad")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+            b.Property<string>("Nacionalidad")
+                      .HasMaxLength(60)
+                      .HasColumnType("nvarchar(60)");
 
-                    b.Property<bool>("Notificaciones")
-                        .HasColumnType("bit");
+            b.Property<bool>("Notificaciones")
+                      .HasColumnType("bit");
 
-                    b.Property<string>("NumeroCarnet")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+            b.Property<string>("NumeroCarnet")
+                      .HasMaxLength(20)
+                      .HasColumnType("nvarchar(20)");
 
-                    b.Property<int?>("PaisId")
-                        .HasColumnType("int");
+            b.Property<int?>("PaisId")
+                      .HasColumnType("int");
 
-                    b.Property<string>("Profesion")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+            b.Property<string>("Profesion")
+                      .HasMaxLength(120)
+                      .HasColumnType("nvarchar(120)");
 
-                    b.Property<DateTime?>("VencimientoCarnet")
-                        .HasColumnType("datetime2");
+            b.Property<DateTime?>("VencimientoCarnet")
+                      .HasColumnType("datetime2");
 
-                    b.HasIndex("CompAuditoraId");
+            b.HasIndex("CompAuditoraId");
 
-                    b.HasDiscriminator().HasValue("ApplicationUser");
-                });
+            b.HasDiscriminator().HasValue("ApplicationUser");
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+          {
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                      .WithMany()
+                      .HasForeignKey("RoleId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+          {
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                      .WithMany()
+                      .HasForeignKey("UserId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+          {
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                      .WithMany()
+                      .HasForeignKey("UserId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+          {
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                      .WithMany()
+                      .HasForeignKey("RoleId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                      .WithMany()
+                      .HasForeignKey("UserId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
+          });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
+      modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+          {
+            b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                      .WithMany()
+                      .HasForeignKey("UserId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
+          });
 
-            modelBuilder.Entity("Sitca.Models.Archivo", b =>
-                {
-                    b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
-                        .WithMany("Archivos")
-                        .HasForeignKey("CuestionarioItemId");
+      modelBuilder.Entity("Sitca.Models.Archivo", b =>
+          {
+            b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
+                      .WithMany("Archivos")
+                      .HasForeignKey("CuestionarioItemId");
 
-                    b.HasOne("Sitca.Models.Empresa", "Empresa")
-                        .WithMany("Archivos")
-                        .HasForeignKey("EmpresaId");
+            b.HasOne("Sitca.Models.Empresa", "Empresa")
+                      .WithMany("Archivos")
+                      .HasForeignKey("EmpresaId");
 
-                    b.HasOne("Sitca.Models.ApplicationUser", "UsuarioCarga")
-                        .WithMany()
-                        .HasForeignKey("UsuarioCargaId");
+            b.HasOne("Sitca.Models.ApplicationUser", "UsuarioCarga")
+                      .WithMany()
+                      .HasForeignKey("UsuarioCargaId");
 
-                    b.HasOne("Sitca.Models.ApplicationUser", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId");
+            b.HasOne("Sitca.Models.ApplicationUser", "Usuario")
+                      .WithMany()
+                      .HasForeignKey("UsuarioId");
 
-                    b.Navigation("CuestionarioItem");
+            b.Navigation("CuestionarioItem");
 
-                    b.Navigation("Empresa");
+            b.Navigation("Empresa");
 
-                    b.Navigation("Usuario");
+            b.Navigation("Usuario");
 
-                    b.Navigation("UsuarioCarga");
-                });
+            b.Navigation("UsuarioCarga");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Capacitaciones", b =>
-                {
-                    b.HasOne("Sitca.Models.ApplicationUser", "UsuarioCarga")
-                        .WithMany()
-                        .HasForeignKey("UsuarioCargaId");
+      modelBuilder.Entity("Sitca.Models.Capacitaciones", b =>
+          {
+            b.HasOne("Sitca.Models.ApplicationUser", "UsuarioCarga")
+                      .WithMany()
+                      .HasForeignKey("UsuarioCargaId");
 
-                    b.Navigation("UsuarioCarga");
-                });
+            b.Navigation("UsuarioCarga");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CompAuditoras", b =>
-                {
-                    b.HasOne("Sitca.Models.Pais", "Pais")
-                        .WithMany()
-                        .HasForeignKey("PaisId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.CompAuditoras", b =>
+          {
+            b.HasOne("Sitca.Models.Pais", "Pais")
+                      .WithMany()
+                      .HasForeignKey("PaisId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("Pais");
-                });
+            b.Navigation("Pais");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
-                {
-                    b.HasOne("Sitca.Models.ProcesoCertificacion", "Certificacion")
-                        .WithMany()
-                        .HasForeignKey("ProcesoCertificacionId");
+      modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
+          {
+            b.HasOne("Sitca.Models.ProcesoCertificacion", "Certificacion")
+                      .WithMany()
+                      .HasForeignKey("ProcesoCertificacionId");
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany("Cuestionarios")
-                        .HasForeignKey("TipologiaId");
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany("Cuestionarios")
+                      .HasForeignKey("TipologiaId");
 
-                    b.Navigation("Certificacion");
+            b.Navigation("Certificacion");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
-                {
-                    b.HasOne("Sitca.Models.Cuestionario", "Cuestionario")
-                        .WithMany("Items")
-                        .HasForeignKey("CuestionarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
+          {
+            b.HasOne("Sitca.Models.Cuestionario", "Cuestionario")
+                      .WithMany("Items")
+                      .HasForeignKey("CuestionarioId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Pregunta", "Pregunta")
-                        .WithMany()
-                        .HasForeignKey("PreguntaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Pregunta", "Pregunta")
+                      .WithMany()
+                      .HasForeignKey("PreguntaId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("Cuestionario");
+            b.Navigation("Cuestionario");
 
-                    b.Navigation("Pregunta");
-                });
+            b.Navigation("Pregunta");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItemHistory", b =>
-                {
-                    b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
-                        .WithMany()
-                        .HasForeignKey("CuestionarioItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.CuestionarioItemHistory", b =>
+          {
+            b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
+                      .WithMany()
+                      .HasForeignKey("CuestionarioItemId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("CuestionarioItem");
-                });
+            b.Navigation("CuestionarioItem");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItemObservaciones", b =>
-                {
-                    b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
-                        .WithMany("CuestionarioItemObservaciones")
-                        .HasForeignKey("CuestionarioItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.CuestionarioItemObservaciones", b =>
+          {
+            b.HasOne("Sitca.Models.CuestionarioItem", "CuestionarioItem")
+                      .WithMany("CuestionarioItemObservaciones")
+                      .HasForeignKey("CuestionarioItemId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("CuestionarioItem");
-                });
+            b.Navigation("CuestionarioItem");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Cumplimiento", b =>
-                {
-                    b.HasOne("Sitca.Models.Distintivo", "Distintivo")
-                        .WithMany()
-                        .HasForeignKey("DistintivoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.Cumplimiento", b =>
+          {
+            b.HasOne("Sitca.Models.Distintivo", "Distintivo")
+                      .WithMany()
+                      .HasForeignKey("DistintivoId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Modulo", "Modulo")
-                        .WithMany()
-                        .HasForeignKey("ModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Modulo", "Modulo")
+                      .WithMany()
+                      .HasForeignKey("ModuloId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany()
-                        .HasForeignKey("TipologiaId");
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany()
+                      .HasForeignKey("TipologiaId");
 
-                    b.Navigation("Distintivo");
+            b.Navigation("Distintivo");
 
-                    b.Navigation("Modulo");
+            b.Navigation("Modulo");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CustomsToNotificate", b =>
-                {
-                    b.HasOne("Sitca.Models.NotificationCustomUsers", "CustomUser")
-                        .WithMany()
-                        .HasForeignKey("CustomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.CustomsToNotificate", b =>
+          {
+            b.HasOne("Sitca.Models.NotificationCustomUsers", "CustomUser")
+                      .WithMany()
+                      .HasForeignKey("CustomId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Notificacion", "Notificacion")
-                        .WithMany()
-                        .HasForeignKey("NotificacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Notificacion", "Notificacion")
+                      .WithMany()
+                      .HasForeignKey("NotificacionId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("CustomUser");
+            b.Navigation("CustomUser");
 
-                    b.Navigation("Notificacion");
-                });
+            b.Navigation("Notificacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Empresa", b =>
-                {
-                    b.HasOne("Sitca.Models.Pais", "Pais")
-                        .WithMany("Empresas")
-                        .HasForeignKey("PaisId");
+      modelBuilder.Entity("Sitca.Models.Empresa", b =>
+          {
+            b.HasOne("Sitca.Models.Pais", "Pais")
+                      .WithMany("Empresas")
+                      .HasForeignKey("PaisId");
 
-                    b.Navigation("Pais");
-                });
+            b.Navigation("Pais");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Homologacion", b =>
-                {
-                    b.HasOne("Sitca.Models.ProcesoCertificacion", "Certificacion")
-                        .WithMany()
-                        .HasForeignKey("CertificacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.Homologacion", b =>
+          {
+            b.HasOne("Sitca.Models.ProcesoCertificacion", "Certificacion")
+                      .WithMany()
+                      .HasForeignKey("CertificacionId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Empresa", "Empresa")
-                        .WithMany("Homologaciones")
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Empresa", "Empresa")
+                      .WithMany("Homologaciones")
+                      .HasForeignKey("EmpresaId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("Certificacion");
+            b.Navigation("Certificacion");
 
-                    b.Navigation("Empresa");
-                });
+            b.Navigation("Empresa");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Modulo", b =>
-                {
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany("Modulos")
-                        .HasForeignKey("TipologiaId");
+      modelBuilder.Entity("Sitca.Models.Modulo", b =>
+          {
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany("Modulos")
+                      .HasForeignKey("TipologiaId");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.NotificationGroups", b =>
-                {
-                    b.HasOne("Sitca.Models.Notificacion", "Notification")
-                        .WithMany("NotificationGroups")
-                        .HasForeignKey("NotificationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.NotificationGroups", b =>
+          {
+            b.HasOne("Sitca.Models.Notificacion", "Notification")
+                      .WithMany("NotificationGroups")
+                      .HasForeignKey("NotificationId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("Notification");
-                });
+            b.Navigation("Notification");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Pregunta", b =>
-                {
-                    b.HasOne("Sitca.Models.Modulo", "Modulo")
-                        .WithMany("Preguntas")
-                        .HasForeignKey("ModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.Pregunta", b =>
+          {
+            b.HasOne("Sitca.Models.Modulo", "Modulo")
+                      .WithMany("Preguntas")
+                      .HasForeignKey("ModuloId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.SeccionModulo", "SeccionModulo")
-                        .WithMany()
-                        .HasForeignKey("SeccionModuloId");
+            b.HasOne("Sitca.Models.SeccionModulo", "SeccionModulo")
+                      .WithMany()
+                      .HasForeignKey("SeccionModuloId");
 
-                    b.HasOne("Sitca.Models.SubtituloSeccion", "SubtituloSeccion")
-                        .WithMany()
-                        .HasForeignKey("SubtituloSeccionId");
+            b.HasOne("Sitca.Models.SubtituloSeccion", "SubtituloSeccion")
+                      .WithMany()
+                      .HasForeignKey("SubtituloSeccionId");
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany()
-                        .HasForeignKey("TipologiaId");
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany()
+                      .HasForeignKey("TipologiaId");
 
-                    b.Navigation("Modulo");
+            b.Navigation("Modulo");
 
-                    b.Navigation("SeccionModulo");
+            b.Navigation("SeccionModulo");
 
-                    b.Navigation("SubtituloSeccion");
+            b.Navigation("SubtituloSeccion");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
-                {
-                    b.HasOne("Sitca.Models.ApplicationUser", "AsesorProceso")
-                        .WithMany()
-                        .HasForeignKey("AsesorId");
+      modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
+          {
+            b.HasOne("Sitca.Models.ApplicationUser", "AsesorProceso")
+                      .WithMany()
+                      .HasForeignKey("AsesorId");
 
-                    b.HasOne("Sitca.Models.ApplicationUser", "AuditorProceso")
-                        .WithMany()
-                        .HasForeignKey("AuditorId");
+            b.HasOne("Sitca.Models.ApplicationUser", "AuditorProceso")
+                      .WithMany()
+                      .HasForeignKey("AuditorId");
 
-                    b.HasOne("Sitca.Models.Empresa", "Empresa")
-                        .WithMany("Certificaciones")
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Empresa", "Empresa")
+                      .WithMany("Certificaciones")
+                      .HasForeignKey("EmpresaId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany()
-                        .HasForeignKey("TipologiaId");
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany()
+                      .HasForeignKey("TipologiaId");
 
-                    b.HasOne("Sitca.Models.ApplicationUser", "UserGenerador")
-                        .WithMany()
-                        .HasForeignKey("UserGeneraId");
+            b.HasOne("Sitca.Models.ApplicationUser", "UserGenerador")
+                      .WithMany()
+                      .HasForeignKey("UserGeneraId");
 
-                    b.Navigation("AsesorProceso");
+            b.Navigation("AsesorProceso");
 
-                    b.Navigation("AuditorProceso");
+            b.Navigation("AuditorProceso");
 
-                    b.Navigation("Empresa");
+            b.Navigation("Empresa");
 
-                    b.Navigation("Tipologia");
+            b.Navigation("Tipologia");
 
-                    b.Navigation("UserGenerador");
-                });
+            b.Navigation("UserGenerador");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ResultadoCertificacion", b =>
-                {
-                    b.HasOne("Sitca.Models.ProcesoCertificacion", "ProcesoCertificacion")
-                        .WithMany("Resultados")
-                        .HasForeignKey("CertificacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.ResultadoCertificacion", b =>
+          {
+            b.HasOne("Sitca.Models.ProcesoCertificacion", "ProcesoCertificacion")
+                      .WithMany("Resultados")
+                      .HasForeignKey("CertificacionId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Distintivo", "Distintivo")
-                        .WithMany()
-                        .HasForeignKey("DistintivoId");
+            b.HasOne("Sitca.Models.Distintivo", "Distintivo")
+                      .WithMany()
+                      .HasForeignKey("DistintivoId");
 
-                    b.Navigation("Distintivo");
+            b.Navigation("Distintivo");
 
-                    b.Navigation("ProcesoCertificacion");
-                });
+            b.Navigation("ProcesoCertificacion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
-                {
-                    b.HasOne("Sitca.Models.Modulo", "Modulo")
-                        .WithMany("Secciones")
-                        .HasForeignKey("ModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
+          {
+            b.HasOne("Sitca.Models.Modulo", "Modulo")
+                      .WithMany("Secciones")
+                      .HasForeignKey("ModuloId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany()
-                        .HasForeignKey("TipologiaId");
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany()
+                      .HasForeignKey("TipologiaId");
 
-                    b.Navigation("Modulo");
+            b.Navigation("Modulo");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.SubtituloSeccion", b =>
-                {
-                    b.HasOne("Sitca.Models.SeccionModulo", "SeccionModulo")
-                        .WithMany("SubtituloSeccion")
-                        .HasForeignKey("SeccionModuloId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.SubtituloSeccion", b =>
+          {
+            b.HasOne("Sitca.Models.SeccionModulo", "SeccionModulo")
+                      .WithMany("SubtituloSeccion")
+                      .HasForeignKey("SeccionModuloId")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("SeccionModulo");
-                });
+            b.Navigation("SeccionModulo");
+          });
 
-            modelBuilder.Entity("Sitca.Models.TipologiasEmpresa", b =>
-                {
-                    b.HasOne("Sitca.Models.Empresa", "Empresa")
-                        .WithMany("Tipologias")
-                        .HasForeignKey("IdEmpresa")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+      modelBuilder.Entity("Sitca.Models.TipologiasEmpresa", b =>
+          {
+            b.HasOne("Sitca.Models.Empresa", "Empresa")
+                      .WithMany("Tipologias")
+                      .HasForeignKey("IdEmpresa")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.HasOne("Sitca.Models.Tipologia", "Tipologia")
-                        .WithMany("Empresas")
-                        .HasForeignKey("IdTipologia")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+            b.HasOne("Sitca.Models.Tipologia", "Tipologia")
+                      .WithMany("Empresas")
+                      .HasForeignKey("IdTipologia")
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired();
 
-                    b.Navigation("Empresa");
+            b.Navigation("Empresa");
 
-                    b.Navigation("Tipologia");
-                });
+            b.Navigation("Tipologia");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
-                {
-                    b.HasOne("Sitca.Models.CompAuditoras", "CompAuditora")
-                        .WithMany()
-                        .HasForeignKey("CompAuditoraId");
+      modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
+          {
+            b.HasOne("Sitca.Models.CompAuditoras", "CompAuditora")
+                      .WithMany()
+                      .HasForeignKey("CompAuditoraId");
 
-                    b.Navigation("CompAuditora");
-                });
+            b.Navigation("CompAuditora");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
-                {
-                    b.Navigation("Items");
-                });
+      modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
+          {
+            b.Navigation("Items");
+          });
 
-            modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
-                {
-                    b.Navigation("Archivos");
+      modelBuilder.Entity("Sitca.Models.CuestionarioItem", b =>
+          {
+            b.Navigation("Archivos");
 
-                    b.Navigation("CuestionarioItemObservaciones");
-                });
+            b.Navigation("CuestionarioItemObservaciones");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Empresa", b =>
-                {
-                    b.Navigation("Archivos");
+      modelBuilder.Entity("Sitca.Models.Empresa", b =>
+          {
+            b.Navigation("Archivos");
 
-                    b.Navigation("Certificaciones");
+            b.Navigation("Certificaciones");
 
-                    b.Navigation("Homologaciones");
+            b.Navigation("Homologaciones");
 
-                    b.Navigation("Tipologias");
-                });
+            b.Navigation("Tipologias");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Modulo", b =>
-                {
-                    b.Navigation("Preguntas");
+      modelBuilder.Entity("Sitca.Models.Modulo", b =>
+          {
+            b.Navigation("Preguntas");
 
-                    b.Navigation("Secciones");
-                });
+            b.Navigation("Secciones");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Notificacion", b =>
-                {
-                    b.Navigation("NotificationGroups");
-                });
+      modelBuilder.Entity("Sitca.Models.Notificacion", b =>
+          {
+            b.Navigation("NotificationGroups");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Pais", b =>
-                {
-                    b.Navigation("Empresas");
-                });
+      modelBuilder.Entity("Sitca.Models.Pais", b =>
+          {
+            b.Navigation("Empresas");
+          });
 
-            modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
-                {
-                    b.Navigation("Resultados");
-                });
+      modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
+          {
+            b.Navigation("Resultados");
+          });
 
-            modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
-                {
-                    b.Navigation("SubtituloSeccion");
-                });
+      modelBuilder.Entity("Sitca.Models.SeccionModulo", b =>
+          {
+            b.Navigation("SubtituloSeccion");
+          });
 
-            modelBuilder.Entity("Sitca.Models.Tipologia", b =>
-                {
-                    b.Navigation("Cuestionarios");
+      modelBuilder.Entity("Sitca.Models.Tipologia", b =>
+          {
+            b.Navigation("Cuestionarios");
 
-                    b.Navigation("Empresas");
+            b.Navigation("Empresas");
 
-                    b.Navigation("Modulos");
-                });
+            b.Navigation("Modulos");
+          });
 #pragma warning restore 612, 618
-        }
     }
+  }
 }

@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Helpers;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.Models;
 using Sitca.Models.ViewModels;
 using System;
@@ -25,16 +27,18 @@ namespace Sitca.Controllers
   {
     private readonly ILogger<FileManagerController> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly INotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-
 
     public FileManagerController(
         ILogger<FileManagerController> logger,
         IUnitOfWork unitOfWork,
+        INotificationService notificationService,
         UserManager<ApplicationUser> userManager)
     {
       _logger = logger;
       _unitOfWork = unitOfWork;
+      _notificationService = notificationService;
       _userManager = userManager;
     }
 
@@ -215,51 +219,24 @@ namespace Sitca.Controllers
 
           #endregion
 
-          if (nombre == "Protocolo Adhesión" || nombre == "Accession Protocol")
+          var notificationType = NotificationHelper.GetNotificationTypeByName(nombre);
+          if (notificationType.HasValue)
           {
             try
             {
-              await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -2, appUser.Lenguage);
+              await _notificationService.SendNotificacionSpecial(
+                  empresaId,
+                  notificationType.Value,
+                  appUser.Lenguage);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-              _logger.LogError(e, "Error al enviar notificacion en Accession Protocol");
+              _logger.LogError(ex,
+                  "Error al enviar notificación de tipo {NotificationType} para empresa {EmpresaId}",
+                  notificationType.Value,
+                  empresaId);
             }
           }
-          if (nombre == "Solicitud de Certificación" || nombre == "Solicitud de Auditoria" || nombre == "Certification Request")
-          {
-            try
-            {
-              await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -3, appUser.Lenguage);
-            }
-            catch (Exception)
-            {
-            }
-          }
-
-          if (nombre == "Recomendación del Auditor al Ctc" || nombre == "Recommendations to the CTC")
-          {
-            try
-            {
-              await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -11, appUser.Lenguage);
-            }
-            catch (Exception)
-            {
-            }
-          }
-
-          if (nombre == "Solicitud de ReCertificación" || nombre == "Solicitud de Re Certificación" || nombre == "Recertification Application")
-          {
-            try
-            {
-              await _unitOfWork.Notificacion.SendNotificacionSpecial(empresaId, -12, appUser.Lenguage);
-            }
-            catch (Exception)
-            {
-            }
-          }
-
-
           return Ok(new { dbPath });
         }
         else

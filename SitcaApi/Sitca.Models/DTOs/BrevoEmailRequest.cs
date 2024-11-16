@@ -8,4 +8,5 @@ public class BrevoEmailRequest
   public string Subject { get; set; } = null!;
   public EmailContact ReplyTo { get; set; } = null!;
   public List<string> Tags { get; set; } = null!;
+  public Dictionary<string, string> Headers { get; set; } = null!;
 }

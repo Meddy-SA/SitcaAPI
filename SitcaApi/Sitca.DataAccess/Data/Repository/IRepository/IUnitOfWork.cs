@@ -20,8 +20,6 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
 
     IReporteRepository Reportes { get; }
 
-    INotificationRepository Notificacion { get; }
-
     ICapacitacionesRepository Capacitaciones { get; }
 
     ICompañiasAuditorasRepository CompañiasAuditoras { get; }

@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.ViewModels;
@@ -18,13 +20,20 @@ namespace Sitca.Controllers
   public class CertificacionController : ControllerBase
   {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly INotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<CertificacionController> _logger;
 
-    public CertificacionController(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager, IEmailSender emailSender, ILogger<CertificacionController> logger)
+    public CertificacionController(
+        IUnitOfWork unitOfWork,
+        INotificationService notificationService,
+        UserManager<ApplicationUser> userManager,
+        IEmailSender emailSender,
+        ILogger<CertificacionController> logger)
     {
       _unitOfWork = unitOfWork;
+      _notificationService = notificationService;
       _userManager = userManager;
       _emailSender = emailSender;
       _logger = logger;
@@ -121,7 +130,7 @@ namespace Sitca.Controllers
 
       try
       {
-        await _unitOfWork.Notificacion.SendNotification(data.idProceso, null, appUser.Lenguage);
+        await _notificationService.SendNotification(data.idProceso, null, appUser.Lenguage);
       }
       catch (Exception)
       {
@@ -161,11 +170,13 @@ namespace Sitca.Controllers
       {
         if (data.auditor)
         {
-          await _unitOfWork.Notificacion.SendNotification(data.idProceso, -5, appUser.Lenguage);
+          await _notificationService.SendNotification(data.idProceso,
+              (int)NotificationTypes.CambioAuditor, appUser.Lenguage);
         }
         else
         {
-          await _unitOfWork.Notificacion.SendNotification(data.idProceso, -4, appUser.Lenguage);
+          await _notificationService.SendNotification(data.idProceso,
+              (int)NotificationTypes.CambioAsesor, appUser.Lenguage);
         }
       }
       catch (Exception ex)
@@ -193,7 +204,7 @@ namespace Sitca.Controllers
 
       try
       {
-        await _unitOfWork.Notificacion.SendNotification(result, null, appUser.Lenguage);
+        await _notificationService.SendNotification(result, null, appUser.Lenguage);
       }
       catch (Exception ex)
       {
@@ -207,7 +218,7 @@ namespace Sitca.Controllers
     [HttpGet]
     public async Task<IActionResult> Test(int id)
     {
-      var result = await _unitOfWork.Notificacion.SendNotification(id, null, "es");
+      var result = await _notificationService.SendNotification(id, null, "es");
       return Ok();
     }
 
@@ -327,7 +338,7 @@ namespace Sitca.Controllers
       var result = await _unitOfWork.ProcesoCertificacion.FinCuestionario(data.Id, appUser, role);
       try
       {
-        await _unitOfWork.Notificacion.SendNotification(result, null, appUser.Lenguage);
+        await _notificationService.SendNotification(result, null, appUser.Lenguage);
       }
       catch (Exception ex)
       {
@@ -349,7 +360,7 @@ namespace Sitca.Controllers
 
       try
       {
-        await _unitOfWork.Notificacion.SendNotification(result, null, appUser.Lenguage);
+        await _notificationService.SendNotification(result, null, appUser.Lenguage);
       }
       catch (Exception ex)
       {

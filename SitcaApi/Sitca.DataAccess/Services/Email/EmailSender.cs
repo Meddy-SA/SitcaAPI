@@ -171,11 +171,14 @@ namespace Sitca.DataAccess.Services.Email
           Email = _emailConfig.SenderEmail
         },
         To = new List<EmailContact>
-                {
-                    new() { Email = toAddress }
-                },
+        {
+            new() { Email = toAddress }
+        },
         HtmlContent = message,
         Subject = subject,
+        Headers = new Dictionary<string, string> {
+          { "api-key", _emailConfig.ApiKey }
+        },
         Tags = new List<string> { "sitca", "notification" }
       };
     }
@@ -216,7 +219,9 @@ namespace Sitca.DataAccess.Services.Email
     {
       return new SmtpClient(_emailConfig.Host, _emailConfig.Port)
       {
-        Credentials = new NetworkCredential(_emailConfig.Username, _emailConfig.Password)
+        Credentials = new NetworkCredential(_emailConfig.ApiKey, ""),
+        EnableSsl = true,
+        DeliveryMethod = SmtpDeliveryMethod.Network
       };
     }
 

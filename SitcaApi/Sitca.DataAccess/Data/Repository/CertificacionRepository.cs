@@ -5,6 +5,8 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
 using Sitca.Models;
+using Sitca.Models.Constants;
+using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -777,43 +779,82 @@ namespace Sitca.DataAccess.Data.Repository
       return true;
     }
 
+    /// <summary>
+    /// Gets the list of certification statuses in the specified language
+    /// </summary>
+    /// <param name="lang">Language code ("es" for Spanish, "en" for English)</param>
+    /// <returns>A list of certification statuses with their IDs and localized names</returns>
+    /// <exception cref="ArgumentException">Thrown when language code is invalid</exception>
     public Task<List<CommonVm>> GetStatusList(string lang)
     {
-      //0 - Inicial
-      //1 - Para Asesorar
-      //2 - Asesoria en Proceso
-      //3 - Asesoria Finalizada
-      //4 - Para Auditar
-      //5 - Auditoria en Proceso
-      //6 - Auditoria Finalizada
-      //7 - En revisión de CTC
-      //8 - Finalizado
-      var statuses = new List<CommonVm>
-    {
-        new CommonVm { id = 0, name = lang == "es" ? "Inicial" : "Initial" },
-        new CommonVm { id = 1, name = lang == "es" ? "Para Asesorar" : "To be Advised" },
-        new CommonVm { id = 2, name = lang == "es" ? "Asesoria en Proceso" : "In Advising Process" },
-        new CommonVm { id = 3, name = lang == "es" ? "Asesoria Finalizada" : "Advising Finalized" },
-        new CommonVm { id = 4, name = lang == "es" ? "Para Auditar" : "To be Audited" },
-        new CommonVm { id = 5, name = lang == "es" ? "Auditoria en Proceso" : "In Auditing Process" },
-        new CommonVm { id = 6, name = lang == "es" ? "Auditoria Finalizada" : "Auditing Finalized" },
-        new CommonVm { id = 7, name = lang == "es" ? "En revisión de CTC" : "Under CTC Review" },
-        new CommonVm { id = 8, name = lang == "es" ? "Finalizado" : "Ended" }
-    };
+      if (string.IsNullOrWhiteSpace(lang))
+      {
+        throw new ArgumentException("Language code cannot be null or empty", nameof(lang));
+      }
+
+      lang = lang.ToLowerInvariant();
+      if (!IsValidLanguage(lang))
+      {
+        throw new ArgumentException($"Invalid language code: {lang}", nameof(lang));
+      }
+
+      var statuses = Enum.GetValues<CertificationStatus>()
+          .Select(status => new CommonVm
+          {
+            id = (int)status,
+            name = StatusLocalizations.GetDescription(status, lang)
+          })
+          .ToList();
 
       return Task.FromResult(statuses);
     }
 
+    /// <summary>
+    /// Retrieves a list of active distintivos (badges/distinctions) in the specified language
+    /// </summary>
+    /// <param name="lang">Language code ("es" for Spanish, "en" for English)</param>
+    /// <returns>A list of distintivos with their IDs and localized names</returns>
+    /// <exception cref="ArgumentException">Thrown when language code is invalid</exception>
     public async Task<List<CommonVm>> GetDistintivos(string lang)
     {
-      var distintivos = await _db.Distintivo.OrderBy(s => s.Importancia).Where(s => s.Activo).Select(x => new CommonVm
+      // Validate language parameter
+      if (string.IsNullOrWhiteSpace(lang))
       {
-        id = x.Id,
-        name = lang == "es" ? x.Name : x.NameEnglish,
-      }).ToListAsync();
+        throw new ArgumentException("Language code cannot be null or empty", nameof(lang));
+      }
 
-      return distintivos;
+      // Normalize language code
+      lang = lang.ToLowerInvariant();
+      if (!IsValidLanguage(lang))
+      {
+        throw new ArgumentException($"Invalid language code: {lang}", nameof(lang));
+      }
+
+      try
+      {
+        var distintivos = await _db.Distintivo
+          .AsNoTracking()
+          .Where(s => s.Activo)
+          .OrderBy(s => s.Importancia)
+          .Select(x => new CommonVm
+          {
+            id = x.Id,
+            name = lang == LanguageCodes.Spanish ? x.Name : x.NameEnglish,
+          })
+          .ToListAsync();
+
+        return distintivos;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error retrieving distintivos for language {Lang}", lang);
+        throw;
+      }
     }
+
+    private static bool IsValidLanguage(string lang) =>
+      lang == LanguageCodes.Spanish || lang == LanguageCodes.English;
+
 
     public async Task<bool> SaveObservaciones(ApplicationUser user, ObservacionesDTO data)
     {
@@ -933,7 +974,8 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<bool> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId)
     {
-      var cuestionario = await _db.Cuestionario.Include(s => s.Certificacion)
+      var cuestionario = await _db.Cuestionario
+        .Include(s => s.Certificacion)
           .FirstOrDefaultAsync(s => s.Id == cuestionarioId && (s.Certificacion.Status.StartsWith("6 - ") || s.Certificacion.Status.StartsWith("7 - ")));
 
       if (cuestionario == null)

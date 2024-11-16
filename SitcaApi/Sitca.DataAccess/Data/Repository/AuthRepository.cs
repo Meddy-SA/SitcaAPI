@@ -205,7 +205,7 @@ public class AuthRepository : IAuthRepository
       await _userManager.CreateAsync(user, register.Password);
 
   private async Task AssignDefaultRoleAsync(ApplicationUser user) =>
-      await _userManager.AddToRoleAsync(user, Constants.Roles.Empresa);
+      await _userManager.AddToRoleAsync(user, Utilities.Common.Constants.Roles.Empresa);
 
   private async Task SendWelcomeEmailAsync(ApplicationUser user, string language)
   {

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Sitca.DataAccess")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7ab1274376d5b07bba7ff72842ad5bebe74279ee")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f9d4064ef15e04cf0e4efeee18009b4c1803e613")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sitca.DataAccess")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sitca.DataAccess")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
