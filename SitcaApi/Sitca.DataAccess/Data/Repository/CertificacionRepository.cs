@@ -372,6 +372,16 @@ namespace Sitca.DataAccess.Data.Repository
       return result;
     }
 
+    /// <summary>
+    /// Obtiene un cuestionario detallado con su información asociada, incluyendo módulos, preguntas y respuestas.
+    /// Valida el acceso del usuario, construye la estructura base del cuestionario, carga los módulos y preguntas,
+    /// procesa las respuestas existentes y calcula los resultados finales.
+    /// </summary>
+    /// <param name="id">Identificador único del cuestionario</param>
+    /// <param name="user">Usuario que realiza la solicitud</param>
+    /// <param name="role">Rol del usuario en el sistema</param>
+    /// <returns>Retorna un objeto CuestionarioDetailsVm con toda la información del cuestionario o null si el usuario no tiene acceso</returns>
+    /// <exception cref="Exception">Se propaga cualquier error no controlado durante el proceso</exception>
     public async Task<CuestionarioDetailsVm> GetCuestionario(int id, ApplicationUser user, string role)
     {
       try
@@ -437,9 +447,9 @@ namespace Sitca.DataAccess.Data.Repository
 
       return role switch
       {
-        "Asesor" => proceso.AsesorId == user.Id,
-        "Auditor" => proceso.AuditorId == user.Id,
-        "Admin" => true,
+        ConstantRoles.Asesor => proceso.AsesorId == user.Id,
+        ConstantRoles.Auditor => proceso.AuditorId == user.Id,
+        ConstantRoles.Admin or ConstantRoles.TecnicoPais => true,
         _ => false
       };
     }
@@ -461,6 +471,7 @@ namespace Sitca.DataAccess.Data.Repository
           Recertificacion = proceso.Recertificacion,
           FechaFinalizacion = cuestionario.FechaFinalizado.ToStringArg(),
           FechaRevisionAuditor = cuestionario.FechaRevisionAuditor?.ToStringArg() ?? null,
+          TecnicoPaisId = cuestionario.TecnicoPaisId ?? null,
           Tipologia = new CommonVm
           {
             id = cuestionario.IdTipologia,
@@ -681,7 +692,8 @@ namespace Sitca.DataAccess.Data.Repository
 
         foreach (var modulo in result.Modulos)
         {
-          foreach (var pregunta in modulo.Items.Where(s => s.Type == "pregunta"))
+          var preguntas = modulo.Items.Where(s => s.Type == "pregunta");
+          foreach (var pregunta in preguntas)
           {
             var respuesta = respuestas.FirstOrDefault(r => r.PreguntaId == pregunta.Id);
             if (respuesta != null)

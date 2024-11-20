@@ -94,7 +94,7 @@ namespace Sitca.Models.ViewModels
 
     public CommonVm Tipologia { get; set; } = null!;
     public CommonVm Empresa { get; set; } = null!;
-    public CommonUserVm Asesor { get; set; } = null!;
+    public CommonUserVm? Asesor { get; set; } = null!;
     public CommonUserVm? Auditor { get; set; }
     public bool Prueba { get; set; }
 
@@ -104,6 +104,7 @@ namespace Sitca.Models.ViewModels
     public string Expediente { get; set; } = null!;
     public string? FechaFinalizacion { get; set; }
     public string? FechaRevisionAuditor { get; set; }
+    public string? TecnicoPaisId { get; set; }
     public bool Recertificacion { get; set; }
     public string? Lang { get; set; }
     public int Pais { get; set; }
