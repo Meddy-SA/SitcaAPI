@@ -66,7 +66,7 @@ namespace Sitca.Models.ViewModels
     public int EmpresaId { get; set; }
     public int CertificacionId { get; set; }
     public string AsesorId { get; set; } = null!;
-    public string AuditorId { get; set; } = null!;
+    public string? AuditorId { get; set; }
 
     public bool Prueba { get; set; }
   }
@@ -79,7 +79,8 @@ namespace Sitca.Models.ViewModels
     public CommonVm Empresa { get; set; } = null!;
     public string FechaInicio { get; set; } = null!;
     public string FechaFin { get; set; } = null!;
-    public string FechaEvaluacion { get; set; } = null!;
+    public string? FechaEvaluacion { get; set; }
+    public string? FechaRevisionAuditor { get; set; }
     public CommonUserVm Asesor { get; set; } = null!;
     public bool Prueba { get; set; }
 
@@ -94,19 +95,17 @@ namespace Sitca.Models.ViewModels
     public CommonVm Tipologia { get; set; } = null!;
     public CommonVm Empresa { get; set; } = null!;
     public CommonUserVm Asesor { get; set; } = null!;
-    public CommonUserVm Auditor { get; set; } = null!;
+    public CommonUserVm? Auditor { get; set; }
     public bool Prueba { get; set; }
 
     public List<ModulosVm> Modulos { get; set; } = [];
 
-    public string path { get; set; } = null!;
+    public string? path { get; set; }
     public string Expediente { get; set; } = null!;
-    public string FechaFinalizacion { get; set; } = null!;
-
+    public string? FechaFinalizacion { get; set; }
+    public string? FechaRevisionAuditor { get; set; }
     public bool Recertificacion { get; set; }
-
-    public string Lang { get; set; } = null!;
-
+    public string? Lang { get; set; }
     public int Pais { get; set; }
   }
 
@@ -148,7 +147,7 @@ namespace Sitca.Models.ViewModels
     public int? IdRespuesta { get; set; }
     public List<Archivo> Archivos { get; set; } = [];
 
-    public string Observacion { get; set; } = null!;
+    public string Observacion { get; set; } = string.Empty;
 
     public bool TieneArchivos { get; set; }
     public bool TieneObs { get; set; }

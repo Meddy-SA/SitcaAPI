@@ -383,7 +383,7 @@ namespace Sitca.Controllers
         res.CertificacionActual.Status = StatusConstants.GetLocalizedStatus(toStatus, appUser.Lenguage);
       }
 
-      return Ok(res);
+      return this.HandleResponse(res, true);
     }
 
     [Route("Estadisticas")]

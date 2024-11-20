@@ -4,6 +4,11 @@ namespace Sitca.Models
 {
   public class CuestionarioItem
   {
+    public CuestionarioItem()
+    {
+      Archivos = new HashSet<Archivo>();  // Inicializar como HashSet
+    }
+
     [Key]
     public int Id { get; set; }
 

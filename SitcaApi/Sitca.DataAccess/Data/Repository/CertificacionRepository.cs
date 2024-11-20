@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
-using Sitca.DataAccess.Extensions;
 using Sitca.Models;
 using Sitca.Models.Constants;
+using Sitca.Models.DTOs;
 using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using System;
@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Utilities;
+using ConstantRoles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository
 {
@@ -138,27 +139,27 @@ namespace Sitca.DataAccess.Data.Repository
           IdEmpresa = data.EmpresaId,
           TipologiaId = data.TipologiaId,
           IdTipologia = data.TipologiaId,
-          Prueba = role == "Asesor",
+          Prueba = role == ConstantRoles.Asesor,
           ProcesoCertificacionId = data.CertificacionId,
         };
 
-        _db.Cuestionario.Add(cuestionario);
+        await _db.Cuestionario.AddAsync(cuestionario);
 
         var proceso = await _db.ProcesoCertificacion.FindAsync(data.CertificacionId);
 
-        if (role == "Asesor")
+        if (role == ConstantRoles.Asesor)
         {
           var empresa = await _db.Empresa.FirstOrDefaultAsync(s => s.Id == data.EmpresaId);
           empresa.Estado = 2;
           proceso.TipologiaId = cuestionario.TipologiaId;
-          proceso.Status = "2 - Asesoria en Proceso";
+          proceso.Status = StatusConstants.GetLocalizedStatus(2, "es");
         }
-        if (role == "Auditor")
+        if (role == ConstantRoles.Auditor)
         {
           var empresa = await _db.Empresa.FirstOrDefaultAsync(s => s.Id == data.EmpresaId);
           empresa.Estado = 5;
 
-          proceso.Status = "5 - Auditoria en Proceso";
+          proceso.Status = StatusConstants.GetLocalizedStatus(5, "es");
           cuestionario.AuditorId = proceso.AuditorId;
         }
         await _db.SaveChangesAsync();
@@ -253,24 +254,56 @@ namespace Sitca.DataAccess.Data.Repository
       return true;
     }
 
-    public async Task<List<CuestionarioDetailsMinVm>> GetCuestionariosList(int idEmpresa, ApplicationUser user, string role)
+    public async Task<List<CuestionarioDetailsMinVm>> GetCuestionariosList(int idEmpresa, ApplicationUser user)
     {
-
-      var cuestionarios = await _db.Cuestionario.Where(s => s.IdEmpresa == idEmpresa).Select(s => new CuestionarioDetailsMinVm
+      try
       {
-        FechaEvaluacion = s.Certificacion == null ? s.FechaVisita.ToStringArg() : s.Certificacion.FechaFijadaAuditoria.Value.ToStringArg(),
-        FechaFin = s.FechaFinalizado.ToUtc(),
-        FechaInicio = s.FechaInicio.ToUtc(),
-        Tipologia = new CommonVm
-        {
-          name = user.Lenguage == "es" ? s.Tipologia.Name : s.Tipologia.NameEnglish
-        },
-        Id = s.Id,
-        Prueba = s.Prueba,
-        IdCertificacion = s.ProcesoCertificacionId ?? 0
-      }).ToListAsync();
+        var cuestionarios = await _db.Cuestionario
+            .AsNoTracking()
+            .Include(s => s.Tipologia)
+            .Include(s => s.Certificacion)
+            .Where(s => s.IdEmpresa == idEmpresa)
+            .Select(s => new CuestionarioDetailsMinVm
+            {
+              Id = s.Id,
+              Prueba = s.Prueba,
+              IdCertificacion = s.ProcesoCertificacionId ?? 0,
 
-      return cuestionarios;
+              // Manejo seguro de la fecha de evaluación
+              FechaEvaluacion = s.Certificacion != null && s.Certificacion.FechaFijadaAuditoria.HasValue
+                    ? s.Certificacion.FechaFijadaAuditoria.Value.ToStringArg()
+                    : s.FechaVisita.ToStringArg() ?? string.Empty,
+              // Manejo seguro de fechas
+              FechaFin = s.FechaFinalizado.HasValue
+                    ? s.FechaFinalizado.Value.ToUtc()
+                    : string.Empty,
+              FechaRevisionAuditor = s.FechaRevisionAuditor.HasValue
+                ? s.FechaRevisionAuditor.Value.ToUtc()
+                : string.Empty,
+              FechaInicio = s.FechaInicio.ToUtc(),
+
+              // Manejo seguro de la tipología
+              Tipologia = new CommonVm
+              {
+                name = s.Tipologia != null
+                        ? (user.Lenguage == "es"
+                            ? (s.Tipologia.Name ?? "Sin nombre")
+                            : (s.Tipologia.NameEnglish ?? "No name"))
+                        : "Sin tipología"
+              }
+            })
+            .ToListAsync();
+
+        return cuestionarios;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error al obtener lista de cuestionarios para empresa {IdEmpresa}. Detalles: {Details}",
+            idEmpresa,
+            ex.Message);
+        throw;
+      }
     }
 
     public async Task<CuestionarioNoCumpleVm> GetNoCumplimientos(int id, ApplicationUser user, string role)
@@ -341,243 +374,443 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<CuestionarioDetailsVm> GetCuestionario(int id, ApplicationUser user, string role)
     {
-      var cuestionario = await _db.Cuestionario
-        .Include("Tipologia")
-        .FirstOrDefaultAsync(s => s.Id == id);
-
-      var empresa = await _db.Empresa.FindAsync(cuestionario.IdEmpresa);
-
-      var respuestas = await _db.CuestionarioItem
-        .Include(s => s.Archivos)
-        .Where(s => s.CuestionarioId == id)
-        .ToListAsync();
-
-      var proceso = await _db.ProcesoCertificacion.FindAsync(cuestionario.ProcesoCertificacionId);
-
-      if ((role == "Asesor" && proceso.AsesorId != user.Id) || (role == "Auditor" && proceso.AuditorId != user.Id))
-      {
-        return null;
-      }
-
-      var result = new CuestionarioDetailsVm
-      {
-        Id = cuestionario.Id,
-        Prueba = cuestionario.Prueba,
-        Pais = empresa.PaisId.GetValueOrDefault(),
-        Expediente = proceso.NumeroExpediente,
-        Recertificacion = proceso.Recertificacion,
-        FechaFinalizacion = cuestionario.FechaFinalizado.ToStringArg(),
-        Tipologia = new CommonVm
-        {
-          id = cuestionario.IdTipologia,
-          name = cuestionario.Tipologia.Name
-        },
-        Empresa = new CommonVm
-        {
-          id = cuestionario.IdEmpresa,
-          name = empresa.Nombre
-        },
-        Modulos = new List<ModulosVm>(),
-
-      };
-
-      if (!cuestionario.Prueba)
-      {
-        var auditor = await _db.ApplicationUser.FindAsync(proceso.AuditorId);
-        result.Auditor = new CommonUserVm
-        {
-          fullName = $"{auditor?.FirstName} {auditor?.LastName}".Trim(),
-          codigo = auditor.NumeroCarnet
-        };
-      }
-      else
-      {
-        var asesor = await _db.ApplicationUser.FindAsync(proceso.AsesorId);
-        result.Asesor = new CommonUserVm
-        {
-          fullName = asesor.FirstName + " " + asesor.LastName,
-          codigo = asesor.NumeroCarnet
-        };
-      }
-
-
-      var modulos = await _db.Modulo
-        .Include(s => s.Secciones)
-        .ThenInclude(s => s.SubtituloSeccion)
-        .Where(s => s.TipologiaId == cuestionario.IdTipologia || s.TipologiaId == null)
-        .OrderBy(m => m.Orden)
-        .ToListAsync();
-
-      if (_config.GetBool("Settings:bioseguridad"))
-      {
-        //si no esta activo el modulo de bioseguridad, quitarlo del cuestionario
-        modulos = modulos
-          .Where(s => s.Id < 11)
-          .OrderBy(m => m.Orden).ToList();
-      }
-
       try
       {
-        int? none = null;
+        // 1. Validación inicial
+        var (cuestionario, empresa, proceso) = await GetInitialData(id);
+        if (!ValidateUserAccess(proceso, user, role))
+          return null;
+
+
+        // 2. Construcción del resultado base
+        var result = await BuildBaseCuestionario(cuestionario, empresa, proceso, user);
+
+        // 3. Carga de módulos y preguntas
+        await LoadModulosYPreguntas(result, cuestionario, user);
+
+        // 4. Procesamiento de respuestas
+        await ProcessResponses(result, id);
+
+        // 5. Cálculo de resultados
+        await CalculateResults(result, cuestionario, user);
+
+        return result;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al obtener cuestionario {Id}", id);
+        throw;
+      }
+    }
+
+    private async Task<(Cuestionario cuestionario, Empresa empresa, ProcesoCertificacion proceso)>
+        GetInitialData(int id)
+    {
+      try
+      {
+        var cuestionario = await _db.Cuestionario
+        .AsNoTracking()
+        .Include(c => c.Tipologia)
+        .FirstOrDefaultAsync(s => s.Id == id);
+
+        var empresa = await _db.Empresa
+          .FindAsync(cuestionario.IdEmpresa);
+        var proceso = await _db.ProcesoCertificacion
+          .FindAsync(cuestionario.ProcesoCertificacionId);
+
+        return (cuestionario, empresa, proceso);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al obtener datos iniciales del cuestionario {Id}", id);
+        throw new Exception("Error al cargar datos iniciales del cuestionario", ex);
+      }
+    }
+
+    private bool ValidateUserAccess(
+        ProcesoCertificacion proceso,
+        ApplicationUser user,
+        string role)
+    {
+      if (proceso == null || user == null)
+        return false;
+
+      return role switch
+      {
+        "Asesor" => proceso.AsesorId == user.Id,
+        "Auditor" => proceso.AuditorId == user.Id,
+        "Admin" => true,
+        _ => false
+      };
+    }
+
+    private async Task<CuestionarioDetailsVm> BuildBaseCuestionario(
+        Cuestionario cuestionario,
+        Empresa empresa,
+        ProcesoCertificacion proceso,
+        ApplicationUser user)
+    {
+      try
+      {
+        var result = new CuestionarioDetailsVm
+        {
+          Id = cuestionario.Id,
+          Prueba = cuestionario.Prueba,
+          Pais = empresa.PaisId.GetValueOrDefault(),
+          Expediente = proceso.NumeroExpediente,
+          Recertificacion = proceso.Recertificacion,
+          FechaFinalizacion = cuestionario.FechaFinalizado.ToStringArg(),
+          FechaRevisionAuditor = cuestionario.FechaRevisionAuditor?.ToStringArg() ?? null,
+          Tipologia = new CommonVm
+          {
+            id = cuestionario.IdTipologia,
+            name = cuestionario.Tipologia.Name
+          },
+          Empresa = new CommonVm
+          {
+            id = cuestionario.IdEmpresa,
+            name = empresa.Nombre
+          },
+          Modulos = new List<ModulosVm>()
+        };
+
+        // Cargar datos del auditor/asesor en una sola consulta
+
+        var idSearch = cuestionario.Prueba
+          ? proceso.AsesorId
+          : proceso.AuditorId;
+
+        string role = cuestionario.Prueba
+          ? "Asesor"
+          : "Auditor";
+
+        var users = await _db.ApplicationUser
+            .AsNoTracking()
+            .Where(a => a.Id == idSearch)
+            .Select(a => new { a.FirstName, a.LastName, a.NumeroCarnet, a.Id, a.Email, a.PhoneNumber })
+            .FirstOrDefaultAsync();
+
+        if (users != null)
+        {
+          var userVm = new CommonUserVm
+          {
+            fullName = $"{users.FirstName} {users.LastName}".Trim(),
+            codigo = users.NumeroCarnet,
+            id = users.Id,
+            email = users.Email,
+            phone = users.PhoneNumber
+          };
+
+          if (cuestionario.Prueba)
+            result.Asesor = userVm;
+          else
+            result.Auditor = userVm;
+        }
+
+        return result;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al construir cuestionario base {Id}", cuestionario.Id);
+        throw new Exception("Error al construir datos base del cuestionario", ex);
+      }
+    }
+
+    private async Task LoadModulosYPreguntas(
+        CuestionarioDetailsVm result,
+        Cuestionario cuestionario,
+        ApplicationUser user)
+    {
+      try
+      {
+        // Optimización: Carga todos los módulos y sus relaciones en una sola consulta
+        var modulos = await _db.Modulo
+            .AsNoTracking()
+            .Include(m => m.Secciones)
+                .ThenInclude(s => s.SubtituloSeccion)
+            .Where(m => m.TipologiaId == cuestionario.IdTipologia || m.TipologiaId == null)
+            .OrderBy(m => m.Orden)
+            .ToListAsync();
+
+        if (_config.GetValue<bool>("Settings:bioseguridad"))
+        {
+          modulos = modulos.Where(s => s.Id < 11)
+                         .OrderBy(m => m.Orden)
+                         .ToList();
+        }
 
         foreach (var modulo in modulos)
         {
-          var preguntasC = new List<CuestionarioItemVm>();
-
-          if (modulo.Secciones.Any())
-          {
-            #region SECCIONES
-            foreach (var seccion in modulo.Secciones
-                .Where(s => s.TipologiaId == cuestionario.IdTipologia || s.TipologiaId == null)
-                .OrderBy(x => x.Orden))
-            {
-              var itemSecc = new CuestionarioItemVm
-              {
-                Nomenclatura = seccion.Nomenclatura,
-                Order = Int32.Parse(seccion.Orden),
-                Text = user.Lenguage == "en" ? seccion.NameEnglish : seccion.Name,
-                Type = "seccion",
-              };
-              preguntasC.Add(itemSecc);
-
-              #region SUBTITULOS
-              foreach (var subtitulo in seccion.SubtituloSeccion)
-              {
-                var itemSub = new CuestionarioItemVm
-                {
-                  Nomenclatura = subtitulo.Nomenclatura,
-                  Order = Int32.Parse(subtitulo.Orden),
-                  Text = user.Lenguage == "en" ? subtitulo.NameEnglish : subtitulo.Name,
-                  Type = "subtitulo",
-                };
-                preguntasC.Add(itemSub);
-
-                var preguntasSubs = await GetPreguntas(modulo.Id, seccion.Id, subtitulo.Id, user.Lenguage);
-                if (preguntasSubs.Any())
-                {
-                  preguntasC.AddRange(preguntasSubs);
-                }
-
-              }
-              #endregion
-
-
-
-              var preguntas = await GetPreguntas(modulo.Id, seccion.Id, none, user.Lenguage);
-              if (preguntas.Any())
-              {
-                preguntasC.AddRange(preguntas);
-              }
-
-            }
-
-            #endregion
-          }
-          else
-          {
-            var preguntas = await GetPreguntas(modulo.Id, none, none, user.Lenguage);
-            if (preguntas.Any())
-            {
-              preguntasC.AddRange(preguntas);
-            }
-          }
-
-          result.Modulos.Add(
-              new ModulosVm
-              {
-                Nomenclatura = modulo.Nomenclatura,
-                Orden = modulo.Orden,
-                Nombre = user.Lenguage == "es" ? modulo.Nombre : modulo.EnglishName,
-                Id = modulo.Id,
-                Items = preguntasC,
-              });
-        }
-
-        foreach (var mod in result.Modulos)
-        {
-          foreach (var pregunta in mod.Items.Where(s => s.Type == "pregunta"))
-          {
-            if (respuestas.Any(s => s.PreguntaId == pregunta.Id))
-            {
-              var resp = respuestas.First(s => s.PreguntaId == pregunta.Id);
-              pregunta.Result = resp.Resultado;
-              pregunta.IdRespuesta = resp.Id;
-              pregunta.TieneArchivos = resp.Archivos.Any(s => s.Activo);
-            }
-          }
-        }
-
-        #region cumplimientos y resultados
-        var cumplimientos = _db.Cumplimiento.Where(s => s.TipologiaId == cuestionario.IdTipologia || s.TipologiaId == null);
-
-
-        foreach (var modulo in result.Modulos)
-        {
-          modulo.Resultados = new ResultadosModuloVm();
-
-          //cambio para solo tener en cuenta las evaluadas y no las N/A
-          modulo.Resultados.TotalObligatorias = modulo.Items.Count(s => s.Type == "pregunta" && s.Obligatoria && s.Result < 2);
-          modulo.Resultados.TotalComplementarias = modulo.Items.Count(s => s.Type == "pregunta" && !s.Obligatoria && s.Result < 2);
-
-          //cambio para solo tener en cuenta las cumplidas y no las N/A
-          modulo.Resultados.ObligCumple = modulo.Items.Count(s => s.Type == "pregunta" && s.Obligatoria && s.Result == 1);
-          modulo.Resultados.ComplementCumple = modulo.Items.Count(s => s.Type == "pregunta" && !s.Obligatoria && s.Result == 1);
-
-
-
-          modulo.Resultados.PorcComplementCumple = modulo.Resultados.TotalComplementarias > 0 ? modulo.Resultados.ComplementCumple * 100 / modulo.Resultados.TotalComplementarias : 0;
-          modulo.Resultados.PorcObligCumple = modulo.Resultados.TotalObligatorias > 0 ? modulo.Resultados.ObligCumple * 100 / modulo.Resultados.TotalObligatorias : 0;
-
-          //var porcentajeComplement = complementCumplidas * 100 / totalComplement;
-          var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
-          modulo.Resultados.ResultModulo = noCertificado;
-
-
-          //no tener en cuenta por ahora el modulo de bioseguridad
-          if (modulo.Id < 11)
-          {
-            if (modulo.Resultados.TotalObligatorias == modulo.Resultados.ObligCumple)
-            {
-              var cumple = cumplimientos.FirstOrDefault(s => s.ModuloId == modulo.Id && modulo.Resultados.PorcComplementCumple > s.PorcentajeMinimo && modulo.Resultados.PorcComplementCumple < (s.PorcentajeMaximo + 1));
-              if (cumple != null)
-              {
-                var distintivo = _db.Distintivo.First(x => x.Id == cumple.DistintivoId);
-                modulo.Resultados.ResultModulo = user.Lenguage == "es" ? distintivo.Name : distintivo.NameEnglish;
-              }
-            }
-          }
-          else
-          {
-            modulo.Resultados.ResultModulo = "-";
-          }
+          var moduloVm = await BuildModuloVm(modulo, cuestionario, user);
+          result.Modulos.Add(moduloVm);
         }
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error al cargar resultados");
+        _logger.LogError(ex, "Error al cargar módulos y preguntas del cuestionario {Id}", cuestionario.Id);
+        throw new Exception("Error al cargar módulos y preguntas", ex);
+      }
+    }
+
+    private async Task<ModulosVm> BuildModuloVm(
+    Modulo modulo,
+    Cuestionario cuestionario,
+    ApplicationUser user)
+    {
+      try
+      {
+        var moduloVm = new ModulosVm
+        {
+          Nomenclatura = modulo.Nomenclatura,
+          Orden = modulo.Orden,
+          Nombre = user.Lenguage == "es" ? modulo.Nombre : modulo.EnglishName,
+          Id = modulo.Id,
+          Items = new List<CuestionarioItemVm>()
+        };
+
+        // Si el módulo tiene secciones, procesar cada una
+        if (modulo.Secciones?.Any() == true)
+        {
+          await ProcessModuleSections(
+              moduloVm.Items,
+              modulo.Secciones,
+              cuestionario.IdTipologia,
+              modulo.Id,
+              user.Lenguage);
+        }
+        else
+        {
+          // Si no tiene secciones, obtener preguntas directamente del módulo
+          var preguntas = await GetPreguntas(modulo.Id, null, null, user.Lenguage);
+          if (preguntas.Any())
+          {
+            moduloVm.Items.AddRange(preguntas);
+          }
+        }
+
+        return moduloVm;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al construir ModuloVm para módulo {ModuloId}", modulo.Id);
+        throw new Exception($"Error al construir módulo {modulo.Id}", ex);
+      }
+    }
+
+    private async Task ProcessModuleSections(
+        List<CuestionarioItemVm> items,
+        IEnumerable<SeccionModulo> secciones,
+        int tipologiaId,
+        int moduloId,
+        string language)
+    {
+      foreach (var seccion in secciones
+          .Where(s => s.TipologiaId == tipologiaId || s.TipologiaId == null)
+          .OrderBy(x => x.Orden))
+      {
+        // Agregar la sección como un item
+        items.Add(new CuestionarioItemVm
+        {
+          Nomenclatura = seccion.Nomenclatura,
+          Order = int.Parse(seccion.Orden),
+          Text = language == "en" ? seccion.NameEnglish : seccion.Name,
+          Type = "seccion"
+        });
+
+        // Procesar subtítulos si existen
+        if (seccion.SubtituloSeccion?.Any() == true)
+        {
+          await ProcessSectionSubtitles(
+              items,
+              seccion.SubtituloSeccion,
+              moduloId,
+              seccion.Id,
+              language);
+        }
+
+        // Obtener preguntas de la sección sin subtítulo
+        var preguntasSeccion = await GetPreguntas(moduloId, seccion.Id, null, language);
+        if (preguntasSeccion.Any())
+        {
+          items.AddRange(preguntasSeccion);
+        }
+      }
+    }
+
+    private async Task ProcessSectionSubtitles(
+        List<CuestionarioItemVm> items,
+        IEnumerable<SubtituloSeccion> subtitulos,
+        int moduloId,
+        int seccionId,
+        string language)
+    {
+      foreach (var subtitulo in subtitulos)
+      {
+        // Agregar el subtítulo como un item
+        items.Add(new CuestionarioItemVm
+        {
+          Nomenclatura = subtitulo.Nomenclatura,
+          Order = int.Parse(subtitulo.Orden),
+          Text = language == "en" ? subtitulo.NameEnglish : subtitulo.Name,
+          Type = "subtitulo"
+        });
+
+        // Obtener preguntas del subtítulo
+        var preguntasSubtitulo = await GetPreguntas(moduloId, seccionId, subtitulo.Id, language);
+        if (preguntasSubtitulo.Any())
+        {
+          items.AddRange(preguntasSubtitulo);
+        }
+      }
+    }
+
+    private async Task ProcessResponses(CuestionarioDetailsVm result, int cuestionarioId)
+    {
+      try
+      {
+        if (result?.Modulos == null)
+        {
+          throw new ArgumentException("El resultado o sus módulos son nulos", nameof(result));
+        }
+
+        var respuestas = await _db.CuestionarioItem
+          .AsNoTracking()
+          .Include(c => c.Archivos)
+          .Where(c => c.CuestionarioId == cuestionarioId)
+          .ToListAsync();
+
+        foreach (var modulo in result.Modulos)
+        {
+          foreach (var pregunta in modulo.Items.Where(s => s.Type == "pregunta"))
+          {
+            var respuesta = respuestas.FirstOrDefault(r => r.PreguntaId == pregunta.Id);
+            if (respuesta != null)
+            {
+              pregunta.Result = respuesta.Resultado;
+              pregunta.IdRespuesta = respuesta.Id;
+              pregunta.TieneArchivos = respuesta.Archivos.Any(a => a.Activo);
+            }
+          }
+        }
+      }
+      catch (Exception ex) when (ex is not OperationCanceledException)
+      {
+        _logger.LogError(ex, "Error al procesar respuestas del cuestionario {Id}. Detalles: {Details}",
+            cuestionarioId,
+            ex.ToString());
+        throw;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al procesar respuestas del cuestionario {Id}", cuestionarioId);
+        throw;
+      }
+    }
+
+    private async Task CalculateResults(
+        CuestionarioDetailsVm result,
+        Cuestionario cuestionario,
+        ApplicationUser user)
+    {
+      try
+      {
+        var cumplimientos = await _db.Cumplimiento
+            .Include(c => c.Distintivo)
+            .Where(c => c.TipologiaId == cuestionario.IdTipologia || c.TipologiaId == null)
+            .ToListAsync();
+
+        foreach (var modulo in result.Modulos)
+        {
+          CalculateModuleResults(modulo, cumplimientos, user.Lenguage);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al calcular resultados del cuestionario {Id}", cuestionario.Id);
+        throw new Exception("Error al calcular resultados", ex);
+      }
+    }
+
+    private void CalculateModuleResults(
+        ModulosVm modulo,
+        List<Cumplimiento> cumplimientos,
+        string language)
+    {
+      modulo.Resultados = new ResultadosModuloVm
+      {
+        TotalObligatorias = modulo.Items
+            .Count(s => s.Type == "pregunta" && s.Obligatoria && s.Result < 2),
+        TotalComplementarias = modulo.Items
+            .Count(s => s.Type == "pregunta" && !s.Obligatoria && s.Result < 2),
+        ObligCumple = modulo.Items
+            .Count(s => s.Type == "pregunta" && s.Obligatoria && s.Result == 1),
+        ComplementCumple = modulo.Items
+            .Count(s => s.Type == "pregunta" && !s.Obligatoria && s.Result == 1)
+      };
+
+      CalculatePercentages(modulo.Resultados);
+      DetermineModuleResult(modulo, cumplimientos, language);
+    }
+
+    private void CalculatePercentages(ResultadosModuloVm resultados)
+    {
+      resultados.PorcComplementCumple = resultados.TotalComplementarias > 0
+          ? resultados.ComplementCumple * 100 / resultados.TotalComplementarias
+          : 0;
+
+      resultados.PorcObligCumple = resultados.TotalObligatorias > 0
+          ? resultados.ObligCumple * 100 / resultados.TotalObligatorias
+          : 0;
+    }
+
+    private void DetermineModuleResult(
+        ModulosVm modulo,
+        List<Cumplimiento> cumplimientos,
+        string language)
+    {
+      var defaultResult = language == "es" ? "No certificado" : "Not certified";
+      modulo.Resultados.ResultModulo = defaultResult;
+
+      if (modulo.Id >= 11)
+      {
+        modulo.Resultados.ResultModulo = "-";
+        return;
       }
 
-      #endregion
+      if (modulo.Resultados.TotalObligatorias == modulo.Resultados.ObligCumple)
+      {
+        var cumplimiento = cumplimientos.FirstOrDefault(c =>
+            c.ModuloId == modulo.Id &&
+            modulo.Resultados.PorcComplementCumple > c.PorcentajeMinimo &&
+            modulo.Resultados.PorcComplementCumple < (c.PorcentajeMaximo + 1));
 
-
-      return result;
+        if (cumplimiento?.Distintivo != null)
+        {
+          modulo.Resultados.ResultModulo = language == "es"
+              ? cumplimiento.Distintivo.Name
+              : cumplimiento.Distintivo.NameEnglish;
+        }
+      }
     }
 
     public async Task<List<CuestionarioItemVm>> GetPreguntas(int idModulo, int? idSeccion, int? idSubtitulo, string lang = "es")
     {
-      IQueryable<Pregunta> query = _db.Pregunta;
+      IQueryable<Pregunta> query = _db.Pregunta.AsNoTracking();
 
       if (idSubtitulo.HasValue && idSubtitulo.Value > 0)
       {
-        query = query.Where(s => s.SubtituloSeccionId == idSubtitulo);
+        query = query.Where(s =>
+            s.SubtituloSeccionId == idSubtitulo);
       }
       else if (idSeccion.HasValue && idSeccion.Value > 0)
       {
-        query = query.Where(s => s.SeccionModuloId == idSeccion && s.SubtituloSeccionId == null);
+        query = query.Where(s =>
+            s.SeccionModuloId == idSeccion && s.SubtituloSeccionId == null);
       }
       else
       {
-        query = query.Where(s => s.ModuloId == idModulo && s.SeccionModuloId == null && s.SubtituloSeccionId == null);
+        query = query.Where(s =>
+            s.ModuloId == idModulo && s.SeccionModuloId == null && s.SubtituloSeccionId == null);
       }
 
       return await query.Select(x => new CuestionarioItemVm
@@ -601,7 +834,6 @@ namespace Sitca.DataAccess.Data.Repository
         .FirstOrDefaultAsync(s =>
             s.Id == data.CertificacionId);
       certificacion.Status = data.Status;
-
       certificacion.Empresa.Estado = status;
 
       await _db.SaveChangesAsync();
@@ -643,7 +875,9 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<int> SavePregunta(CuestionarioItemVm obj, ApplicationUser appUser, string role)
     {
-      var itemCuestionario = await _db.CuestionarioItem.FirstOrDefaultAsync(s => s.CuestionarioId == obj.CuestionarioId && s.PreguntaId == obj.Id);
+      var itemCuestionario = await _db.CuestionarioItem
+        .FirstOrDefaultAsync(s =>
+            s.CuestionarioId == obj.CuestionarioId && s.PreguntaId == obj.Id);
       if (itemCuestionario != null)
       {
         //ya existe, solo editar el result
@@ -667,9 +901,6 @@ namespace Sitca.DataAccess.Data.Repository
       _db.CuestionarioItem.Add(nuevoItem);
       await _db.SaveChangesAsync();
 
-      //agregar historico de acciones
-
-
       return nuevoItem.Id;
     }
 
@@ -684,31 +915,109 @@ namespace Sitca.DataAccess.Data.Repository
       return Task.FromResult(isCompleto);
     }
 
-    public async Task<int> FinCuestionario(int idCuestionario, ApplicationUser appUser, string role)
+    public async Task<Result<int>> FinCuestionario(int idCuestionario, ApplicationUser appUser, string role)
     {
-      var cuestionario = await _db.Cuestionario
-        .FirstOrDefaultAsync(s => s.Id == idCuestionario);
-
-      cuestionario.FechaFinalizado = DateTime.UtcNow;
-      cuestionario.Resultado = 1;
-
-      await _db.SaveChangesAsync();
-
-      int toStatus = role == "Asesor" ? 3 : 6;
-
-      var status = new CertificacionStatusVm
+      try
       {
-        CertificacionId = cuestionario.ProcesoCertificacionId ?? 0,
-        Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
-      };
+        var cuestionario = await _db.Cuestionario
+          .FirstOrDefaultAsync(s => s.Id == idCuestionario);
 
-      await ChangeStatus(status, toStatus);
-      if (role == "Auditor")
-      {
-        var res = await SaveResultadoSugerido(idCuestionario, appUser, role);
+        if (cuestionario == null)
+          return Result<int>.Failure("Cuestionario no encontrado");
+
+
+        int toStatus = 0;
+        switch (role)
+        {
+          case "Asesor":
+            toStatus = 3; // Asesoría finalizada
+            cuestionario.FechaFinalizado = DateTime.UtcNow;
+            cuestionario.Resultado = 1;
+            break;
+          case "Auditor":
+            if (cuestionario.FechaRevisionAuditor.HasValue)
+              return Result<int>.Failure("El cuestionario ya fue revisado por un auditor");
+            cuestionario.FechaRevisionAuditor = DateTime.UtcNow;
+            var resultadoSugerido = await SaveResultadoSugerido(idCuestionario, appUser, role);
+            if (!resultadoSugerido)
+              return Result<int>.Failure("Error al guardar el resultado sugerido");
+            break;
+          case "TecnicoPais":
+            if (!cuestionario.FechaRevisionAuditor.HasValue)
+              return Result<int>.Failure("El cuestionario debe ser revisado por un auditor primero");
+
+            if (!string.IsNullOrEmpty(cuestionario.TecnicoPaisId))
+              return Result<int>.Failure("El cuestionario ya fue finalizado por un técnico país");
+            toStatus = 6; // Auditoría finalizada
+            cuestionario.TecnicoPaisId = appUser.Id;
+            cuestionario.FechaFinalizado = DateTime.UtcNow;
+            cuestionario.Resultado = 1;
+            break;
+          default:
+            return Result<int>.Failure("Rol no autorizado");
+        }
+
+        await _db.SaveChangesAsync();
+
+        if (toStatus > 0)
+        {
+          var status = new CertificacionStatusVm
+          {
+            CertificacionId = cuestionario.ProcesoCertificacionId ?? 0,
+            Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
+          };
+          var changeStatusResult = await ChangeStatus(status, toStatus);
+          if (!changeStatusResult) // Asumiendo que ChangeStatus devuelve bool
+            return Result<int>.Failure("Error al cambiar el estado de la certificación");
+        }
+        return Result<int>.Success(cuestionario.ProcesoCertificacionId ?? 0);
       }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error al finalizar cuestionario {IdCuestionario} por {Role}",
+            idCuestionario,
+            role);
+        return Result<int>.Failure($"Error inesperado: {ex.Message}");
+      }
+    }
 
-      return cuestionario.ProcesoCertificacionId ?? 0;
+    public async Task<Result<bool>> CanFinalizeCuestionario(int idCuestionario, string role)
+    {
+      try
+      {
+        if (string.IsNullOrEmpty(role))
+          return Result<bool>.Failure("Rol no especificado");
+
+        if (role != "TecnicoPais")
+          return Result<bool>.Success(true); // Otros roles pueden finalizar sin validación
+
+        var cuestionario = await _db.Cuestionario
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == idCuestionario);
+
+        if (cuestionario == null)
+          return Result<bool>.Failure("Cuestionario no encontrado");
+
+        if (cuestionario.FechaFinalizado.HasValue)
+          return Result<bool>.Failure("El cuestionario ya está finalizado");
+
+        if (!cuestionario.FechaRevisionAuditor.HasValue)
+          return Result<bool>.Failure("El cuestionario debe ser revisado por un auditor primero");
+
+        if (!string.IsNullOrEmpty(cuestionario.TecnicoPaisId))
+          return Result<bool>.Failure("El cuestionario ya fue finalizado por un técnico país");
+
+        return Result<bool>.Success(true);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex,
+            "Error al verificar si se puede finalizar el cuestionario {IdCuestionario} por {Role}",
+            idCuestionario,
+            role);
+        return Result<bool>.Failure($"Error inesperado: {ex.Message}");
+      }
     }
 
     public async Task<bool> SaveResultadoSugerido(int idCuestionario, ApplicationUser appUser, string role)
@@ -849,42 +1158,64 @@ namespace Sitca.DataAccess.Data.Repository
       lang == LanguageCodes.Spanish || lang == LanguageCodes.English;
 
 
-    public async Task<bool> SaveObservaciones(ApplicationUser user, ObservacionesDTO data)
+    /// <summary>
+    /// Guarda o actualiza las observaciones para una respuesta específica
+    /// </summary>
+    /// <param name="user">Usuario que realiza la acción</param>
+    /// <param name="data">Datos de la observación</param>
+    /// <returns>True si la operación fue exitosa, False en caso contrario</returns>
+    public async Task<Result<string>> SaveObservaciones(ApplicationUser user, ObservacionesDTO data)
     {
-      var observacion = await _db.CuestionarioItemObservaciones.FirstOrDefaultAsync(s => s.CuestionarioItemId == data.IdRespuesta);
-      if (observacion != null)
+      ArgumentNullException.ThrowIfNull(user);
+      ArgumentNullException.ThrowIfNull(data);
+
+      try
       {
-        observacion.Observaciones = data.Observaciones;
+        if (string.IsNullOrWhiteSpace(data.Observaciones))
+        {
+          throw new ArgumentException("Las observaciones no pueden estar vacías", nameof(data));
+        }
+        var observacion = await _db.CuestionarioItemObservaciones
+            .FirstOrDefaultAsync(s =>
+                s.CuestionarioItemId == data.IdRespuesta);
+
+        if (observacion != null)
+        {
+          observacion.Observaciones = data.Observaciones;
+        }
+        else
+        {
+          observacion = new CuestionarioItemObservaciones
+          {
+            CuestionarioItemId = data.IdRespuesta,
+            Date = DateTime.UtcNow,
+            Observaciones = data.Observaciones,
+            UsuarioCargaId = user.Id
+          };
+          await _db.CuestionarioItemObservaciones.AddAsync(observacion);
+        }
+
         await _db.SaveChangesAsync();
-        return true;
+        return Result<string>.Success(data.Observaciones);
       }
-
-      var nuevaObservacion = new CuestionarioItemObservaciones
+      catch (Exception ex)
       {
-        CuestionarioItemId = data.IdRespuesta,
-        Date = DateTime.UtcNow,
-        Observaciones = data.Observaciones,
-        UsuarioCargaId = user.Id
-      };
-
-      _db.CuestionarioItemObservaciones.Add(nuevaObservacion);
-      await _db.SaveChangesAsync();
-      return true;
+        _logger.LogError(ex, "Error al guardar observaciones para respuesta {IdRespuesta}", data.IdRespuesta);
+        return Result<string>.Failure(ex.Message);
+      }
     }
 
-    public async Task<ObservacionesDTO> GetObservaciones(int idRespuesta, ApplicationUser user, string role)
+    public async Task<ObservacionesDTO> GetObservaciones(int idRespuesta)
     {
-      var observacion = await _db.CuestionarioItemObservaciones.FirstOrDefaultAsync(s => s.CuestionarioItemId == idRespuesta);
-      if (observacion == null)
-      {
-        return null;
-      }
-
-      return new ObservacionesDTO
-      {
-        IdRespuesta = idRespuesta,
-        Observaciones = observacion.Observaciones
-      };
+      return await _db.CuestionarioItemObservaciones
+          .AsNoTracking()
+          .Where(s => s.CuestionarioItemId == idRespuesta)
+          .Select(o => new ObservacionesDTO
+          {
+            IdRespuesta = idRespuesta,
+            Observaciones = o.Observaciones
+          })
+          .FirstOrDefaultAsync();
     }
 
     public async Task<RegistroHallazgos> ReporteHallazgos(int CuestionarioId, ApplicationUser user, string role)
@@ -939,13 +1270,14 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> ItemIds)
     {
-
-      var items = await _db.CuestionarioItemObservaciones.Where(s => ItemIds.Contains(s.CuestionarioItemId)).Select(x => new ObservacionesDTO
-      {
-        Observaciones = x.Observaciones,
-        IdRespuesta = x.CuestionarioItemId
-      }).ToListAsync();
-
+      var items = await _db.CuestionarioItemObservaciones
+        .AsNoTracking()
+        .Where(s => ItemIds.Contains(s.CuestionarioItemId))
+        .Select(x => new ObservacionesDTO
+        {
+          Observaciones = x.Observaciones,
+          IdRespuesta = x.CuestionarioItemId
+        }).ToListAsync();
 
       return items;
     }

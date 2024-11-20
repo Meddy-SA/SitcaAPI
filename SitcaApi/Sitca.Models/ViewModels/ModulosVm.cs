@@ -10,7 +10,7 @@ namespace Sitca.Models.ViewModels
     public bool Transversal { get; set; }
     public string Nomenclatura { get; set; } = null!;
     public int Orden { get; set; }
-    public string Tipologia { get; set; } = null!;
+    public string? Tipologia { get; set; }
 
     public List<CuestionarioItemVm> Items { get; set; } = [];
 

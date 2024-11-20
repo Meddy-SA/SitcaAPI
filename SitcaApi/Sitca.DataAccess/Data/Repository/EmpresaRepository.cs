@@ -649,7 +649,7 @@ namespace Sitca.DataAccess.Data.Repository
         var result = resultBuilder.Build();
 
         // Obtener y procesar certificaciones
-        await EnrichWithCertificationsAsync(result, user, empresa.Id);
+        await EnrichWithCertificationsAsync(result, user);
 
         return result;
       }
@@ -664,9 +664,9 @@ namespace Sitca.DataAccess.Data.Repository
       }
     }
 
-    private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user, int companyId)
+    private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user)
     {
-      result.Certificaciones = await GetCertificacionesAsync(user, companyId);
+      result.Certificaciones = await GetCertificacionesAsync(user, result.Id);
 
       if (result.Certificaciones.Any())
       {
@@ -850,8 +850,6 @@ namespace Sitca.DataAccess.Data.Repository
           {
             _db.CuestionarioItemObservaciones.RemoveRange(obs);
           }
-
-
         }
         await _db.SaveChangesAsync();
 
@@ -861,7 +859,6 @@ namespace Sitca.DataAccess.Data.Repository
         var otrosarchivos = _db.Archivo.Where(s => s.EmpresaId == id);
         _db.Archivo.RemoveRange(otrosarchivos);
         await _db.SaveChangesAsync();
-
 
         var cuestionariosObj = _db.Cuestionario.Where(s => s.IdEmpresa == id);
         _db.Cuestionario.RemoveRange(cuestionariosObj);
@@ -881,14 +878,12 @@ namespace Sitca.DataAccess.Data.Repository
       }
       catch (Exception e)
       {
-
         return new UrlResult
         {
           Success = false,
           Message = e.InnerException + " " + e.Message
         };
       }
-
 
       return new UrlResult
       {

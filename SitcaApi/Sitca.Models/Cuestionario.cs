@@ -9,10 +9,9 @@ namespace Sitca.Models
     public int IdEmpresa { get; set; }
     public DateTime FechaInicio { get; set; }
     public DateTime FechaGenerado { get; set; }
-
     public DateTime? FechaVisita { get; set; }
-
     public DateTime? FechaFinalizado { get; set; }
+    public DateTime? FechaRevisionAuditor { get; set; }
     public bool Prueba { get; set; }
 
     #region FK-Tipologia
@@ -32,6 +31,7 @@ namespace Sitca.Models
 
     public string AsesorId { get; set; } = null!;
     public string AuditorId { get; set; } = null!;
+    public string? TecnicoPaisId { get; set; }
 
     public int Resultado { get; set; }
   }

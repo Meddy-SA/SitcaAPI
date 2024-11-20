@@ -9,8 +9,10 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.Extensions;
 using Sitca.Models;
+using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Sitca.Controllers
@@ -65,30 +67,28 @@ namespace Sitca.Controllers
       return Ok(res);
     }
 
-    [Authorize(Roles = "Asesor,Auditor")]
-    [HttpPost]
-    [Route("SaveObservaciones")]
-    public async Task<IActionResult> SaveObservaciones(ObservacionesDTO data)
+    [Authorize(Roles = "Asesor, Auditor, Admin")]
+    [HttpPost("SaveObservaciones")]
+    public async Task<ActionResult<Result<string>>> SaveObservaciones(ObservacionesDTO data)
     {
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
       var res = await _unitOfWork.ProcesoCertificacion.SaveObservaciones(appUser, data);
 
-      return Ok();
+      return this.HandleResponse(res);
     }
 
     [Authorize]
-    [HttpGet]
-    [Route("GetObservaciones")]
-    public async Task<IActionResult> GetObservaciones(int idRespuesta)
+    [HttpGet("GetObservaciones")]
+    public async Task<ActionResult<ObservacionesDTO>> GetObservaciones(int idRespuesta)
     {
-      var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+      var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.ProcesoCertificacion.GetObservaciones(idRespuesta, appUser, role);
+      var res = await _unitOfWork.ProcesoCertificacion.GetObservaciones(idRespuesta);
 
-      return Ok(res);
+      return this.HandleResponse(res);
     }
 
     [Authorize(Roles = "Admin,TecnicoPais")]
@@ -121,7 +121,7 @@ namespace Sitca.Controllers
     [Authorize]
     [HttpPost]
     [Route("SaveCalificacion")]
-    public async Task<IActionResult> SaveCalificacion(SaveCalificacionVm data)
+    public async Task<ActionResult<bool>> SaveCalificacion(SaveCalificacionVm data)
     {
       var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
       if (appUser == null) return Unauthorized();
@@ -134,10 +134,8 @@ namespace Sitca.Controllers
       }
       catch (Exception)
       {
-
       }
-
-      return Ok();
+      return Ok(res);
     }
 
 
@@ -242,35 +240,26 @@ namespace Sitca.Controllers
     [Authorize(Roles = "Admin,TecnicoPais,Asesor,Auditor")]
     [HttpPost]
     [Route("GenerarCuestionario")]
-    public async Task<IActionResult> GenerarCuestionario(CuestionarioCreateVm data)
+    public async Task<ActionResult<CuestionarioDetailsMinVm>> GenerarCuestionario(CuestionarioCreateVm data)
     {
       var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
       var result = await _unitOfWork.ProcesoCertificacion.GenerarCuestionario(data, appUser.Id, role);
 
-      return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
-
+      return this.HandleResponse(result, true);
     }
 
     [Authorize]
-    [Route("GetCuestionario")]
-    public async Task<IActionResult> GetCuestionario(int id)
+    [HttpGet("GetCuestionario")]
+    public async Task<ActionResult<CuestionarioDetailsVm>> GetCuestionario(int id)
     {
       var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
       var result = await _unitOfWork.ProcesoCertificacion.GetCuestionario(id, appUser, role);
 
-      return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
+      return this.HandleResponse(result, true);
     }
 
 
@@ -288,22 +277,18 @@ namespace Sitca.Controllers
     }
 
     [Authorize]
-    [Route("GetCuestionarios")]
-    public async Task<IActionResult> GetCuestionarios(int idEmpresa, string lang)
+    [HttpGet("GetCuestionarios")]
+    public async Task<ActionResult<List<CuestionarioDetailsMinVm>>> GetCuestionarios(int idEmpresa, string lang)
     {
-      var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+      var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var result = await _unitOfWork.ProcesoCertificacion.GetCuestionariosList(idEmpresa, appUser, role);
+      var result = await _unitOfWork.ProcesoCertificacion.GetCuestionariosList(idEmpresa, appUser);
 
-      return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
+      return this.HandleResponse(result, true);
     }
 
-    [Authorize(Roles = "Asesor,Auditor")]
+    [Authorize(Roles = "Asesor, Auditor, Admin")]
     [Route("SavePregunta")]
     [HttpPost]
     public async Task<IActionResult> SavePregunta(CuestionarioItemVm obj)
@@ -313,13 +298,11 @@ namespace Sitca.Controllers
       var result = await _unitOfWork.ProcesoCertificacion.SavePregunta(obj, appUser, role);
 
       return Ok(result);
-
     }
 
-    [Authorize(Roles = "Asesor,Auditor")]
-    [Route("FinCuestionario")]
-    [HttpPost]
-    public async Task<IActionResult> FinCuestionario(CuestionarioDetailsVm data)
+    [Authorize(Roles = "Asesor, Auditor, TecnicoPais")]
+    [HttpPost("FinCuestionario")]
+    public async Task<ActionResult<Result<int>>> FinCuestionario(CuestionarioDetailsVm data)
     {
       var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
       if (appUser == null) return Unauthorized();
@@ -341,15 +324,30 @@ namespace Sitca.Controllers
       var result = await _unitOfWork.ProcesoCertificacion.FinCuestionario(data.Id, appUser, role);
       try
       {
-        await _notificationService.SendNotification(result, null, appUser.Lenguage);
+        if (result.IsSuccess)
+        {
+          await _notificationService.SendNotification(result.Value, null, appUser.Lenguage);
+        }
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "Error al enviar notificacion");
       }
 
-      return Ok();
+      return this.HandleResponse(result);
     }
+
+    [Authorize(Roles = "Asesor, Auditor, TecnicoPais")]
+    [HttpGet("CanFinalizeCuestionario")]
+    public async Task<ActionResult<Result<bool>>> CanFinalizarCuestionario(int id)
+    {
+      var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+      if (appUser == null) return Unauthorized();
+
+      var result = await _unitOfWork.ProcesoCertificacion.CanFinalizeCuestionario(id, role);
+      return this.HandleResponse(result);
+    }
+
 
     [Authorize(Roles = "TecnicoPais")]
     [Route("AsignaAuditor")]
