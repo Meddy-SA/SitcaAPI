@@ -43,7 +43,7 @@ namespace Sitca.Models.ViewModels
   {
     public int Id { get; set; }
     public string Nombre { get; set; } = null!;
-    public CommonVm Pais { get; set; } = null!;
+    public CommonVm? Pais { get; set; }
     public List<CommonVm> Tipologias { get; set; } = [];
     public string Responsable { get; set; } = null!;
     public string CargoRepresentante { get; set; } = null!;
@@ -53,14 +53,14 @@ namespace Sitca.Models.ViewModels
     public string Email { get; set; } = null!;
     public string Website { get; set; } = null!;
     public string IdNacionalRepresentante { get; set; } = null!;
-    public string MesHoy { get; set; } = null!;
-    public string RutaPdf { get; set; } = null!;
+    public string? MesHoy { get; set; }
+    public string? RutaPdf { get; set; }
     public decimal Estado { get; set; }
-    public string ResultadoSugerido { get; set; } = null!;
+    public string? ResultadoSugerido { get; set; }
     public List<ArchivoVm> Archivos { get; set; } = [];
     public List<CertificacionDetailsVm> Certificaciones { get; set; } = [];
-    public CertificacionDetailsVm CertificacionActual { get; set; } = null!;
+    public CertificacionDetailsVm? CertificacionActual { get; set; }
 
-    public string Language { get; set; } = null!;
+    public string? Language { get; set; }
   }
 }

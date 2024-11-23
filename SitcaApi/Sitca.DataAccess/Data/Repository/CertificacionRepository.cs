@@ -268,7 +268,7 @@ namespace Sitca.DataAccess.Data.Repository
               Id = s.Id,
               Prueba = s.Prueba,
               IdCertificacion = s.ProcesoCertificacionId ?? 0,
-
+              TecnicoPaisId = s.TecnicoPaisId ?? null,
               // Manejo seguro de la fecha de evaluación
               FechaEvaluacion = s.Certificacion != null && s.Certificacion.FechaFijadaAuditoria.HasValue
                     ? s.Certificacion.FechaFijadaAuditoria.Value.ToStringArg()
@@ -1309,40 +1309,92 @@ namespace Sitca.DataAccess.Data.Repository
       return await _db.SaveChangesAsync() > 0;
     }
 
-    public async Task<bool> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId)
+    private const int ESTADO_AUDITORIA_EN_PROCESO = 5;
+    public async Task<Result<bool>> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId)
     {
-      var cuestionario = await _db.Cuestionario
-        .Include(s => s.Certificacion)
-          .FirstOrDefaultAsync(s => s.Id == cuestionarioId && (s.Certificacion.Status.StartsWith("6 - ") || s.Certificacion.Status.StartsWith("7 - ")));
+      try 
+    {
+        // Validar parámetros
+        if (user == null)
+            return Result<bool>.Failure("Usuario no especificado");
 
-      if (cuestionario == null)
-      {
-        return false;
+        // Crear una estrategia de ejecución
+        var strategy = _db.Database.CreateExecutionStrategy();
+        
+        // Ejecutar la operación con la estrategia de reintentos
+        return await strategy.ExecuteAsync(async () =>
+        {
+          // Obtener cuestionario con validación de estados válidos
+          var cuestionario = await ObtenerCuestionarioParaReapertura(cuestionarioId);
+          if (cuestionario == null)
+            return Result<bool>.Failure("Cuestionario no encontrado o no está en un estado válido para reapertura");
+
+          using var transaction = await _db.Database.BeginTransactionAsync();
+          try
+          {
+            ResetearEstadoCuestionario(cuestionario);
+            ActualizarEstadoCertificacion(cuestionario);
+            await ActualizarEstadoEmpresa(cuestionario.Certificacion.EmpresaId);
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Result<bool>.Success(true);
+          }
+          catch (Exception ex)
+          {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Error al reabrir cuestionario {CuestionarioId}", cuestionarioId);
+            return Result<bool>.Failure($"Error al reabrir cuestionario: {ex.Message}");
+          }
+        });
       }
-
-      //reabrir (colocar en 5)
-      using var transaction = _db.Database.BeginTransaction();
-      try
+      catch (Exception ex)
       {
-        cuestionario.Resultado = 0;
-        cuestionario.FechaFinalizado = null;
-
-        cuestionario.Certificacion.FechaFinalizacion = null;
-        cuestionario.Certificacion.Status = (cuestionario.Certificacion.Status == "6 - Auditoria Finalizada" || cuestionario.Certificacion.Status == "7 - En revisión de CTC") ? "5 - Auditoria en Proceso" : "5 - Auditing underway";
-
-        var empresa = await _db.Empresa.FirstOrDefaultAsync(s => s.Id == cuestionario.Certificacion.EmpresaId);
-        empresa.Estado = 5;
-
-        await _db.SaveChangesAsync();
-
-        transaction.Commit();
+        _logger.LogError(ex, "Error inesperado al reabrir cuestionario {CuestionarioId}", cuestionarioId);
+        return Result<bool>.Failure("Error inesperado al procesar la solicitud");
       }
-      catch (Exception)
-      {
-        transaction.Rollback();
-      }
-
-      return true;
     }
+
+    private async Task<Cuestionario> ObtenerCuestionarioParaReapertura(int cuestionarioId)
+    {
+      return await _db.Cuestionario
+          .Include(s => s.Certificacion)
+          .FirstOrDefaultAsync(s =>
+              s.Id == cuestionarioId &&
+              (s.Certificacion.Status.StartsWith("6 - ") ||
+               s.Certificacion.Status.StartsWith("7 - ")));
+    }
+
+    private void ResetearEstadoCuestionario(Cuestionario cuestionario)
+    {
+      cuestionario.Resultado = 0;
+      cuestionario.FechaFinalizado = null;
+      cuestionario.FechaRevisionAuditor = null;
+      cuestionario.Certificacion.FechaFinalizacion = null;
+    }
+
+    private void ActualizarEstadoCertificacion(Cuestionario cuestionario)
+    {
+      var audEnProceso = StatusConstants.GetLocalizedStatus(ESTADO_AUDITORIA_EN_PROCESO, "es");
+      var audEnProcesoEn = StatusConstants.GetLocalizedStatus(ESTADO_AUDITORIA_EN_PROCESO, "en");
+      var audFinalizada = StatusConstants.GetLocalizedStatus(6, "es");
+      var enRevison = StatusConstants.GetLocalizedStatus(7, "es");
+
+      cuestionario.Certificacion.Status =
+          (cuestionario.Certificacion.Status == audFinalizada ||
+           cuestionario.Certificacion.Status == enRevison)
+              ? audEnProceso
+              : audEnProcesoEn;
+    }
+
+    private async Task ActualizarEstadoEmpresa(int empresaId)
+    {
+      var empresa = await _db.Empresa.FirstOrDefaultAsync(s => s.Id == empresaId)
+          ?? throw new InvalidOperationException($"Empresa {empresaId} no encontrada");
+
+      empresa.Estado = ESTADO_AUDITORIA_EN_PROCESO;
+    }
+
   }
 }

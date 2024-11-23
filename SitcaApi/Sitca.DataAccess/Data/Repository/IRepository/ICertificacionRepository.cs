@@ -8,7 +8,7 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
 {
   public interface ICertificacionRepository : IRepository<ProcesoCertificacion>
   {
-    Task<bool> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId);
+    Task<Result<bool>> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId);
     Task<bool> ConvertirARecertificacion(ApplicationUser user, EmpresaVm data);
     Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> ItemIds);
     Task<RegistroHallazgos> ReporteHallazgos(int CuestionarioId, ApplicationUser user, string role);

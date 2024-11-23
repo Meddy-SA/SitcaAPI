@@ -37,7 +37,7 @@ public interface IEmpresaRepository : IRepository<Empresa>
 
   Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter);
 
-  bool ActualizarDatos(EmpresaUpdateVm datos, string user, string role);
+  Task<bool> ActualizarDatos(EmpresaUpdateVm datos, ApplicationUser user, string role);
 
-  Task<bool> SolicitaAuditoria(int idEmpresa);
+  Task<Result<bool>> SolicitaAuditoriaAsync(int idEmpresa);
 }

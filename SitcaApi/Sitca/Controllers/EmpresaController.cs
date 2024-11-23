@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Utilities.Common;
 
 namespace Sitca.Controllers
 {
@@ -400,22 +401,17 @@ namespace Sitca.Controllers
 
     }
 
-    [Route("ActualizarDatos")]
     [Authorize]
-    [HttpPost]
-    public async Task<IActionResult> ActualizarDatos([FromBody] EmpresaUpdateVm datos)
+    [HttpPost("ActualizarDatos")]
+    public async Task<ActionResult<bool>> ActualizarDatos([FromBody] EmpresaUpdateVm datos)
     {
-      var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-      var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role).Value;
+      var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+      if (appUser == null) return Unauthorized();
 
-      var userFromDb = await _userManager.FindByEmailAsync(user);
-      ApplicationUser appUser = (ApplicationUser)userFromDb;
-
-      var res = _unitOfWork.Empresa.ActualizarDatos(datos, user, role);
-
+      var res = await _unitOfWork.Empresa.ActualizarDatos(datos, appUser, role);
       try
       {
-        if (role == "Empresa")
+        if (role == Constants.Roles.Empresa)
         {
           await _notificationService.SendNotificacionSpecial(
               datos.Id,
@@ -423,13 +419,12 @@ namespace Sitca.Controllers
               appUser.Lenguage);
         }
       }
-      catch (Exception)
+      catch (Exception ex)
       {
-
+        _logger.LogError(ex, "Error al enviar notificación Actualizando datos de la empresa");
       }
 
-      return Ok(JsonConvert.SerializeObject(res));
+      return this.HandleResponse(res, true);
     }
-
   }
 }

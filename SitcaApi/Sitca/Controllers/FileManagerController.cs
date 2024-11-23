@@ -5,11 +5,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Extensions;
 using Sitca.DataAccess.Helpers;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.Extensions;
 using Sitca.Models;
+using Sitca.Models.DTOs;
+using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -17,6 +22,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Utilities.Common;
 
 
 namespace Sitca.Controllers
@@ -40,6 +46,20 @@ namespace Sitca.Controllers
       _unitOfWork = unitOfWork;
       _notificationService = notificationService;
       _userManager = userManager;
+    }
+
+    [HttpGet("GetTypeFilesCompany")]
+    public ActionResult<List<EnumValueDto>> Get()
+    {
+      try
+      {
+        var result = _unitOfWork.Archivo.GetTypeFilesCompany();
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, $"Internal server error: {ex}");
+      }
     }
 
     [Authorize(Roles = "Admin,TecnicoPais,Asesor,Auditor,CTC")]
@@ -70,12 +90,15 @@ namespace Sitca.Controllers
     {
       try
       {
+        var (appUser, roleUser) = await this.GetCurrentUserWithRoleAsync(_userManager);
+
         var formCollection = await Request.ReadFormAsync();
         var file = formCollection.Files.First();
         var role = User.Claims.ToList()[2].Value;
 
         var nombre = formCollection["archivo"].ToString();
         var empresa = formCollection["empresa"].ToString() == "true";
+        var typeFile = formCollection["typeFile"].ToString();
         var idEmp = formCollection["empresaId"].ToString();//pasar por parametro porque carga un admin el archivo
         var tipo = formCollection["type"].ToString();
 
@@ -86,32 +109,21 @@ namespace Sitca.Controllers
         var lenguage = "es";
 
 
-        if (role == "Empresa")
+        if (role == Constants.Roles.Empresa)
         {
-          var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-          var userFromDb = await _userManager.FindByEmailAsync(user);
-          var appUser = (ApplicationUser)userFromDb;
           lenguage = appUser.Lenguage;
           empresaId = appUser.EmpresaId ?? 0;
         }
-        else
+        else if (!string.IsNullOrEmpty(idEmp))
         {
-          if (!string.IsNullOrEmpty(idEmp))
-          {
-            empresaId = Int32.Parse(idEmp);
-          }
+          empresaId = Int32.Parse(idEmp);
         }
-
 
         if (file.Length > 0)
         {
-
           var uploadName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim('"');
-
           var extension = Path.GetExtension(uploadName);
-
           var fileName = DateTime.UtcNow.Ticks.ToString() + extension;
-
           var fullPath = Path.Combine(pathToSave, fileName);
           var dbPath = Path.Combine(folderName, fileName);
 
@@ -128,29 +140,24 @@ namespace Sitca.Controllers
             {
               var image = Image.FromStream(file.OpenReadStream());
               using var imageStream = new MemoryStream();
-
               var newSize = image.Width;
               int newHeigth = image.Height;
               if (image.Width > 1200 && image.Height > 1000)
               {
                 newSize = 700;
                 decimal width = image.Width;
-
                 decimal proporcional = width / newSize;
                 decimal heigth = image.Height;
-
                 newHeigth = (int)(heigth / proporcional);
               }
 
               var bitmap = new Bitmap(image, new Size(newSize, newHeigth));
               bitmap.Save(imageStream, ImageFormat.Jpeg);
 
-
               var optimizer = new ImageOptimizer();
               imageStream.Seek(0, SeekOrigin.Begin);
               //optimizer.Compress(imageStream);
               var result = optimizer.LosslessCompress(imageStream);
-
 
               imageStream.WriteTo(stream);
               await imageStream.CopyToAsync(stream);
@@ -166,19 +173,18 @@ namespace Sitca.Controllers
             _logger.LogError(e, "Error al redimensionar imagen");
           }
 
-
           #endregion
-
-
 
           //save reference to db
           #region SAVETODB
-
-          var user = User.Claims.First().Value;
-          var IdentityUser = await _userManager.FindByEmailAsync(user);
-          var roles = await _userManager.GetRolesAsync(IdentityUser);
-          ApplicationUser appUser = (ApplicationUser)IdentityUser;
+          var roles = await _userManager.GetRolesAsync(appUser);
           lenguage = appUser.Lenguage;
+
+          var fileTypeCompany = FileCompany.Informativo;
+          if (!string.IsNullOrEmpty(typeFile) && int.TryParse(typeFile, out int parsedValue))
+          {
+            fileTypeCompany = FileCompanyExtensions.GetFileType(parsedValue);
+          }
 
           var archivoObj = new Archivo();
           archivoObj = new Archivo
@@ -187,8 +193,9 @@ namespace Sitca.Controllers
             FechaCarga = DateTime.UtcNow,
             Ruta = fileName,
             Tipo = extension,
-            UsuarioCargaId = IdentityUser.Id,
+            UsuarioCargaId = appUser.Id,
             Nombre = nombre,
+            FileTypesCompany = fileTypeCompany,
           };
 
           if (!empresa)
@@ -198,7 +205,6 @@ namespace Sitca.Controllers
               case "pregunta":
                 var preguntaId = Int32.Parse(formCollection["idPregunta"]);
                 var respuestaId = Int32.Parse(formCollection["idRespuesta"]);
-
                 archivoObj.CuestionarioItemId = preguntaId;
                 break;
               default:
@@ -207,11 +213,10 @@ namespace Sitca.Controllers
           }
           else
           {
-            if (roles.Any(s => s.Contains("Empresa")))
+            if (roles.Any(s => s.Contains(Constants.Roles.Empresa)))
             {
               empresaId = appUser.EmpresaId ?? 0;
             }
-
             archivoObj.EmpresaId = empresaId;
           }
 
@@ -246,7 +251,6 @@ namespace Sitca.Controllers
       }
       catch (Exception ex)
       {
-
         return StatusCode(500, $"Internal server error: {ex}");
       }
     }
@@ -290,12 +294,10 @@ namespace Sitca.Controllers
           using (var stream = new FileStream(fullPath, FileMode.Create))
           {
             await file.CopyToAsync(stream);
-            //file.CopyTo(stream);
           };
 
           //save reference to db
           #region SAVETODB
-
 
           var archivoObj = new Archivo();
           archivoObj = new Archivo

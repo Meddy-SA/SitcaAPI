@@ -1,4 +1,6 @@
-﻿namespace Sitca.Models.ViewModels;
+﻿using Sitca.Models.Enums;
+
+namespace Sitca.Models.ViewModels;
 
 public class DatosCapacitacion
 {
@@ -16,6 +18,8 @@ public class ArchivoVm
   public string Tipo { get; set; } = null!;
   public string FechaCarga { get; set; } = null!;
   public string Cargador { get; set; } = null!;
+  public FileCompany? FileTypesCompany { get; set; } = FileCompany.Informativo;
+  public string? NameType { get; set; }
 
   public bool Propio { get; set; }
 }

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Sitca.DataAccess.Extensions;
 using Sitca.Models;
+using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using Utilities;
 
@@ -84,7 +86,11 @@ public class EmpresaUpdateBuilder
           Tipo = z.Tipo,
           Cargador = $"{z.UsuarioCarga.FirstName} {z.UsuarioCarga.LastName}",
           FechaCarga = z.FechaCarga.ToUtc(),
-          Propio = z.UsuarioCargaId == _user.Id
+          Propio = z.UsuarioCargaId == _user.Id,
+          FileTypesCompany = z.FileTypesCompany ?? FileCompany.Informativo,
+          NameType = z.FileTypesCompany.HasValue
+            ? z.FileTypesCompany.Value.GetDisplayName()
+            : FileCompany.Informativo.GetDisplayName()
         }).ToList();
     return this;
   }

@@ -55,16 +55,15 @@ namespace Sitca.Controllers
     }
 
     [Authorize(Roles = "Admin")]
-    [HttpGet]
-    [Route("ReAbrirCuestionario")]
-    public async Task<IActionResult> ReAbrirCuestionario(int CuestionarioId)
+    [HttpGet("ReAbrirCuestionario/{id}")]
+    public async Task<ActionResult<Result<bool>>> ReAbrirCuestionario(int id)
     {
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.ProcesoCertificacion.ReAbrirCuestionario(appUser, CuestionarioId);
+      var res = await _unitOfWork.ProcesoCertificacion.ReAbrirCuestionario(appUser, id);
 
-      return Ok(res);
+      return this.HandleResponse(res);
     }
 
     [Authorize(Roles = "Asesor, Auditor, Admin")]
@@ -106,14 +105,13 @@ namespace Sitca.Controllers
 
 
     [Authorize]
-    [HttpPost]
-    [Route("SolicitaAuditoria")]
+    [HttpPost("SolicitaAuditoria")]
     public async Task<IActionResult> SolicitaAuditoria(EmpresaUpdateVm data)
     {
       var appUser = await this.GetCurrentUserAsync(_userManager);
       if (appUser == null) return Unauthorized();
 
-      var res = await _unitOfWork.Empresa.SolicitaAuditoria(appUser.EmpresaId ?? 0);
+      var res = await _unitOfWork.Empresa.SolicitaAuditoriaAsync(appUser.EmpresaId ?? 0);
 
       return Ok();
     }

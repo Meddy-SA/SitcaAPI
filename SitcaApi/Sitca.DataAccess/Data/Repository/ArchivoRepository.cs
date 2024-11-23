@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Extensions;
 using Sitca.Models;
+using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -21,7 +23,6 @@ namespace Sitca.DataAccess.Data.Repository
 
     public async Task<bool> DeleteFile(int data, ApplicationUser user, string role)
     {
-
       var archivo = await _db.Archivo.FirstOrDefaultAsync(s => s.Id == data);
 
       if (role == "Asesor" || role == "Auditor")
@@ -59,6 +60,11 @@ namespace Sitca.DataAccess.Data.Repository
       return null;
     }
 
+    public List<EnumValueDto> GetTypeFilesCompany()
+    {
+      return FileCompanyExtensions.GetFileTypes();
+    }
+
     public async Task<bool> SaveFileData(Archivo data)
     {
       var archivo = new Archivo
@@ -71,6 +77,7 @@ namespace Sitca.DataAccess.Data.Repository
         Tipo = data.Tipo,
         CuestionarioItemId = data.CuestionarioItemId,
         UsuarioCargaId = data.UsuarioCargaId,
+        FileTypesCompany = data.FileTypesCompany
       };
       if (!string.IsNullOrEmpty(data.UsuarioId))
       {
@@ -91,12 +98,8 @@ namespace Sitca.DataAccess.Data.Repository
         await _db.SaveChangesAsync();
       }
 
-
-
       return true;
     }
-
-
 
   }
 }

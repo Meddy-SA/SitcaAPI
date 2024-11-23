@@ -21,18 +21,18 @@ namespace Sitca.Models.ViewModels
     public string Email { get; set; } = null!;
     public string LastName { get; set; } = null!;
     public string Name { get; set; } = null!;
-    public string Password { get; set; } = null!;
+    public string? Password { get; set; }
     public int Country { get; set; }
-    public string Role { get; set; } = null!;
-    public string Phone { get; set; } = null!;
-    public string PhoneNumber { get; set; } = null!;
-    public string Codigo { get; set; } = null!;
+    public string? Role { get; set; }
+    public string? Phone { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? Codigo { get; set; }
     public string Direccion { get; set; } = null!;
     public string NumeroCarnet { get; set; } = null!;
     public DateTime VencimientoCarnet { get; set; }
     public string FechaIngreso { get; set; } = null!;
-    public string HojaDeVida { get; set; } = null!;
-    public string DocumentoAcreditacion { get; set; } = null!;
+    public string? HojaDeVida { get; set; }
+    public string? DocumentoAcreditacion { get; set; }
     public string Departamento { get; set; } = null!;
     public string Ciudad { get; set; } = null!;
     public string DocumentoIdentidad { get; set; } = null!;

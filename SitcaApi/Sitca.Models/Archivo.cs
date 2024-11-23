@@ -1,4 +1,6 @@
-﻿namespace Sitca.Models;
+﻿using Sitca.Models.Enums;
+
+namespace Sitca.Models;
 
 public class Archivo
 {
@@ -7,8 +9,8 @@ public class Archivo
   public string Nombre { get; set; } = null!;
   public string Ruta { get; set; } = null!;
   public string Tipo { get; set; } = null!;
+  public FileCompany? FileTypesCompany { get; set; } = FileCompany.Informativo;
   public bool Activo { get; set; }
-
 
   // Claves foráneas
   public string UsuarioCargaId { get; set; } = null!;

@@ -40,18 +40,18 @@ namespace Sitca.Models.ViewModels
   {
     public int Id { get; set; }
 
-    public EmpresaVm Empresa { get; set; } = null!;
+    public EmpresaVm? Empresa { get; set; }
     public CommonUserVm Asesor { get; set; } = null!;
     public CommonUserVm Auditor { get; set; } = null!;
-    public CommonUserVm Generador { get; set; } = null!;
+    public CommonUserVm? Generador { get; set; }
 
     public bool Recertificacion { get; set; }
     public string FechaInicio { get; set; } = null!;
-    public string FechaFin { get; set; } = null!;
+    public string? FechaFin { get; set; }
     public string Status { get; set; } = null!;
-    public string TipologiaName { get; set; } = null!;
+    public string? TipologiaName { get; set; }
     public string Resultado { get; set; } = null!;
-    public string FechaVencimiento { get; set; } = null!;
+    public string? FechaVencimiento { get; set; }
     public string Expediente { get; set; } = null!;
 
     public bool alertaVencimiento { get; set; }
@@ -81,6 +81,7 @@ namespace Sitca.Models.ViewModels
     public string FechaFin { get; set; } = null!;
     public string? FechaEvaluacion { get; set; }
     public string? FechaRevisionAuditor { get; set; }
+    public string? TecnicoPaisId { get; set; }
     public CommonUserVm Asesor { get; set; } = null!;
     public bool Prueba { get; set; }
 

@@ -10,6 +10,7 @@ public static class Constants
     public const string CTC = "CTC";
     public const string Admin = "Admin";
     public const string Auditor = "Auditor";
+    public const string AsesorAuditor = "Asesor/Auditor";
   }
 
   public static class ProcessStatus

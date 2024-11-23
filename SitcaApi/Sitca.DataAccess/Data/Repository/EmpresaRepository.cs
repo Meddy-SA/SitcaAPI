@@ -16,6 +16,7 @@ using Sitca.DataAccess.Data.Repository.Specifications;
 using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Builders;
 using Sitca.DataAccess.Services.Notification;
+using ConstantRoles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository
 {
@@ -50,25 +51,24 @@ namespace Sitca.DataAccess.Data.Repository
     }
 
 
-    public bool ActualizarDatos(EmpresaUpdateVm datos, string user, string role)
+    public async Task<bool> ActualizarDatos(EmpresaUpdateVm datos, ApplicationUser user, string role)
     {
       var empresaId = datos.Id;
-      if (role == "Empresa")
+      if (role == ConstantRoles.Empresa)
       {
-        var userDB = _db.ApplicationUser.FirstOrDefault(s => s.UserName == user);
-        empresaId = userDB.EmpresaId ?? datos.Id;
+        empresaId = user.EmpresaId ?? datos.Id;
       }
 
-      var empresa = _db.Empresa
+      var empresa = await _db.Empresa
         .Include("Tipologias")
-        .FirstOrDefault(s => s.Id == empresaId);
+        .FirstOrDefaultAsync(s => s.Id == empresaId);
 
       empresa.Direccion = datos.Direccion;
       empresa.IdNacional = datos.IdNacionalRepresentante;
       empresa.Nombre = datos.Nombre;
       empresa.NombreRepresentante = datos.Responsable;
-      //no se deberia poder modificar el pais???
-      if (role == "Empresa" && empresa.Estado < 2)
+      // TODO: Se puede cambiar el pais?
+      if (datos.Pais != null && role == ConstantRoles.Empresa && empresa.Estado < 2)
       {
         empresa.PaisId = datos.Pais.id;
       }
@@ -81,7 +81,7 @@ namespace Sitca.DataAccess.Data.Repository
       if (datos.Tipologias.Any(s => s.isSelected))
       {
         empresa.Tipologias.Clear();
-        Context.SaveChanges();
+        await Context.SaveChangesAsync();
         var listaTipologias = new List<TipologiasEmpresa>();
 
         foreach (var item in datos.Tipologias.Where(s => s.isSelected))
@@ -97,9 +97,7 @@ namespace Sitca.DataAccess.Data.Repository
         empresa.Tipologias = listaTipologias;
       }
 
-      Context.SaveChanges();
-
-
+      await Context.SaveChangesAsync();
       return true;
     }
 
@@ -202,7 +200,7 @@ namespace Sitca.DataAccess.Data.Repository
       if (filter.CountryId > 0)
         query = query.Where(x => x.PaisId == filter.CountryId);
 
-      if (filter.StatusId.HasValue)
+      if (filter.StatusId.HasValue && filter.StatusId.Value != -1)
         query = query.Where(x => x.Estado == filter.StatusId);
 
       if (filter.TypologyId > 0)
@@ -498,22 +496,27 @@ namespace Sitca.DataAccess.Data.Repository
         ? tipologias.Select(z => z.Tipologia.Name).ToList()
         : tipologias.Select(z => z.Tipologia.NameEnglish).ToList();
 
-    public async Task<bool> SolicitaAuditoria(int idEmpresa)
+
+    public async Task<Result<bool>> SolicitaAuditoriaAsync(int idEmpresa)
     {
       try
       {
-        var procesoCertificacion = await _db.ProcesoCertificacion.OrderByDescending(s => s.Id).FirstOrDefaultAsync(s => s.EmpresaId == idEmpresa);
+        var procesoCertificacion = await _db.ProcesoCertificacion
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync(s => s.EmpresaId == idEmpresa);
+
+        if (procesoCertificacion == null)
+          return Result<bool>.Failure($"No se encontró proceso de certificación para la empresa {idEmpresa}");
+
         procesoCertificacion.FechaSolicitudAuditoria = DateTime.UtcNow;
 
-        //var empresa = await _db.Empresa.FindAsync(idEmpresa);
-        //empresa.Estado = 3;
-
         await _db.SaveChangesAsync();
-        return true;
+        return Result<bool>.Success(true);
       }
-      catch (Exception)
+      catch (Exception ex)
       {
-        return false;
+        _logger.LogError(ex, "Error al solicitar auditoría para empresa {EmpresaId}", idEmpresa);
+        return Result<bool>.Failure($"Error al solicitar auditoría: {ex.Message}");
       }
     }
 

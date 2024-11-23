@@ -51,7 +51,7 @@ namespace Sitca.DataAccess.Data.Repository
 
       ProcesoCertificacion = new CertificacionRepository(_db, _config, _loggerFactory.CreateLogger<CertificacionRepository>());
       Reportes = new ReportesRepository(_db);
-      Users = new UsersRepository(_db, _dapper);
+      Users = new UsersRepository(_db, _dapper, _loggerFactory.CreateLogger<UsersRepository>());
       Capacitaciones = new CapacitacionesRepository(_db);
       CompañiasAuditoras = new CompañiasAuditorasRepository(_db);
       Tipologias = new TipologiaRepository(_db);

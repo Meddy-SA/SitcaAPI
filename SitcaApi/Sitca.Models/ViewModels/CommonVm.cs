@@ -17,7 +17,7 @@ namespace Sitca.Models.ViewModels
     public string id { get; set; } = null!;
     public string email { get; set; } = null!;
     public string fullName { get; set; } = null!;
-    public string phone { get; set; } = null!;
+    public string? phone { get; set; }
     public string codigo { get; set; } = null!;
 
   }
