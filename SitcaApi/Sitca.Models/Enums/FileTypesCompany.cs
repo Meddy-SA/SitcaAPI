@@ -14,4 +14,12 @@ public enum FileCompany
   ComprosimoConfidencialidad,
   [Display(Name = "Declaración Jurada")]
   DeclaracionJurada,
+  [Display(Name = "Solicitud de Certificación")]
+  SolicitudCertificacion,
+  [Display(Name = "Solicitud de Recertificación")]
+  SolicitudRecertificacion,
+  [Display(Name = "Documento de Identidad")]
+  DocumentoIdentidad,
+  [Display(Name = "Licencia de Operación")]
+  LicenciaOperacion
 }

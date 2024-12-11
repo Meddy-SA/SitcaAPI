@@ -13,6 +13,7 @@ using Sitca.DataAccess.Data;
 using Sitca.DataAccess.Data.Initializer;
 using Sitca.DataAccess.Data.Repository;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Email;
 using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
@@ -162,6 +163,9 @@ public static class ServiceCollectionExtensions
     // DB Initializer
     services.AddScoped<IDbInitializer, DbInitializer>();
 
+    // Configurar Cuestionario
+    services.AddScoped<ICuestionarioReaperturaService, CuestionarioReaperturaService>();
+
     return services;
   }
 
@@ -173,13 +177,13 @@ public static class ServiceCollectionExtensions
     {
       options.AddPolicy("cors", builder =>
           {
-            builder
-                    .WithOrigins(allowedOrigins ?? Array.Empty<string>())
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials()
-                    .SetIsOriginAllowedToAllowWildcardSubdomains();
-          });
+          builder
+                  .WithOrigins(allowedOrigins ?? Array.Empty<string>())
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials()
+                  .SetIsOriginAllowedToAllowWildcardSubdomains();
+        });
     });
 
     return services;
