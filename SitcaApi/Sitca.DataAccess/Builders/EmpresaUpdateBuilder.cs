@@ -76,6 +76,7 @@ public class EmpresaUpdateBuilder
 
   public EmpresaUpdateBuilder WithArchivos()
   {
+    string language = _user.Lenguage;
     _vm.Archivos = _empresa.Archivos?
         .Where(s => s.Activo)
         .Select(z => new ArchivoVm
@@ -89,8 +90,8 @@ public class EmpresaUpdateBuilder
           Propio = z.UsuarioCargaId == _user.Id,
           FileTypesCompany = z.FileTypesCompany ?? FileCompany.Informativo,
           NameType = z.FileTypesCompany.HasValue
-            ? z.FileTypesCompany.Value.GetDisplayName()
-            : FileCompany.Informativo.GetDisplayName()
+            ? z.FileTypesCompany.Value.GetNameForLanguage(language)
+            : FileCompany.Informativo.GetNameForLanguage(language)
         }).ToList();
     return this;
   }

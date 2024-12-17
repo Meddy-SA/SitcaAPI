@@ -356,18 +356,21 @@ public class NotificationService : INotificationService
       GetCertificationDetailsAsync(int idCertificacion)
   {
     var certificacion = await _db.ProcesoCertificacion
+      .AsNoTracking()
         .Include(s => s.Empresa)
         .FirstOrDefaultAsync(x => x.Id == idCertificacion);
 
     if (certificacion == null) return (null, null, null);
 
-    var paisData = await _db.Pais.FindAsync(certificacion.Empresa.PaisId);
+    var paisData = await _db.Pais
+      .FindAsync(certificacion.Empresa.PaisId);
     return (certificacion, certificacion.Empresa, paisData);
   }
 
   private async Task<Notificacion> GetNotificationDataAsync(decimal? status)
   {
     return await _db.Notificacion
+      .AsNoTracking()
         .Include(x => x.NotificationGroups)
         .FirstOrDefaultAsync(s => s.Status == status);
   }
@@ -448,6 +451,7 @@ public class NotificationService : INotificationService
     try
     {
       var specialAccounts = await _db.NotificationCustomUsers
+        .AsNoTracking()
           .Where(s => s.PaisId == paisId || s.Global)
           .ToListAsync();
 
@@ -534,6 +538,7 @@ public class NotificationService : INotificationService
     if (empresa == null) return null;
 
     var encargado = await _db.ApplicationUser
+      .AsNoTracking()
         .FirstOrDefaultAsync(x => x.EmpresaId == empresa.Id);
 
     if (encargado == null) return null;

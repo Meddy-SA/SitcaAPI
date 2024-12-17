@@ -34,6 +34,11 @@ namespace Sitca.Models.ViewModels
     public string userId { get; set; } = null!;
     public bool auditor { get; set; }
     public string motivo { get; set; } = null!;
+
+    public bool IsValid()
+    {
+      return idProceso > 0 && !string.IsNullOrEmpty(userId);
+    }
   }
 
   public class CertificacionDetailsVm
@@ -41,8 +46,8 @@ namespace Sitca.Models.ViewModels
     public int Id { get; set; }
 
     public EmpresaVm? Empresa { get; set; }
-    public CommonUserVm Asesor { get; set; } = null!;
-    public CommonUserVm Auditor { get; set; } = null!;
+    public CommonUserVm? Asesor { get; set; } = null!;
+    public CommonUserVm? Auditor { get; set; } = null!;
     public CommonUserVm? Generador { get; set; }
 
     public bool Recertificacion { get; set; }

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using Sitca.Models.DTOs;
+using Sitca.Models.Enums;
 
 namespace Sitca.DataAccess.Extensions;
 
@@ -15,6 +16,22 @@ public static class EnumExtensions
     var attribute = field?.GetCustomAttribute<DisplayAttribute>();
 
     return attribute?.Name ?? value.ToString();
+  }
+
+  public static string GetNameForLanguage(this Enum value, string language = "es")
+  {
+    var field = value.GetType().GetField(value.ToString());
+    var attribute = field?.GetCustomAttribute<MultiLanguageDisplayAttribute>();
+
+    if (attribute == null)
+      return value.ToString();
+
+    return language.ToLower() switch
+    {
+      "en" => attribute.English,
+      "es" => attribute.Spanish,
+      _ => attribute.Spanish // Español como idioma por defecto
+    };
   }
 
   public static List<EnumValueDto> ToEnumValueList<TEnum>() where TEnum : Enum

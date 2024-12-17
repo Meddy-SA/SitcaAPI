@@ -1,25 +1,34 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Sitca.Models.Enums;
 
 public enum FileCompany
 {
-  [Display(Name = "Informativo")]
+  [MultiLanguageDisplay("Informativo", "Informative")]
   Informativo,
-  [Display(Name = "Protocolo de Adhesión")]
+
+  [MultiLanguageDisplay("Protocolo de Adhesión", "Adhesion Protocol")]
   Adhesion,
-  [Display(Name = "Recomendación del Auditor al CTC")]
+
+  [MultiLanguageDisplay("Recomendación del Auditor al CTC", "Auditor Recommendation to CCT")]
   AuditoraCTC,
-  [Display(Name = "Compromiso de Confidencialidad")]
+
+  [MultiLanguageDisplay("Compromiso de Confidencialidad", "Confidentiality Agreement")]
   ComprosimoConfidencialidad,
-  [Display(Name = "Declaración Jurada")]
+
+  [MultiLanguageDisplay("Declaración Jurada", "Sworn Statement")]
   DeclaracionJurada,
-  [Display(Name = "Solicitud de Certificación")]
+
+  [MultiLanguageDisplay("Solicitud de Certificación", "Certification Request")]
   SolicitudCertificacion,
-  [Display(Name = "Solicitud de Recertificación")]
+
+  [MultiLanguageDisplay("Solicitud de Recertificación", "Recertification Request")]
   SolicitudRecertificacion,
-  [Display(Name = "Documento de Identidad")]
+
+  [MultiLanguageDisplay("Documento de Identidad", "National Id Card")]
   DocumentoIdentidad,
-  [Display(Name = "Licencia de Operación")]
-  LicenciaOperacion
+
+  [MultiLanguageDisplay("Licencia de Operación", "Operating License")]
+  LicenciaOperacion,
+
+  [MultiLanguageDisplay("Informe de Asesoría", "Consultancy Report")]
+  InformeAsesoria
 }

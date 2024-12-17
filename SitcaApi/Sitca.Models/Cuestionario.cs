@@ -29,8 +29,8 @@ namespace Sitca.Models
     public int? ProcesoCertificacionId { get; set; }
     #endregion
 
-    public string AsesorId { get; set; } = null!;
-    public string AuditorId { get; set; } = null!;
+    public string? AsesorId { get; set; }
+    public string? AuditorId { get; set; }
     public string? TecnicoPaisId { get; set; }
 
     public int Resultado { get; set; }

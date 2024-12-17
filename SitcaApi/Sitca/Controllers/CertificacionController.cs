@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Sitca.DataAccess.Extensions;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
@@ -136,78 +137,120 @@ namespace Sitca.Controllers
       return Ok(res);
     }
 
-
     [Authorize(Roles = "Admin,TecnicoPais")]
-    [HttpPost]
-    [Route("UpdateNumeroExp")]
-    public async Task<IActionResult> UpdateNumeroExp(CertificacionDetailsVm data)
+    [HttpPost("UpdateNumeroExp")]
+    public async Task<ActionResult<Result<bool>>> UpdateNumeroExp(CertificacionDetailsVm data)
     {
-      var result = await _unitOfWork.ProcesoCertificacion.UpdateNumeroExp(data);
-
-      return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
-    }
-
-
-    [Authorize(Roles = "Admin,TecnicoPais")]
-    [HttpPost]
-    [Route("CambiarAuditor")]
-    public async Task<IActionResult> CambiarAuditor(CambioAuditor data)
-    {
-      var appUser = await this.GetCurrentUserAsync(_userManager);
-      if (appUser == null) return Unauthorized();
-
-      var result = await _unitOfWork.ProcesoCertificacion.CambiarAuditor(data);
-
       try
       {
-        if (data.auditor)
-        {
-          await _notificationService.SendNotification(data.idProceso,
-              (int)NotificationTypes.CambioAuditor, appUser.Lenguage);
-        }
-        else
-        {
-          await _notificationService.SendNotification(data.idProceso,
-              (int)NotificationTypes.CambioAsesor, appUser.Lenguage);
-        }
+        var appUser = await this.GetCurrentUserAsync(_userManager);
+        if (appUser == null)
+          return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
+
+        if (data == null)
+          return BadRequest(Result<bool>.Failure("Datos no válidos"));
+
+        var result = await _unitOfWork.ProcesoCertificacion.UpdateNumeroExpAsync(data);
+
+        return this.HandleResponse(result);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error al enviar notificacion");
+        _logger.LogError(ex,
+            "Error no controlado al actualizar número de expediente para certificación {CertificacionId}",
+            data?.Id);
+        return StatusCode(500,
+            Result<bool>.Failure("Error interno del servidor al procesar la solicitud"));
       }
-
-      return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                  new JsonSerializerSettings()
-                  {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                  }));
     }
 
     [Authorize(Roles = "Admin,TecnicoPais")]
-    [HttpPost]
-    [Route("Comenzar")]
-    public async Task<IActionResult> Comenzar(CertificacionVm data)
+    [HttpPost("CambiarAuditor")]
+    public async Task<ActionResult<Result<bool>>> CambiarAuditor(CambioAuditor data)
     {
-      var appUser = await this.GetCurrentUserAsync(_userManager);
-      if (appUser == null) return Unauthorized();
-
-      //recibir empresa, asesor y obtener el usuario que la genera
-      var result = await _unitOfWork.ProcesoCertificacion.ComenzarProceso(data, appUser.Id);
-
       try
       {
-        await _notificationService.SendNotification(result, null, appUser.Lenguage);
+        var appUser = await this.GetCurrentUserAsync(_userManager);
+        if (appUser == null) return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
+
+        if (!data.IsValid())
+        {
+          return BadRequest(Result<bool>.Failure("Datos de cambios no validas"));
+        }
+
+        var result = await _unitOfWork.ProcesoCertificacion.CambiarAuditorAsync(data);
+
+        if (!result.IsSuccess)
+          return this.HandleResponse(result);
+
+        try
+        {
+          if (data.auditor)
+          {
+            await _notificationService.SendNotification(data.idProceso,
+                (int)NotificationTypes.CambioAuditor, appUser.Lenguage);
+          }
+          else
+          {
+            await _notificationService.SendNotification(data.idProceso,
+                (int)NotificationTypes.CambioAsesor, appUser.Lenguage);
+          }
+        }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex,
+                  "Error al enviar notificación de cambio de {Rol} para el proceso {ProcesoId}",
+                  data.auditor ? "auditor" : "asesor",
+                  data.idProceso);
+          // No retornamos el error ya que el cambio fue exitoso
+        }
+        return this.HandleResponse(result);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error al enviar notificacion");
+        _logger.LogError(ex,
+            "Error no controlado al cambiar {Rol} para el proceso {ProcesoId}",
+            data.auditor ? "auditor" : "asesor",
+            data.idProceso);
+        return StatusCode(500,
+            Result<bool>.Failure("Error interno del servidor al procesar la solicitud"));
       }
+    }
 
-      return Ok();
+    [Authorize(Roles = "Admin,TecnicoPais")]
+    [HttpPost("Comenzar")]
+    public async Task<ActionResult<Result<int>>> Comenzar(CertificacionVm data)
+    {
+      try
+      {
+        var appUser = await this.GetCurrentUserAsync(_userManager);
+        if (appUser == null)
+          return Unauthorized(Result<int>.Failure("No se encontro el usuario"));
+
+        var result = await _unitOfWork.ProcesoCertificacion.ComenzarProcesoAsync(data, appUser.Id);
+        if (!result.IsSuccess)
+          return BadRequest(result);
+
+        try
+        {
+          await _notificationService.SendNotification(result.Value, null, appUser.Lenguage);
+        }
+        catch (Exception ex)
+        {
+          // Logueamos el error pero no lo propagamos ya que es un proceso secundario
+          _logger.LogError(ex, "Error al enviar notificación para el proceso {ProcesoId}", result.Value);
+        }
+
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al comenzar el proceso de certificación");
+        return StatusCode(500, new
+        {
+          message = "Error interno del servidor al procesar la solicitud"
+        });
+      }
     }
 
     [Route("Test")]
@@ -236,16 +279,30 @@ namespace Sitca.Controllers
     }
 
     [Authorize(Roles = "Admin,TecnicoPais,Asesor,Auditor")]
-    [HttpPost]
-    [Route("GenerarCuestionario")]
-    public async Task<ActionResult<CuestionarioDetailsMinVm>> GenerarCuestionario(CuestionarioCreateVm data)
+    [HttpPost("GenerarCuestionario")]
+    public async Task<ActionResult<Result<CuestionarioDetailsMinVm>>> GenerarCuestionario(CuestionarioCreateVm data)
     {
+      // Validación del modelo
+      if (!ModelState.IsValid)
+        return BadRequest(Result<CuestionarioDetailsMinVm>.Failure(ModelState.GetErrorMessages()));
+
       var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
-      if (appUser == null) return Unauthorized();
+      if (appUser == null) return Unauthorized(Result<CuestionarioDetailsMinVm>.Failure("Usuario no autorizado"));
 
-      var result = await _unitOfWork.ProcesoCertificacion.GenerarCuestionario(data, appUser.Id, role);
+      try
+      {
+        var result = await _unitOfWork.ProcesoCertificacion.GenerarCuestionarioAsync(data, appUser.Id, role);
+        if (result == null)
+          return BadRequest("No se pudo generar el cuestionario");
 
-      return this.HandleResponse(result, true);
+        return this.HandleResponse(result);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error al generar cuestionario. Usuario: {UserId}, Empresa: {EmpresaId}",
+            appUser.Id, data.EmpresaId);
+        return StatusCode(500, Result<CuestionarioDetailsMinVm>.Failure("Error interno del servidor"));
+      }
     }
 
     [Authorize]
