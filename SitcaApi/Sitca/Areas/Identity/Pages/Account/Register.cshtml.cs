@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -87,7 +86,6 @@ namespace Sitca.Areas.Identity.Pages.Account
                         pageHandler: null,
                         values: new { area = "Identity", userId = user.Id, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
-                    
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
                         await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",

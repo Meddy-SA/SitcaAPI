@@ -6,7 +6,6 @@ using Sitca.Models.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Utilities;
 
@@ -31,7 +30,6 @@ namespace Sitca.DataAccess.Data.Repository
 
         public async Task<int> Create(HomologacionDTO datos, ApplicationUser user)
         {
-           
             using var transaction = _db.Database.BeginTransaction();
             var startDate = DateTime.Now;
             var endDate = DateTime.Now;
@@ -48,7 +46,7 @@ namespace Sitca.DataAccess.Data.Repository
                     EsHomologacion = true,
                     Nombre = datos.nombre,
                     PaisId = user.PaisId,
-                    IdPais = user.PaisId??6,
+                    IdPais = user.PaisId ?? 6,
                     Estado = 8,
                     ResultadoVencimiento = datos.fechaVencimiento,
                 };
@@ -103,7 +101,7 @@ namespace Sitca.DataAccess.Data.Repository
                     Aprobado = true,
                     CertificacionId = proceso.Id,
                     DistintivoId = distintivoSiccs.Id,
-                    Observaciones = datos.datosProceso,                    
+                    Observaciones = datos.datosProceso,
                 };
 
                 _db.ResultadoCertificacion.Add(resultado);
@@ -122,7 +120,7 @@ namespace Sitca.DataAccess.Data.Repository
                     DatosProceso = datos.datosProceso,
                     FechaVencimiento = datos.fechaVencimiento,
                     FechaOtorgamiento = datos.fechaOtorgamiento,
-                    Distintivo = user.Lenguage == "es"? distintivoSiccs.Name:distintivoSiccs.NameEnglish,
+                    Distintivo = user.Lenguage == "es" ? distintivoSiccs.Name : distintivoSiccs.NameEnglish,
                     EmpresaId = empresa.Id,
                 };
 
@@ -136,21 +134,21 @@ namespace Sitca.DataAccess.Data.Repository
             catch (Exception e)
             {
                 transaction.Rollback();
+                Console.WriteLine(e.Message);
                 return 0;
             }
 
         }
 
-        
-        public async Task<HomologacionDTO> Details(ApplicationUser appUser,string role, int id)
+        public async Task<HomologacionDTO> Details(ApplicationUser appUser, string role, int id)
         {
             var item = await _db.Homologacion
-                .Include(s =>s.Empresa)
+                .Include(s => s.Empresa)
                 .ThenInclude(s => s.Tipologias)
-                .ThenInclude(s =>s.Tipologia)
+                .ThenInclude(s => s.Tipologia)
                 .Include(s => s.Empresa)
                 .ThenInclude(s => s.Archivos)
-                .ThenInclude(s =>s.UsuarioCarga)
+                .ThenInclude(s => s.UsuarioCarga)
                 .FirstOrDefaultAsync(s => s.Id == id && (s.Empresa.PaisId == appUser.PaisId || role == "Admin"));
 
             var tipologia = item.Empresa.Tipologias.First().Tipologia;
@@ -166,7 +164,7 @@ namespace Sitca.DataAccess.Data.Repository
                 tipologia = new Tipologia
                 {
                     Id = tipologia.Id,
-                    Name = appUser.Lenguage == "es"? tipologia?.Name: tipologia?.NameEnglish,
+                    Name = appUser.Lenguage == "es" ? tipologia?.Name : tipologia?.NameEnglish,
                     NameEnglish = tipologia?.NameEnglish,
                 },
                 datosProceso = item.DatosProceso,
@@ -197,7 +195,7 @@ namespace Sitca.DataAccess.Data.Repository
         {
             var homologaciones = await _db.Homologacion
                 .Include(s => s.Empresa)
-                .ThenInclude(s =>s.Tipologias)
+                .ThenInclude(s => s.Tipologias)
                 .Where(s => s.Empresa.PaisId == country).ToListAsync();
 
             var tipologias = await _db.Tipologia.ToListAsync();
@@ -212,7 +210,8 @@ namespace Sitca.DataAccess.Data.Repository
                 nombre = s.Empresa.Nombre,
                 tipologia = tipologias.First(x => x.Id == s.Empresa.Tipologias.First().IdTipologia),
                 datosProceso = s.DatosProceso,
-                distintivoSiccs = new CommonVm {
+                distintivoSiccs = new CommonVm
+                {
                     name = s.Distintivo
                 },
                 selloItc = new SelloItc
@@ -220,7 +219,6 @@ namespace Sitca.DataAccess.Data.Repository
                     name = s.DistintivoExterno
                 }
             }).ToList();
-            
 
         }
 
@@ -230,21 +228,20 @@ namespace Sitca.DataAccess.Data.Repository
             var distintivosSiccs = await _db.Distintivo.ToListAsync();
 
             var item = await _db.Homologacion
-                .Include(s =>s.Empresa)
+                .Include(s => s.Empresa)
                 .ThenInclude(s => s.Tipologias)
                 .ThenInclude(s => s.Tipologia)
-                .Include(s =>s.Certificacion)
-                .ThenInclude(s =>s.Resultados).FirstOrDefaultAsync(s => s.Id == datos.id && (s.Empresa.PaisId == appUser.PaisId || role == "Admin"));
+                .Include(s => s.Certificacion)
+                .ThenInclude(s => s.Resultados).FirstOrDefaultAsync(s => s.Id == datos.id && (s.Empresa.PaisId == appUser.PaisId || role == "Admin"));
 
             if (item.EnProcesoSiccs == true)
             {
                 return false;
             }
 
-            item.Empresa.Nombre = datos.nombre;                      
+            item.Empresa.Nombre = datos.nombre;
             item.FechaUltimaEdicion = DateTime.UtcNow;
             item.DatosProceso = datos.datosProceso;
-           
             var certificacionActual = item.Empresa.Certificaciones.OrderByDescending(s => s.Id).First();
 
             if (item.FechaOtorgamiento != datos.fechaOtorgamiento)
@@ -262,7 +259,6 @@ namespace Sitca.DataAccess.Data.Repository
             _db.SaveChanges();
 
             var tipologia = item.Empresa.Tipologias.First().Tipologia;
-            
             if (datos.selloItc.name != item.DistintivoExterno)
             {
                 //hay que modificar el distintivo
@@ -305,7 +301,7 @@ namespace Sitca.DataAccess.Data.Repository
                 _db.SaveChanges();
 
                 #endregion
-            }            
+            }
             return true;
         }
     }

@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 
 namespace Sitca.DataAccess.Data.Repository.IRepository
 {
-    public interface IRepository<T> where T: class
+    public interface IRepository<T> where T : class
     {
         T Get(int id);
 

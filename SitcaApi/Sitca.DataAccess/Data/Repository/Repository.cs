@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using Sitca.DataAccess.Data.Repository.IRepository;
 
 
@@ -25,7 +24,6 @@ namespace Sitca.DataAccess.Data.Repository.Repository
         {
             dbSet.Add(entity);
             Context.SaveChangesAsync();
-            
         }
 
         public T Get(int id)
@@ -45,7 +43,7 @@ namespace Sitca.DataAccess.Data.Repository.Repository
             //include properties will be comma separated
             if (includeProperties != null)
             {
-                foreach (var property in includeProperties.Split( new char[] { ','} , StringSplitOptions.RemoveEmptyEntries) )
+                foreach (var property in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     query = query.Include(property);
                 }
@@ -57,7 +55,6 @@ namespace Sitca.DataAccess.Data.Repository.Repository
             }
 
             return query.ToList();
-            
         }
 
         public T GetFirstOrDefault(Expression<Func<T, bool>> filter = null, string includeProperties = null)
@@ -90,7 +87,7 @@ namespace Sitca.DataAccess.Data.Repository.Repository
         public void Remove(int id)
         {
             T entityToRemove = dbSet.Find(id);
-            Remove(entityToRemove);            
+            Remove(entityToRemove);
         }
     }
 }

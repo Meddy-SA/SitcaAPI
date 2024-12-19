@@ -1,21 +1,19 @@
 ﻿using Sitca.Models;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 
 namespace Sitca.DataAccess.Data.Repository
 {
-    public class ItemTemplateRepository: Repository<ItemTemplate>, IItemTemplateRepository
+    public class ItemTemplateRepository : Repository<ItemTemplate>, IItemTemplateRepository
     {
         private readonly ApplicationDbContext _db;
 
-        public ItemTemplateRepository(ApplicationDbContext db):base (db)
+        public ItemTemplateRepository(ApplicationDbContext db) : base(db)
         {
             _db = db;
         }

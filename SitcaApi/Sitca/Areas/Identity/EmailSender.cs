@@ -1,7 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity.UI.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -40,15 +37,5 @@ namespace Sitca.Areas.Identity
                 new MailMessage(userName, email, subject, htmlMessage) { IsBodyHtml = true }
             );
         }
-
-
-    //    "EmailSender": {
-    //"Host": "smtp.office365.com",
-    //"Port": 587,
-    //"EnableSSL": true,
-    //"UserName": "your@username.com",
-    //"Password":  "Y0urP4ssw0rd!!!"
-    //},
-
     }
 }

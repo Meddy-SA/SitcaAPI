@@ -1,9 +1,6 @@
 ﻿using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Sitca.DataAccess.Data.Repository
 {

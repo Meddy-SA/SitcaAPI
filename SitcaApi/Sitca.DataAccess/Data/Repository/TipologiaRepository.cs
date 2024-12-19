@@ -3,10 +3,8 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.Models;
 using Sitca.Models.ViewModels;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Sitca.DataAccess.Data.Repository
@@ -20,12 +18,12 @@ namespace Sitca.DataAccess.Data.Repository
             _db = db;
         }
 
-        public async Task<List<CommonVm> > SelectList(string lang = "es")
+        public async Task<List<CommonVm>> SelectList(string lang = "es")
         {
             var tipologias = await _db.Tipologia.Select(x => new CommonVm
             {
                 id = x.Id,
-                name = lang == "es"? x.Name:x.NameEnglish,
+                name = lang == "es" ? x.Name : x.NameEnglish,
                 isSelected = false
             }).ToListAsync();
 
