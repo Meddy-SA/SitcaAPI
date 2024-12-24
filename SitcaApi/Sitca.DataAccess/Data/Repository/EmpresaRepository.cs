@@ -420,6 +420,7 @@ namespace Sitca.DataAccess.Data.Repository
                     RoleConstants.Asesor => EmpresaSpecifications.ForAsesor(query, user.Id),
                     RoleConstants.Auditor => EmpresaSpecifications.ForAuditor(query, user.Id),
                     RoleConstants.CTC => EmpresaSpecifications.ForCTC(query, user.PaisId ?? 0),
+                    RoleConstants.Consultor => EmpresaSpecifications.ForConsultor(query, user.PaisId ?? 0),
                     _ => throw new ArgumentException($"Role {role} not supported", nameof(role))
                 };
 
