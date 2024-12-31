@@ -11,121 +11,122 @@ namespace Sitca.DataAccess.Data.Repository;
 
 public class CompañiasAuditorasRepository : Repository<CompAuditoras>, ICompañiasAuditorasRepository
 {
-  private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext _db;
 
-  public CompañiasAuditorasRepository(ApplicationDbContext db) : base(db)
-  {
-    _db = db ?? throw new ArgumentNullException(nameof(db));
-  }
-
-  public async Task<Result<bool>> SaveAsync(CompAuditoras data)
-  {
-    //agregar tipologia
-    if (data == null)
+    public CompañiasAuditorasRepository(ApplicationDbContext db) : base(db)
     {
-      return Result<bool>.Failure("Los datos de la compañía auditora no pueden ser nulos.");
+        _db = db ?? throw new ArgumentNullException(nameof(db));
     }
 
-    try
+    public async Task<Result<CompAuditoras>> SaveAsync(CompAuditoras data)
     {
-      await ValidateCompanyDataAsync(data);
+        //agregar tipologia
+        if (data == null)
+        {
+            return Result<CompAuditoras>.Failure("Los datos de la compañía auditora no pueden ser nulos.");
+        }
 
-      if (data.Id > 0)
-      {
-        return await UpdateExistingCompanyAsync(data);
-      }
+        try
+        {
+            await ValidateCompanyDataAsync(data);
 
-      return await CreateNewCompanyAsync(data);
+            if (data.Id > 0)
+            {
+                return await UpdateExistingCompanyAsync(data);
+            }
+
+            return await CreateNewCompanyAsync(data);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<CompAuditoras>.Failure("La compañía auditora ha sido modificada por otro usuario. Por favor, refresque los datos e intente nuevamente.");
+        }
+        catch (Exception ex)
+        {
+            // Aquí podrías usar ILogger para registrar la excepción
+            return Result<CompAuditoras>.Failure($"Error al guardar la compañía auditora: {ex.Message}");
+        }
     }
-    catch (DbUpdateConcurrencyException)
+
+    private async Task ValidateCompanyDataAsync(CompAuditoras data)
     {
-      return Result<bool>.Failure("La compañía auditora ha sido modificada por otro usuario. Por favor, refresque los datos e intente nuevamente.");
+        if (string.IsNullOrWhiteSpace(data.Name))
+            throw new ValidationException("El nombre de la compañía es requerido.");
+
+        if (string.IsNullOrWhiteSpace(data.Email) || !IsValidEmail(data.Email))
+            throw new ValidationException("El email de la compañía no es válido.");
+
+        var existingCompany = await _db.CompAuditoras
+            .AnyAsync(c => c.Email == data.Email && c.Id != data.Id);
+
+        if (existingCompany)
+            throw new ValidationException("Ya existe una compañía con este email.");
     }
-    catch (Exception ex)
+
+    private async Task<Result<CompAuditoras>> UpdateExistingCompanyAsync(CompAuditoras data)
     {
-      // Aquí podrías usar ILogger para registrar la excepción
-      return Result<bool>.Failure($"Error al guardar la compañía auditora: {ex.Message}");
+        var company = await _db.CompAuditoras
+            .FindAsync(data.Id);
+
+        if (company == null)
+            return Result<CompAuditoras>.Failure("Compañía auditora no encontrada.");
+
+        // Utilizar AutoMapper aquí sería una mejor opción
+        UpdateCompanyProperties(company, data);
+
+        await _db.SaveChangesAsync();
+        return Result<CompAuditoras>.Success(data);
     }
-  }
 
-  private async Task ValidateCompanyDataAsync(CompAuditoras data)
-  {
-    if (string.IsNullOrWhiteSpace(data.Name))
-      throw new ValidationException("El nombre de la compañía es requerido.");
-
-    if (string.IsNullOrWhiteSpace(data.Email) || !IsValidEmail(data.Email))
-      throw new ValidationException("El email de la compañía no es válido.");
-
-    var existingCompany = await _db.CompAuditoras
-        .AnyAsync(c => c.Email == data.Email && c.Id != data.Id);
-
-    if (existingCompany)
-      throw new ValidationException("Ya existe una compañía con este email.");
-  }
-
-  private async Task<Result<bool>> UpdateExistingCompanyAsync(CompAuditoras data)
-  {
-    var company = await _db.CompAuditoras
-        .FindAsync(data.Id);
-
-    if (company == null)
-      return Result<bool>.Failure("Compañía auditora no encontrada.");
-
-    // Utilizar AutoMapper aquí sería una mejor opción
-    UpdateCompanyProperties(company, data);
-
-    await _db.SaveChangesAsync();
-    return Result<bool>.Success(true);
-  }
-
-  private async Task<Result<bool>> CreateNewCompanyAsync(CompAuditoras data)
-  {
-    var newCompany = new CompAuditoras
+    private async Task<Result<CompAuditoras>> CreateNewCompanyAsync(CompAuditoras data)
     {
-      Direccion = data.Direccion,
-      Email = data.Email,
-      FechaInicioConcesion = data.FechaInicioConcesion,
-      FechaFinConcesion = data.FechaFinConcesion,
-      Representante = data.Representante,
-      NumeroCertificado = data.NumeroCertificado,
-      Tipo = data.Tipo,
-      Name = data.Name,
-      PaisId = data.PaisId,
-      Telefono = data.Telefono,
-      Status = true
-    };
+        var newCompany = new CompAuditoras
+        {
+            Direccion = data.Direccion,
+            Email = data.Email,
+            FechaInicioConcesion = data.FechaInicioConcesion,
+            FechaFinConcesion = data.FechaFinConcesion,
+            Representante = data.Representante,
+            NumeroCertificado = data.NumeroCertificado,
+            Tipo = data.Tipo,
+            Name = data.Name,
+            PaisId = data.PaisId,
+            Telefono = data.Telefono,
+            Status = true
+        };
 
-    await _db.CompAuditoras.AddAsync(newCompany);
-    await _db.SaveChangesAsync();
-    return Result<bool>.Success(true);
-  }
-
-  private void UpdateCompanyProperties(CompAuditoras existing, CompAuditoras updated)
-  {
-    existing.Name = updated.Name;
-    existing.PaisId = updated.PaisId;
-    existing.Telefono = updated.Telefono;
-    existing.Email = updated.Email;
-    existing.Direccion = updated.Direccion;
-    existing.FechaFinConcesion = updated.FechaFinConcesion;
-    existing.FechaInicioConcesion = updated.FechaInicioConcesion;
-    existing.Tipo = updated.Tipo;
-    existing.Representante = updated.Representante;
-    existing.NumeroCertificado = updated.NumeroCertificado;
-    existing.Status = updated.Status;
-  }
-
-  private static bool IsValidEmail(string email)
-  {
-    try
-    {
-      var addr = new System.Net.Mail.MailAddress(email);
-      return addr.Address == email;
+        var addResult = await _db.CompAuditoras.AddAsync(newCompany);
+        var result = await _db.SaveChangesAsync();
+        newCompany.Id = addResult.Entity.Id;
+        return Result<CompAuditoras>.Success(newCompany);
     }
-    catch
+
+    private void UpdateCompanyProperties(CompAuditoras existing, CompAuditoras updated)
     {
-      return false;
+        existing.Name = updated.Name;
+        existing.PaisId = updated.PaisId;
+        existing.Telefono = updated.Telefono;
+        existing.Email = updated.Email;
+        existing.Direccion = updated.Direccion;
+        existing.FechaFinConcesion = updated.FechaFinConcesion;
+        existing.FechaInicioConcesion = updated.FechaInicioConcesion;
+        existing.Tipo = updated.Tipo;
+        existing.Representante = updated.Representante;
+        existing.NumeroCertificado = updated.NumeroCertificado;
+        existing.Status = updated.Status;
     }
-  }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
 

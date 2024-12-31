@@ -80,7 +80,10 @@ namespace Sitca.DataAccess.Data.Repository
             Capacitaciones = new CapacitacionesRepository(_db);
             CompañiasAuditoras = new CompañiasAuditorasRepository(_db);
             Tipologias = new TipologiaRepository(_db);
-            Homologacion = new HomologacionRepository(_db);
+            Homologacion = new HomologacionRepository(
+                _db,
+                _loggerFactory.CreateLogger<HomologacionRepository>()
+            );
         }
 
         public IItemTemplateRepository ItemTemplate { get; private set; }

@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.Models;
+using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -14,18 +16,46 @@ namespace Sitca.DataAccess.Data.Repository
     public class HomologacionRepository : Repository<Homologacion>, IHomologacionRepository
     {
         private readonly ApplicationDbContext _db;
-        public HomologacionRepository(ApplicationDbContext db) : base(db)
+        private readonly ILogger<HomologacionRepository> _logger;
+
+        public HomologacionRepository(
+            ApplicationDbContext db,
+            ILogger<HomologacionRepository> logger
+        ) : base(db)
         {
             _db = db;
+            _logger = logger;
         }
 
-        public async Task<bool> BloquearEdicion(int id)
+        public async Task<Result<HomologacionBloqueoDto>> ToggleBloqueoEdicionAsync(int id)
         {
-            var homologacion = await _db.Homologacion.FindAsync(id);
+            try
+            {
+                var homologacion = await _db.Homologacion
+                    .FindAsync(id);
 
-            homologacion.EnProcesoSiccs = !homologacion.EnProcesoSiccs;
-            await _db.SaveChangesAsync();
-            return homologacion.EnProcesoSiccs == true;
+                if (homologacion == null)
+                {
+                    _logger.LogWarning("Homologación no encontrada: {Id}", id);
+                    return Result<HomologacionBloqueoDto>.Failure($"Homologación {id} no encontrada");
+                }
+
+                homologacion.EnProcesoSiccs = !homologacion.EnProcesoSiccs;
+                homologacion.FechaUltimaEdicion = DateTime.UtcNow;
+
+                await _db.SaveChangesAsync();
+
+                return Result<HomologacionBloqueoDto>.Success(new HomologacionBloqueoDto
+                {
+                    EstaBloqueado = homologacion.EnProcesoSiccs ?? false,
+                    EmpresaId = homologacion.EmpresaId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al modificar el estado de bloqueo de la homologación {Id}", id);
+                return Result<HomologacionBloqueoDto>.Failure($"Error al modificar el estado de bloqueo: {ex.Message}");
+            }
         }
 
         public async Task<int> Create(HomologacionDTO datos, ApplicationUser user)

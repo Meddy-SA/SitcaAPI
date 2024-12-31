@@ -323,75 +323,88 @@ namespace Sitca.DataAccess.Data.Repository
             return result;
         }
 
-        public List<EmpresaPersonalVm> GetListReportePersonal(FiltroEmpresaReporteVm data)
+        public async Task<Result<List<EmpresaPersonalVm>>> GetListReportePersonalAsync(FiltroEmpresaReporteVm data)
         {
-
-            var empresas = _db.Empresa.Include(z => z.Pais).Include(s => s.Certificaciones).Where(x => x.Nombre != null
-             && (x.PaisId == data.country || data.country == 0)
-             && (x.Estado == data.estado || data.estado == -1));
-
-            var listaEmpresas = new List<EmpresaPersonalVm>();
-            foreach (var item in empresas.Where(s => s.Estado > 0))
+            try
             {
-                try
+                // 1. Construir y ejecutar la consulta base
+                var empresasQuery = _db.Empresa
+                    .Include(z => z.Pais)
+                    .Include(s => s.Certificaciones)
+                    .AsNoTracking()
+                    .Where(x => x.Nombre != null && x.Estado > 0);
+
+                // Aplicar filtros
+                empresasQuery = ApplyCountryFilter(empresasQuery, data.country ?? 0);
+                empresasQuery = ApplyStatusFilter(empresasQuery, data.estado ?? -1);
+
+                // 2. Cargar los datos necesarios en una sola consulta
+                var empresas = await empresasQuery
+                    .Select(e => new
+                    {
+                        Empresa = e,
+                        UltimaCertificacion = e.Certificaciones.OrderByDescending(c => c.Id).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                // 3. Obtener todos los IDs de usuarios relacionados
+                var userIds = empresas
+                    .Where(e => e.UltimaCertificacion != null)
+                    .SelectMany(e => new[]
+                    {
+                e.UltimaCertificacion.AsesorId,
+                e.UltimaCertificacion.AuditorId,
+                e.UltimaCertificacion.UserGeneraId
+                    })
+                    .Where(id => id != null)
+                    .Distinct()
+                    .ToList();
+
+                var usuarios = await _db.ApplicationUser
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => new CommonUserVm
                 {
-                    var obj = new EmpresaPersonalVm();
-                    obj.Nombre = item.Nombre;
-                    obj.Pais = item.Pais.Name;
-                    obj.Status = item.Estado.GetEstado(data.lang);
-                    var cert = item.Certificaciones.OrderByDescending(s => s.Id).First();
+                    id = u.Id,
+                    email = u.Email,
+                    fullName = $"{u.FirstName} {u.LastName}",
+                    codigo = u.Codigo
+                });
 
-                    if (cert.AsesorId != null)
+                // 5. Mapear los resultados
+                var listaEmpresas = empresas
+                    .Where(e => e.UltimaCertificacion != null)
+                    .Select(e => new EmpresaPersonalVm
                     {
-                        var asesor = _db.ApplicationUser.Find(cert.AsesorId);
-                        obj.Asesor = new CommonUserVm
-                        {
-                            id = cert.AsesorId,
-                            email = asesor.Email,
-                            fullName = asesor.FirstName + " " + asesor.LastName,
-                            codigo = asesor.Codigo
-                        };
+                        Nombre = e.Empresa.Nombre,
+                        Pais = e.Empresa.Pais.Name,
+                        Status = e.Empresa.Estado.GetEstado(data.lang),
+                        Asesor = e.UltimaCertificacion.AsesorId != null ?
+                            usuarios.GetValueOrDefault(e.UltimaCertificacion.AsesorId) : null,
+                        Auditor = e.UltimaCertificacion.AuditorId != null ?
+                            usuarios.GetValueOrDefault(e.UltimaCertificacion.AuditorId) : null,
+                        TecnicoPais = e.UltimaCertificacion.UserGeneraId != null ?
+                            usuarios.GetValueOrDefault(e.UltimaCertificacion.UserGeneraId) : null
+                    })
+                    .ToList();
 
-                    }
-
-                    if (cert.AuditorId != null)
-                    {
-
-                        var auditor = _db.ApplicationUser.Find(cert.AuditorId);
-                        obj.Auditor = new CommonUserVm
-                        {
-                            id = cert.AuditorId,
-                            email = auditor.Email,
-                            fullName = auditor.FirstName + " " + auditor.LastName,
-                            codigo = auditor.Codigo
-                        };
-
-                    }
-
-                    if (cert.UserGeneraId != null)
-                    {
-                        var tecnicoPais = _db.ApplicationUser.Find(cert.UserGeneraId);
-                        obj.TecnicoPais = new CommonUserVm
-                        {
-                            id = cert.UserGeneraId,
-                            email = tecnicoPais.Email,
-                            fullName = tecnicoPais.FirstName + " " + tecnicoPais.LastName,
-                            codigo = tecnicoPais.Codigo
-                        };
-
-                    }
-
-                    listaEmpresas.Add(obj);
-                }
-                catch (Exception e)
-                {
-                    var a = item;
-                    _logger.LogError(e.Message);
-                }
-
-
+                return Result<List<EmpresaPersonalVm>>.Success(listaEmpresas);
             }
-            return listaEmpresas;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el reporte de personal de empresas");
+                return Result<List<EmpresaPersonalVm>>.Failure(ex.Message);
+            }
+        }
+
+        private static IQueryable<Empresa> ApplyCountryFilter(IQueryable<Empresa> query, int countryId)
+        {
+            return countryId == 0 ? query : query.Where(x => x.PaisId == countryId);
+        }
+
+        private static IQueryable<Empresa> ApplyStatusFilter(IQueryable<Empresa> query, int estado)
+        {
+            return estado == -1 ? query : query.Where(x => x.Estado == estado);
         }
 
         public async Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter)

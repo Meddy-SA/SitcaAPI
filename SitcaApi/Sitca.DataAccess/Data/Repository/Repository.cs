@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Sitca.DataAccess.Data.Repository.IRepository;
 
@@ -20,18 +21,18 @@ namespace Sitca.DataAccess.Data.Repository.Repository
             this.dbSet = context.Set<T>();
         }
 
-        public void Add(T entity)
+        public async Task Add(T entity)
         {
-            dbSet.Add(entity);
-            Context.SaveChangesAsync();
+            await dbSet.AddAsync(entity);
+            await Context.SaveChangesAsync();
         }
 
-        public T Get(int id)
+        public async Task<T> Get(int id)
         {
-            return dbSet.Find(id);
+            return await dbSet.FindAsync(id);
         }
 
-        public IEnumerable<T> GetAll(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeProperties = null)
+        public async Task<IEnumerable<T>> GetAll(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeProperties = null)
         {
             IQueryable<T> query = dbSet;
 
@@ -51,13 +52,13 @@ namespace Sitca.DataAccess.Data.Repository.Repository
 
             if (orderBy != null)
             {
-                return orderBy(query).ToList();
+                return await orderBy(query).ToListAsync();
             }
 
-            return query.ToList();
+            return await query.ToListAsync();
         }
 
-        public T GetFirstOrDefault(Expression<Func<T, bool>> filter = null, string includeProperties = null)
+        public async Task<T> GetFirstOrDefault(Expression<Func<T, bool>> filter = null, string includeProperties = null)
         {
             IQueryable<T> query = dbSet;
 
@@ -75,7 +76,7 @@ namespace Sitca.DataAccess.Data.Repository.Repository
                 }
             }
 
-            return query.FirstOrDefault();
+            return await query.FirstOrDefaultAsync();
 
         }
 
@@ -84,9 +85,9 @@ namespace Sitca.DataAccess.Data.Repository.Repository
             dbSet.Remove(entity);
         }
 
-        public void Remove(int id)
+        public async Task Remove(int id)
         {
-            T entityToRemove = dbSet.Find(id);
+            T entityToRemove = await dbSet.FindAsync(id);
             Remove(entityToRemove);
         }
     }

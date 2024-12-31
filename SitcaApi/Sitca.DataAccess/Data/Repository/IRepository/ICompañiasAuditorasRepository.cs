@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 
 namespace Sitca.DataAccess.Data.Repository.IRepository
 {
-  public interface ICompañiasAuditorasRepository : IRepository<CompAuditoras>
-  {
-    Task<Result<bool>> SaveAsync(CompAuditoras data);
-  }
+    public interface ICompañiasAuditorasRepository : IRepository<CompAuditoras>
+    {
+        Task<Result<CompAuditoras>> SaveAsync(CompAuditoras data);
+    }
 }

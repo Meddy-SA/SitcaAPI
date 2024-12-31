@@ -1,4 +1,5 @@
 ﻿using Sitca.Models;
+using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -15,6 +16,6 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
 
         Task<bool> Update(ApplicationUser appUser, string role, HomologacionDTO datos);
 
-        Task<bool> BloquearEdicion(int id);
+        Task<Result<HomologacionBloqueoDto>> ToggleBloqueoEdicionAsync(int id);
     }
 }

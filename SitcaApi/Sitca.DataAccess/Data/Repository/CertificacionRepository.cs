@@ -600,6 +600,7 @@ namespace Sitca.DataAccess.Data.Repository
                 ConstantRoles.Admin
                   or ConstantRoles.TecnicoPais
                   or ConstantRoles.CTC
+                  or ConstantRoles.Consultor
                   => true,
                 _ => false
             };
