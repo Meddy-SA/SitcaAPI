@@ -1,74 +1,71 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.Models;
-using System;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Utilities.Common;
 
 namespace Sitca.Controllers
 {
-  [Route("api/[controller]")]
-  [ApiController]
-  [Authorize]
-  public class CapacitacionesController : ControllerBase
-  {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly UserManager<ApplicationUser> _userManager;
-
-    public CapacitacionesController(IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
-    {
-      _unitOfWork = unitOfWork;
-      _userManager = userManager;
-    }
-
+    [Route("api/[controller]")]
+    [ApiController]
     [Authorize]
-    [HttpGet]
-    [Route("List")]
-    public async Task<IActionResult> List()
+    public class CapacitacionesController : ControllerBase
     {
-      try
-      {
-        var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-        var userFromDb = await _userManager.FindByEmailAsync(user);
-        ApplicationUser appUser = (ApplicationUser)userFromDb;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        var result = _unitOfWork.Capacitaciones.GetAll();
+        public CapacitacionesController(
+            IUnitOfWork unitOfWork,
+            UserManager<ApplicationUser> userManager
+        )
+        {
+            _unitOfWork = unitOfWork;
+            _userManager = userManager;
+        }
 
-        return Ok(JsonConvert.SerializeObject(result, Formatting.None,
-                new JsonSerializerSettings()
-                {
-                  ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                }));
-      }
-      catch (Exception ex)
-      {
-        return StatusCode(500, $"Internal server error: {ex}");
-      }
+        [HttpGet("list")]
+        [Authorize]
+        public async Task<IActionResult> List()
+        {
+            try
+            {
+                var result = await _unitOfWork.Capacitaciones.GetAll();
+
+                return Ok(
+                    JsonConvert.SerializeObject(
+                        result,
+                        Formatting.None,
+                        new JsonSerializerSettings()
+                        {
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                        }
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex}");
+            }
+        }
+
+        [HttpPost("DeleteFile")]
+        [Authorize(Roles = AuthorizationPolicies.Capacitaciones.DeleteFiles)]
+        public async Task<IActionResult> DeleteFile(Capacitaciones data)
+        {
+            try
+            {
+                var result = await _unitOfWork.Capacitaciones.DeleteFile(data.Id);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex}");
+            }
+        }
     }
-
-    [Authorize(Roles = "Admin,TecnicoPais")]
-    [HttpPost]
-    [Route("DeleteFile")]
-    public async Task<IActionResult> DeleteFile(Capacitaciones data)
-    {
-      try
-      {
-        var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-        var userFromDb = await _userManager.FindByEmailAsync(user);
-        ApplicationUser appUser = (ApplicationUser)userFromDb;
-
-        var result = await _unitOfWork.Capacitaciones.DeleteFile(data.Id);
-
-        return Ok(result);
-      }
-      catch (Exception ex)
-      {
-        return StatusCode(500, $"Internal server error: {ex}");
-      }
-    }
-  }
 }

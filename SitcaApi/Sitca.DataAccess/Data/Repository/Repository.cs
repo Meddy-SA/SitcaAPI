@@ -38,7 +38,7 @@ namespace Sitca.DataAccess.Data.Repository.Repository
 
             if (filter != null)
             {
-                query = query.Where(filter);
+                query = query.Where(filter).AsNoTracking();
             }
 
             //include properties will be comma separated

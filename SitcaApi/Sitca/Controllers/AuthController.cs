@@ -40,16 +40,16 @@ namespace Sitca.Controllers
         private readonly IViewRenderService _viewRenderService;
 
         public AuthController(
-          IUnitOfWork unitOfWork,
-          UserManager<ApplicationUser> userManager,
-          SignInManager<ApplicationUser> signInManager,
-          IJWTTokenGenerator jwtToken,
-          RoleManager<IdentityRole> roleManager,
-          IConfiguration config,
-          IViewRenderService viewRenderService,
-          IEmailSender emailSender,
-          IDapper dapper,
-          ILogger<AuthController> logger
+            IUnitOfWork unitOfWork,
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            IJWTTokenGenerator jwtToken,
+            RoleManager<IdentityRole> roleManager,
+            IConfiguration config,
+            IViewRenderService viewRenderService,
+            IEmailSender emailSender,
+            IDapper dapper,
+            ILogger<AuthController> logger
         )
         {
             _unitOfWork = unitOfWork;
@@ -158,57 +158,72 @@ namespace Sitca.Controllers
             return BadRequest(result.Errors);
         }
 
-        [HttpGet]
-        [Route("ResetPassKey")]
-        public async Task<IActionResult> ResetPassKey(string email)
+        [HttpGet("reset-pass-key/{email}")]
+        public async Task<ActionResult<Result<string>>> ResetPassKey(string email)
         {
-            if (string.IsNullOrEmpty(email))
-            {
-                return BadRequest();
-            }
-
-            var userFromDb = await _userManager.FindByEmailAsync(email);
-            ApplicationUser appUser = (ApplicationUser)userFromDb;
-
-            var code = await _userManager.GeneratePasswordResetTokenAsync(userFromDb);
-
-            //SEND EMAIL - resetear password
-            var host = _config["Angular:testUrl"];
-            var getUrl = HttpContext.Request.Host.Value;
-            if (!getUrl.Contains("localhost"))
-            {
-                //prod
-                host = _config["Angular:productionUrl"];
-            }
-
-            var urlString =
-                host
-                + "/auth/resetPass/"
-                + userFromDb.Id
-                + "/"
-                + "uIpyvT7EJdxeppQ5AbaSto8FPxAoFvHiet8gjvKJWCLQH";
-
-            var userAux = new RegisterVm { email = email, empresa = email };
-
-            var loginData = new LoginMailVm { Url = urlString, UserData = userAux };
-
-            var viewName = appUser.Lenguage == "es" ? "ResetPassEMail" : "ResetPassEMailEnglish";
-
-            var view = await _viewRenderService.RenderToStringAsync(viewName, loginData);
-
-            var senderEmail = _config["EmailSender:UserName"];
-            var title =
-                appUser.Lenguage == "es"
-                    ? "Solicitud de recuperación de cuenta"
-                    : "Account recovery request";
-
             try
             {
-                await _emailSender.SendEmailAsync(senderEmail, userFromDb.Email, title, view);
-            }
-            catch (Exception) { }
+                if (string.IsNullOrEmpty(email))
+                {
+                    return BadRequest(Result<string>.Failure("Email no válido"));
+                }
 
-            return Ok();
+                var userFromDb = await _userManager.FindByEmailAsync(email);
+                if (userFromDb == null)
+                {
+                    return NotFound(Result<string>.Failure("Email no válido"));
+                }
+                ApplicationUser appUser = (ApplicationUser)userFromDb;
+
+                var code = await _userManager.GeneratePasswordResetTokenAsync(userFromDb);
+                var resetPassUrl = GeneratePasswordResetLink(appUser.Id, code);
+
+                var emailModel = new LoginMailVm
+                {
+                    Url = resetPassUrl,
+                    UserData = new RegisterVm
+                    {
+                        email = email,
+                        empresa = email,
+                        language = appUser.Lenguage,
+                    },
+                };
+
+                var viewName =
+                    appUser.Lenguage == "es" ? "ResetPassEMail" : "ResetPassEMailEnglish";
+
+                var emailContent = await _viewRenderService.RenderToStringAsync(
+                    viewName,
+                    emailModel
+                );
+                var subject =
+                    appUser.Lenguage == "es"
+                        ? "Solicitud de recuperación de cuenta"
+                        : "Account recovery request";
+                try
+                {
+                    await _emailSender.SendEmailBrevoAsync(email, subject, emailContent);
+                }
+                catch (Exception exSendEmailBrevoAsync)
+                {
+                    _logger.LogError(
+                        exSendEmailBrevoAsync,
+                        "Error al enviar email para resetear la contraseña"
+                    );
+                }
+
+                return Ok(
+                    Result<string>.Success("Se ha enviado un correo para restablecer la contraseña")
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al enviar email para resetear la contraseña");
+                return StatusCode(
+                    500,
+                    Result<string>.Failure("Error al enviar email para resetear la contraseña")
+                );
+            }
         }
 
         [Route("CheckEmailDisponible")]
@@ -475,13 +490,48 @@ namespace Sitca.Controllers
             return BadRequest();
         }
 
-        [Authorize]
         [HttpGet("SetLanguage")]
+        [Authorize]
         public async Task<IActionResult> SetLanguage(string lang)
         {
-            var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-            var result = await _unitOfWork.Users.SetLanguageAsync(lang, user);
-            return Ok(JsonConvert.SerializeObject(result));
+            try
+            {
+                var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
+                if (string.IsNullOrEmpty(email))
+                    return BadRequest("Usuario no encontrado");
+
+                var currentUser = await _userManager.FindByEmailAsync(email);
+                if (currentUser == null)
+                    return NotFound("Usuario no encontrado");
+
+                // Actualizar el lenguaje en la base de datos
+                var result = await _unitOfWork.Users.SetLanguageAsync(lang, email);
+
+                // Actualizar el claim si existe
+                var existingClaim = await _userManager.GetClaimsAsync(currentUser);
+                var languageClaim = existingClaim.FirstOrDefault(c => c.Type == "Language");
+
+                if (languageClaim != null)
+                {
+                    await _userManager.ReplaceClaimAsync(
+                        currentUser,
+                        languageClaim,
+                        new Claim("Language", lang)
+                    );
+                }
+                else
+                {
+                    await _userManager.AddClaimAsync(currentUser, new Claim("Language", lang));
+                }
+                return Ok(JsonConvert.SerializeObject(result));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    500,
+                    new { message = "Error al actualizar el idioma", error = ex.Message }
+                );
+            }
         }
 
         [HttpPost("register")]
@@ -611,17 +661,14 @@ namespace Sitca.Controllers
             );
         }
 
-        [Route("GetMyFiles")]
+        [HttpGet("get-my-files")]
         [Authorize]
         public async Task<IActionResult> GetMyFiles()
         {
-            var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-            var currentFromDb = await _userManager.FindByEmailAsync(user);
-
-            var files = _unitOfWork.Archivo.GetAll(x =>
-                x.UsuarioId == currentFromDb.Id && x.Activo
+            var currentUser = await this.GetCurrentUserAsync(_userManager);
+            var files = await _unitOfWork.Archivo.GetAll(x =>
+                x.UsuarioId == currentUser.Id && x.Activo
             );
-
             return Ok(
                 JsonConvert.SerializeObject(
                     files,
@@ -634,55 +681,103 @@ namespace Sitca.Controllers
             );
         }
 
-        [Route("UserFiles")]
+        [HttpGet("user-files/{userId}")]
         [Authorize]
-        public async Task<IActionResult> UserFiles(string userId)
+        [ProducesResponseType(typeof(Result<IEnumerable<Archivo>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Result<IEnumerable<Archivo>>>> UserFiles(string userId)
         {
-            var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-            var currentFromDb = await _userManager.FindByEmailAsync(user);
-            ApplicationUser appUser = (ApplicationUser)currentFromDb;
-
-            if (!User.IsInRole("Admin") && !User.IsInRole("TecnicoPais") && appUser.Id != userId)
+            try
             {
-                return BadRequest();
+                // 1. Validación de usuario actual
+                var currentUser = await this.GetCurrentUserAsync(_userManager);
+                if (currentUser == null)
+                {
+                    return Unauthorized(Result<string>.Failure("Usuario no autenticado"));
+                }
+
+                // 2. Validación de permisos
+                if (!HasUserAccessPermission(currentUser, userId))
+                {
+                    return Forbid();
+                }
+
+                var files = await _unitOfWork.Archivo.GetAll(x =>
+                    x.UsuarioId == userId && x.Activo
+                );
+
+                var res = Result<IEnumerable<Archivo>>.Success(files);
+
+                return this.HandleResponse(res);
             }
-
-            var files = _unitOfWork.Archivo.GetAll(x => x.UsuarioId == userId && x.Activo);
-
-            return Ok(
-                JsonConvert.SerializeObject(
-                    files,
-                    Formatting.None,
-                    new JsonSerializerSettings()
-                    {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-                    }
-                )
-            );
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener archivos del usuario {UserId}", userId);
+                return StatusCode(
+                    500,
+                    Result<string>.Failure("Ha ocurrido un error interno al procesar la solicitud.")
+                );
+            }
         }
 
-        [HttpPost("SaveUser")]
-        [Authorize(Roles = "Admin,TecnicoPais")]
-        public async Task<IActionResult> SaveUser(RegisterStaffVm model)
+        private bool HasUserAccessPermission(ApplicationUser currentUser, string targetUserId)
         {
-            var user = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email).Value;
-            var currentFromDb = await _userManager.FindByEmailAsync(user);
-            ApplicationUser appUser = (ApplicationUser)currentFromDb;
+            var isAdmin = User.IsInRole(Constants.Roles.Admin);
+            var isTecnicoPais = User.IsInRole(Constants.Roles.TecnicoPais);
+            var isOwnUser = currentUser.Id == targetUserId;
 
-            if (User.IsInRole("TecnicoPais"))
+            return isAdmin || isTecnicoPais || isOwnUser;
+        }
+
+        [HttpPost("save-user")]
+        [Authorize(Roles = AuthorizationPolicies.Auth.CreateUser)]
+        [ProducesResponseType(typeof(Result<RegisterStaffVm>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Result<RegisterStaffVm>>> SaveUser(RegisterStaffVm model)
+        {
+            try
             {
-                model.Country = appUser.PaisId ?? 0;
-            }
-            var codigo =
-                (
-                    model.Role == "Asesor"
-                    || model.Role == "Auditor"
-                    || model.Role == "Asesor/Auditor"
-                )
-                    ? model.Codigo
-                    : null;
+                var currentUser = await this.GetCurrentUserAsync(_userManager);
 
-            var userToCreate = new ApplicationUser
+                if (User.IsInRole(Constants.Roles.TecnicoPais))
+                {
+                    model.Country = currentUser.PaisId ?? 0;
+                }
+
+                var userToCreate = MapToApplicationUser(model);
+                //Create User
+                var (success, user, errors) = await CreateUserWithRolesAsync(userToCreate, model);
+                if (!success)
+                {
+                    var errorMessage = string.Join(", ", errors);
+                    return BadRequest(Result<IEnumerable<string>>.Failure(errorMessage));
+                }
+
+                try
+                {
+                    await SendWelcomeEmailAsync(user);
+                }
+                catch (Exception exEmail)
+                {
+                    _logger.LogWarning(exEmail, "Error al enviar correo de bienvenida");
+                }
+
+                return this.HandleResponse(Result<RegisterStaffVm>.Success(model));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear usuario {Email}", model.Email);
+                return StatusCode(500, Result<string>.Failure("Error interno del servidor"));
+            }
+        }
+
+        private ApplicationUser MapToApplicationUser(RegisterStaffVm model)
+        {
+            return new ApplicationUser
             {
                 Email = model.Email,
                 UserName = model.Email,
@@ -690,102 +785,86 @@ namespace Sitca.Controllers
                 FirstName = model.Name,
                 LastName = model.LastName,
                 PhoneNumber = model.Phone,
-                Codigo = codigo,
-
+                Codigo = model.Role,
                 Departamento = model.Departamento,
                 Ciudad = model.Ciudad,
                 Direccion = model.Direccion,
                 FechaIngreso = model.FechaIngreso,
                 NumeroCarnet = model.NumeroCarnet,
                 Lenguage = model.Country == 1 ? "en" : "es",
-
                 Nacionalidad = model.Nacionalidad,
                 Profesion = model.Profesion,
                 Active = true,
                 Notificaciones = true,
+                DocumentoAcreditacion = model.DocumentoAcreditacion ?? "",
+                HojaDeVida = model.HojaDeVida ?? "",
                 DocumentoIdentidad = model.DocumentoIdentidad,
-
                 VencimientoCarnet =
-                    model.VencimientoCarnet > DateTime.MinValue
-                        ? model.VencimientoCarnet
-                        : (DateTime?)null,
+                    model.VencimientoCarnet > DateTime.MinValue ? model.VencimientoCarnet : null,
+                CompAuditoraId = model.CompAuditoraId > 0 ? model.CompAuditoraId : null,
+            };
+        }
+
+        private async Task<(
+            bool success,
+            ApplicationUser user,
+            IEnumerable<string> errors
+        )> CreateUserWithRolesAsync(ApplicationUser user, RegisterStaffVm model)
+        {
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+                return (false, null, result.Errors.Select(e => e.Description));
+            }
+
+            var roles = model.Role.Contains('/') ? model.Role.Split('/') : new[] { model.Role };
+
+            foreach (var role in roles)
+            {
+                var normalizedRole = NormalizeRole(role);
+
+                await _userManager.AddToRoleAsync(user, normalizedRole.Trim());
+            }
+
+            return (true, user, Array.Empty<string>());
+        }
+
+        private async Task SendWelcomeEmailAsync(ApplicationUser user)
+        {
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationUrl = GenerateConfirmationLink(user.Id, token);
+
+            var emailModel = new LoginMailVm
+            {
+                Url = confirmationUrl,
+                UserData = new RegisterVm
+                {
+                    email = user.Email,
+                    empresa = user.FirstName,
+                    language = user.Lenguage,
+                },
             };
 
-            if (model.CompAuditoraId > 0)
-            {
-                userToCreate.CompAuditoraId = model.CompAuditoraId;
-            }
+            var emailContent = await _viewRenderService.RenderToStringAsync(
+                "WelcomeMail",
+                emailModel
+            );
+            var subject =
+                user.Lenguage == "es" ? "Confirma tu direccion de correo" : "Confirm your account";
 
-            if (model.Role == "Country Technician")
-            {
-                model.Role = "TecnicoPais";
-            }
+            await _emailSender.SendEmailBrevoAsync(user.Email, subject, emailContent);
+        }
 
-            if (model.Role == "CCT")
-            {
-                model.Role = "CTC";
-            }
+        private string GenerateConfirmationLink(string userId, string token)
+        {
+            var baseUrl = _config["ExternalServices:WebUrl"];
+            return $"{baseUrl}/auth/confirm/{userId}/3SQ3jh2F3YtJZDq4";
+        }
 
-            if (model.Role.Contains("Consultant"))
-            {
-                model.Role = model.Role.Replace("Consultant", "Asesor");
-            }
-
-            //Create User
-            var result = await _userManager.CreateAsync(userToCreate, model.Password);
-            if (result.Succeeded)
-            {
-                var userFromDb = await _userManager.FindByNameAsync(userToCreate.UserName);
-
-                //Add role to user
-                if (model.Role.Contains('/'))
-                {
-                    var roleList = model.Role.Split('/');
-                    foreach (var item in roleList)
-                    {
-                        await _userManager.AddToRoleAsync(userFromDb, item);
-                    }
-                }
-                else
-                {
-                    await _userManager.AddToRoleAsync(userFromDb, model.Role);
-                }
-
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(userFromDb);
-
-                //SEND EMAIL - clave confirmacion cuenta
-                var host = _config["Angular:testUrl"];
-                var getUrl = HttpContext.Request.Host.Value;
-                if (!getUrl.Contains("localhost"))
-                {
-                    //prod
-                    host = _config["Angular:productionUrl"];
-                }
-                var urlString = host + "/auth/confirm/" + userFromDb.Id + "/" + "3SQ3jh2F3YtJZDq4";
-                //var urlString = host + "/auth/confirm/" + userFromDb.Id + "/" + HttpUtility.UrlEncode(token);
-                //var senderEmail = "notificaciones@siccs.info";
-                //var senderEmail = "prueba@agricolasanchez.com.ar";
-                var senderEmail = _config["EmailSender:UserName"];
-
-                var userAux = new RegisterVm
-                {
-                    email = model.Email,
-                    empresa = model.Name,
-                    language = userToCreate.Lenguage,
-                };
-
-                var loginData = new LoginMailVm { Url = urlString, UserData = userAux };
-
-                var view = await _viewRenderService.RenderToStringAsync("WelcomeMail", loginData);
-                var subject =
-                    userToCreate.Lenguage == "es"
-                        ? "Confirma tu direccion de correo"
-                        : "Confirm your account";
-                await _emailSender.SendEmailAsync(senderEmail, userFromDb.Email, subject, view);
-
-                return Ok(result);
-            }
-            return BadRequest();
+        private string GeneratePasswordResetLink(string userId, string token)
+        {
+            var baseUrl = _config["ExternalServices:WebUrl"];
+            return $"{baseUrl}/auth/resetPass/{userId}/uIpyvT7EJdxeppQ5AbaSto8FPxAoFvHiet8gjvKJWCLQH";
         }
 
         /// <summary>
@@ -793,26 +872,29 @@ namespace Sitca.Controllers
         /// </summary>
         /// <param name="model">Modelo con la información del usuario a actualizar</param>
         /// <returns>Resultado de la operación</returns>
-        [HttpPut("UpdateUser")] // Cambiado a PUT ya que es una actualización
+        [HttpPut("update-user")]
         [Authorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> UpdateUser(RegisterStaffVm model)
+        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Result<string>>> UpdateUser(RegisterStaffVm model)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(new ValidationProblemDetails(ModelState));
                 }
 
                 // Obtener usuario actual
                 var currentUser = await this.GetCurrentUserAsync(_userManager);
                 if (currentUser == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized(
+                        Result<string>.Failure("Debe estar logeado para realizar esta acción.")
+                    );
                 }
 
                 // Validar permisos
@@ -825,7 +907,9 @@ namespace Sitca.Controllers
                 var userToEdit = await _userManager.FindByIdAsync(model.Id);
                 if (userToEdit == null)
                 {
-                    return NotFound($"Usuario con ID {model.Id} no encontrado");
+                    return NotFound(
+                        Result<string>.Failure($"Usuario con ID {model.Id} no encontrado")
+                    );
                 }
 
                 // Actualizar información del usuario
@@ -837,7 +921,7 @@ namespace Sitca.Controllers
                     await UpdateUserRoles(userToEdit, model.Role);
                 }
 
-                return Ok();
+                return Ok(Result<string>.Success("Usuario actualizado correctamente"));
             }
             catch (Exception ex)
             {
@@ -956,7 +1040,7 @@ namespace Sitca.Controllers
             // Configurar Código basado en el rol
             if (!string.IsNullOrEmpty(model.Role))
             {
-                user.Codigo = IsSpecialRole(model.Role) ? model.Codigo ?? user.Codigo : "";
+                user.Codigo = model.Codigo ?? user.Codigo;
             }
 
             // Configurar CompAuditoraId
@@ -1000,13 +1084,6 @@ namespace Sitca.Controllers
                 "Consultant" => Constants.Roles.Asesor,
                 _ => role,
             };
-        }
-
-        private bool IsSpecialRole(string role)
-        {
-            return LocalizationUtilities.CompareInAllLanguages(role, Constants.Roles.Asesor)
-                || LocalizationUtilities.CompareInAllLanguages(role, Constants.Roles.Auditor)
-                || LocalizationUtilities.CompareInAllLanguages(role, Constants.Roles.AsesorAuditor);
         }
 
         public class ConfirmEmailViewModel

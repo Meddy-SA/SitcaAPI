@@ -26,4 +26,15 @@ public static class Constants
         public const int UnderCCTReview = 7;
         public const int Completed = 8;
     }
+
+    public static readonly string[] KnowRoles = {
+      Roles.Asesor,
+      Roles.TecnicoPais,
+      Roles.Empresa,
+      Roles.CTC,
+      Roles.Admin,
+      Roles.Auditor,
+      Roles.AsesorAuditor,
+      Roles.Consultor
+    };
 }

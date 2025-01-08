@@ -20,172 +20,191 @@ using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
 using Sitca.DataAccess.Services.Token;
 using Sitca.DataAccess.Services.ViewToString;
+using Sitca.Middlewares;
 using Sitca.Models;
 
 namespace Sitca.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-  public static IServiceCollection ConfigureDatabase(
-            this IServiceCollection services,
-            IConfiguration configuration
-  )
-  {
-    services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(
-            configuration.GetConnectionString("DefaultConnection"),
-            sqlOptions =>
+    public static IServiceCollection ConfigureDatabase(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null
+                    );
+                }
+            )
+        );
+
+        // Configuración de Dapper
+        services.AddScoped<IDapper, Dapperr>();
+
+        return services;
+    }
+
+    public static IServiceCollection ConfigureIdentity(this IServiceCollection services)
+    {
+        services
+            .AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
-              sqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 3,
-                    maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorNumbersToAdd: null);
-            }));
+                // Password settings
+                options.Password = new PasswordOptions
+                {
+                    RequireDigit = false, // Requerir un número
+                    RequiredLength = 6, // ✓ Longitud mínima
+                    RequireUppercase = false, // Requiere mayúsculas
+                    RequireLowercase = false, // Requiere minusculas
+                    RequireNonAlphanumeric = false, // Caracteres especiales
+                    RequiredUniqueChars = 1, // Mínimo de caracteres únicos
+                };
 
-    // Configuración de Dapper
-    services.AddScoped<IDapper, Dapperr>();
+                // Lockout settings
+                options.Lockout = new LockoutOptions
+                {
+                    DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5),
+                    MaxFailedAccessAttempts = 5,
+                    AllowedForNewUsers = true,
+                };
 
-    return services;
-  }
+                // User settings
+                options.User.RequireUniqueEmail = true;
+                options.SignIn = new SignInOptions
+                {
+                    RequireConfirmedEmail = false,
+                    RequireConfirmedAccount = false,
+                    RequireConfirmedPhoneNumber = false,
+                };
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders()
+            .AddErrorDescriber<LocalizedIdentityErrorDescriber>();
 
-  public static IServiceCollection ConfigureIdentity(
-              this IServiceCollection services)
-  {
-    services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+        return services;
+    }
+
+    public static IServiceCollection ConfigureAuthentication(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
-      // Password settings
-      options.Password = new PasswordOptions
-      {
-        RequireDigit = true,
-        RequiredLength = 8,
-        RequireLowercase = true,
-        RequireNonAlphanumeric = true,
-        RequireUppercase = true,
-        RequiredUniqueChars = 1
-      };
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
 
-      // Lockout settings
-      options.Lockout = new LockoutOptions
-      {
-        DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5),
-        MaxFailedAccessAttempts = 5,
-        AllowedForNewUsers = true
-      };
+        services
+            .AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+                    ClockSkew = TimeSpan.Zero,
+                };
+            });
 
-      // User settings
-      options.User.RequireUniqueEmail = true;
-      options.SignIn = new SignInOptions
-      {
-        RequireConfirmedEmail = false,
-        RequireConfirmedAccount = false,
-        RequireConfirmedPhoneNumber = false
-      };
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+        services.AddScoped<IJWTTokenGenerator, JWTTokenGenerator>();
 
-    return services;
-  }
+        return services;
+    }
 
-  public static IServiceCollection ConfigureAuthentication(
-      this IServiceCollection services,
-      IConfiguration configuration)
-  {
-    var jwtSettings = configuration.GetSection("JwtSettings");
-    var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
-
-    services.AddAuthentication(options =>
+    public static IServiceCollection ConfigureHangfire(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
-      options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-      options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-      options.TokenValidationParameters = new TokenValidationParameters
-      {
-        ValidateIssuer = true,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-        ClockSkew = TimeSpan.Zero
-      };
-    });
+        services.AddHangfire(config =>
+            config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseDefaultTypeSerializer()
+                .UseMemoryStorage()
+        );
 
-    services.AddScoped<IJWTTokenGenerator, JWTTokenGenerator>();
-
-    return services;
-  }
-
-  public static IServiceCollection ConfigureHangfire(
-      this IServiceCollection services,
-      IConfiguration configuration)
-  {
-    services.AddHangfire(config => config
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-        .UseSimpleAssemblyNameTypeSerializer()
-        .UseDefaultTypeSerializer()
-        .UseMemoryStorage());
-
-    services.AddHangfireServer(options =>
-    {
-      options.WorkerCount = Environment.ProcessorCount * 2;
-      options.Queues = new[] { "default", "notifications", "recurring" };
-    });
-
-    services.AddScoped<IJobsServices, JobsService>();
-
-    return services;
-  }
-
-  public static IServiceCollection ConfigureServices(
-      this IServiceCollection services,
-      IConfiguration configuration)
-  {
-    // Repositories
-    services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-    // Email Service
-    services.AddHttpClient("BrevoClient");
-    services.Configure<Models.DTOs.EmailConfiguration>(configuration.GetSection("EmailSender"));
-    services.AddTransient<IEmailSender, EmailSender>();
-
-    // Notifications
-    services.AddScoped<INotificationService, NotificationService>();
-
-    // PDF Services
-    services.AddScoped<IReportService, ITextReportService>();
-
-    // View Render Service
-    services.AddScoped<IViewRenderService, ViewRenderService>();
-
-    // DB Initializer
-    services.AddScoped<IDbInitializer, DbInitializer>();
-
-    // Configurar Cuestionario
-    services.AddScoped<ICuestionarioReaperturaService, CuestionarioReaperturaService>();
-
-    return services;
-  }
-
-  public static IServiceCollection ConfigureCors(this IServiceCollection services, IConfiguration configuration)
-  {
-    var allowedOrigins = configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
-
-    services.AddCors(options =>
-    {
-      options.AddPolicy("cors", builder =>
-          {
-          builder
-                  .WithOrigins(allowedOrigins ?? Array.Empty<string>())
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials()
-                  .SetIsOriginAllowedToAllowWildcardSubdomains();
+        services.AddHangfireServer(options =>
+        {
+            options.WorkerCount = Environment.ProcessorCount * 2;
+            options.Queues = new[] { "default", "notifications", "recurring" };
         });
-    });
 
-    return services;
-  }
+        services.AddScoped<IJobsServices, JobsService>();
+
+        return services;
+    }
+
+    public static IServiceCollection ConfigureServices(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        // Repositories
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Email Service
+        services.AddHttpClient("BrevoClient");
+        services.Configure<Models.DTOs.EmailConfiguration>(configuration.GetSection("EmailSender"));
+        services.AddTransient<IEmailSender, EmailSender>();
+
+        // Notifications
+        services.AddScoped<INotificationService, NotificationService>();
+
+        // PDF Services
+        services.AddScoped<IReportService, ITextReportService>();
+
+        // View Render Service
+        services.AddScoped<IViewRenderService, ViewRenderService>();
+
+        // DB Initializer
+        services.AddScoped<IDbInitializer, DbInitializer>();
+
+        // Configurar Cuestionario
+        services.AddScoped<ICuestionarioReaperturaService, CuestionarioReaperturaService>();
+
+        return services;
+    }
+
+    public static IServiceCollection ConfigureCors(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        var allowedOrigins = configuration
+            .GetSection("CorsSettings:AllowedOrigins")
+            .Get<string[]>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy(
+                "cors",
+                builder =>
+                {
+                    builder
+                        .WithOrigins(allowedOrigins ?? Array.Empty<string>())
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials()
+                        .SetIsOriginAllowedToAllowWildcardSubdomains();
+                }
+            );
+        });
+
+        return services;
+    }
 }
