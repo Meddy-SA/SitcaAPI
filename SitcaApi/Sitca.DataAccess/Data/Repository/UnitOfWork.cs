@@ -24,6 +24,7 @@ namespace Sitca.DataAccess.Data.Repository
         private readonly ICuestionarioReaperturaService _cuestionarioService;
 
         private readonly ILoggerFactory _loggerFactory;
+
         public UnitOfWork(
             ApplicationDbContext db,
             IDapper dapper,
@@ -34,7 +35,8 @@ namespace Sitca.DataAccess.Data.Repository
             IJWTTokenGenerator jwtToken,
             UserManager<ApplicationUser> userManager,
             ICuestionarioReaperturaService cuestionarioService,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory
+        )
         {
             _db = db;
             _dapper = dapper;
@@ -59,6 +61,7 @@ namespace Sitca.DataAccess.Data.Repository
                 _emailSender,
                 _config,
                 _viewRenderService,
+                Empresa,
                 _loggerFactory.CreateLogger<AuthRepository>()
             );
             Modulo = new ModulosRepository(_db);

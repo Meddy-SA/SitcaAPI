@@ -1,10 +1,11 @@
-﻿using Sitca.Models;
-using System.Collections.Generic;
-using Sitca.Models.ViewModels;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.ViewModels;
 
 namespace Sitca.DataAccess.Data.Repository.IRepository;
+
 public interface IEmpresaRepository : IRepository<Empresa>
 {
     Task<int> GetCompanyStatusAsync(int CompanyId);
@@ -13,7 +14,7 @@ public interface IEmpresaRepository : IRepository<Empresa>
 
     Task<UrlResult> Delete(int id, int paisId, string role);
 
-    int SaveEmpresa(RegisterVm model);
+    Task<Result<int>> SaveEmpresaAsync(RegisterDTO model);
 
     Task<List<EmpresaVm>> GetCompanyListAsync(CompanyFilterDTO filter, string language);
 
@@ -35,7 +36,11 @@ public interface IEmpresaRepository : IRepository<Empresa>
 
     Task<EmpresaUpdateVm> Data(int companyId, ApplicationUser user);
 
-    Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter);
+    Task<List<EmpresaVm>> ListForRoleAsync(
+        ApplicationUser user,
+        string role,
+        CompanyFilterDTO filter
+    );
 
     Task<bool> ActualizarDatos(EmpresaUpdateVm datos, ApplicationUser user, string role);
 

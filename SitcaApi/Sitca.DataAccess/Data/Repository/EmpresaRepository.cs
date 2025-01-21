@@ -1,21 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Sitca.DataAccess.Data.Repository.IRepository;
-using Sitca.DataAccess.Data.Repository.Repository;
-using Sitca.Models;
-using Utilities;
-using Sitca.Models.ViewModels;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Sitca.Models.DTOs;
-using Sitca.DataAccess.Extensions;
-using Sitca.DataAccess.Data.Repository.Constants;
-using Sitca.DataAccess.Data.Repository.Specifications;
-using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Builders;
+using Sitca.DataAccess.Data.Repository.Constants;
+using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Data.Repository.Specifications;
+using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.Models;
+using Sitca.Models.DTOs;
+using Sitca.Models.ViewModels;
+using Utilities;
 using ConstantRoles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository
@@ -29,7 +29,9 @@ namespace Sitca.DataAccess.Data.Repository
         public EmpresaRepository(
             ApplicationDbContext db,
             INotificationService notificationService,
-            ILogger<EmpresaRepository> logger) : base(db)
+            ILogger<EmpresaRepository> logger
+        )
+            : base(db)
         {
             _db = db;
             _notificationService = notificationService;
@@ -38,9 +40,9 @@ namespace Sitca.DataAccess.Data.Repository
 
         public async Task<int> GetCompanyStatusAsync(int CompanyId)
         {
-            var proccess = await _db.Empresa
-              .AsNoTracking()
-              .FirstOrDefaultAsync(e => e.Id == CompanyId);
+            var proccess = await _db
+                .Empresa.AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == CompanyId);
 
             if (proccess == null)
             {
@@ -50,8 +52,11 @@ namespace Sitca.DataAccess.Data.Repository
             return proccess.Estado == null ? 0 : (int)proccess.Estado;
         }
 
-
-        public async Task<bool> ActualizarDatos(EmpresaUpdateVm datos, ApplicationUser user, string role)
+        public async Task<bool> ActualizarDatos(
+            EmpresaUpdateVm datos,
+            ApplicationUser user,
+            string role
+        )
         {
             var empresaId = datos.Id;
             if (role == ConstantRoles.Empresa)
@@ -59,9 +64,9 @@ namespace Sitca.DataAccess.Data.Repository
                 empresaId = user.EmpresaId ?? datos.Id;
             }
 
-            var empresa = await _db.Empresa
-              .Include("Tipologias")
-              .FirstOrDefaultAsync(s => s.Id == empresaId);
+            var empresa = await _db
+                .Empresa.Include("Tipologias")
+                .FirstOrDefaultAsync(s => s.Id == empresaId);
 
             empresa.Direccion = datos.Direccion;
             empresa.IdNacional = datos.IdNacionalRepresentante;
@@ -101,91 +106,105 @@ namespace Sitca.DataAccess.Data.Repository
             return true;
         }
 
-        public int SaveEmpresa(RegisterVm model)
-        {
-
-            var empresa = new Empresa
-            {
-                Active = true,
-                IdPais = model.country,
-                PaisId = model.country,
-                Nombre = model.empresa,
-                NombreRepresentante = model.representante,
-                Estado = 0
-            };
-
-            _db.Empresa.Add(empresa);
-            _db.SaveChanges();
-
-            var listaTipologias = new List<TipologiasEmpresa>();
-
-            foreach (var item in model.tipologias.Where(s => s.isSelected))
-            {
-                var TipologiaEmpresa = new TipologiasEmpresa
-                {
-                    IdEmpresa = empresa.Id,
-                    IdTipologia = item.id,
-                };
-
-                listaTipologias.Add(TipologiaEmpresa);
-            }
-
-            empresa.Tipologias = listaTipologias;
-
-            _db.SaveChanges();
-
-            return empresa.Id;
-        }
-
-        public async Task<List<EmpresaVm>> GetCompanyListAsync(CompanyFilterDTO filter, string language = "es")
+        public async Task<Result<int>> SaveEmpresaAsync(RegisterDTO model)
         {
             try
             {
-                var query = _db.Empresa
-                  .AsNoTracking()
-                  .Include(x => x.Pais)
-                  .Include(x => x.Tipologias)
-                      .ThenInclude(t => t.Tipologia)
-                  .Include(x => x.Certificaciones)
-                      .ThenInclude(c => c.Resultados)
-                          .ThenInclude(r => r.Distintivo)
-                  .Where(x => x.Nombre != null && !x.EsHomologacion);
+                // Crear y configurar la empresa
+                var empresa = new Empresa
+                {
+                    Active = true,
+                    IdPais = model.CountryId,
+                    PaisId = model.CountryId,
+                    Nombre = model.Empresa,
+                    NombreRepresentante = model.Representante,
+                    Email = model.Email,
+                    CargoRepresentante = string.Empty,
+                    Ciudad = string.Empty,
+                    IdNacional = string.Empty,
+                    Telefono = string.Empty,
+                    Calle = string.Empty,
+                    Numero = string.Empty,
+                    Direccion = string.Empty,
+                    Longitud = string.Empty,
+                    Latitud = string.Empty,
+                    WebSite = string.Empty,
+                    ResultadoSugerido = string.Empty,
+                    ResultadoActual = string.Empty,
+                    EsHomologacion = false,
+                    Estado = 0,
+                    Tipologias = model
+                        .Tipologias.Where(s => s.isSelected)
+                        .Select(t => new TipologiasEmpresa { IdTipologia = t.id })
+                        .ToList(),
+                };
 
+                await _db.Empresa.AddAsync(empresa);
+                await _db.SaveChangesAsync();
+
+                return Result<int>.Success(empresa.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar empresa: {Message}", ex.Message);
+                return Result<int>.Failure($"Error al registrar empresa: {ex.Message}");
+            }
+        }
+
+        public async Task<List<EmpresaVm>> GetCompanyListAsync(
+            CompanyFilterDTO filter,
+            string language = "es"
+        )
+        {
+            try
+            {
+                var query = _db
+                    .Empresa.AsNoTracking()
+                    .Include(x => x.Pais)
+                    .Include(x => x.Tipologias)
+                    .ThenInclude(t => t.Tipologia)
+                    .Include(x => x.Certificaciones)
+                    .ThenInclude(c => c.Resultados)
+                    .ThenInclude(r => r.Distintivo)
+                    .Where(x => x.Nombre != null && !x.EsHomologacion);
 
                 // Aplicar filtros
                 Distintivo distintivo = null;
                 if (filter.DistinctiveId > 0)
                 {
-                    distintivo = await _db.Distintivo
-                      .AsNoTracking()
-                      .Where(d => d.Id == filter.DistinctiveId)
-                      .FirstOrDefaultAsync();
+                    distintivo = await _db
+                        .Distintivo.AsNoTracking()
+                        .Where(d => d.Id == filter.DistinctiveId)
+                        .FirstOrDefaultAsync();
                 }
                 query = ApplyFilters(query, filter, distintivo);
 
                 var companies = await query
-                  .Select(x => new EmpresaVm
-                  {
-                      Id = x.Id,
-                      Nombre = x.Nombre,
-                      Certificacion = x.Certificaciones
-                          .OrderByDescending(c => c.Id)
-                          .Select(c => c.Id.ToString())
-                          .FirstOrDefault(),
-                      Pais = x.Pais.Name,
-                      Recertificacion = x.Certificaciones.Count > 1 || x.Certificaciones.Any(s => s.Recertificacion),
-                      Status = ((int)x.Estado).ToLocalizedString(language),
-                      Responsable = _db.ApplicationUser
-                          .Where(s => s.EmpresaId == x.Id)
-                          .Select(s => s.FirstName)
-                          .FirstOrDefault(),
-                      Tipologias = x.Tipologias.Select(z => language == "es"
-                  ? z.Tipologia.Name
-                  : z.Tipologia.NameEnglish)
-                          .ToList(),
-                      Distintivo = x.ResultadoActual,
-                  })
-                  .ToListAsync();
+                    .Select(x => new EmpresaVm
+                    {
+                        Id = x.Id,
+                        Nombre = x.Nombre,
+                        Certificacion = x
+                            .Certificaciones.OrderByDescending(c => c.Id)
+                            .Select(c => c.Id.ToString())
+                            .FirstOrDefault(),
+                        Pais = x.Pais.Name,
+                        Recertificacion =
+                            x.Certificaciones.Count > 1
+                            || x.Certificaciones.Any(s => s.Recertificacion),
+                        Status = ((int)x.Estado).ToLocalizedString(language),
+                        Responsable = _db
+                            .ApplicationUser.Where(s => s.EmpresaId == x.Id)
+                            .Select(s => s.FirstName)
+                            .FirstOrDefault(),
+                        Tipologias = x
+                            .Tipologias.Select(z =>
+                                language == "es" ? z.Tipologia.Name : z.Tipologia.NameEnglish
+                            )
+                            .ToList(),
+                        Distintivo = x.ResultadoActual,
+                    })
+                    .ToListAsync();
                 return companies;
             }
             catch (Exception ex)
@@ -195,7 +214,11 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        private static IQueryable<Empresa> ApplyFilters(IQueryable<Empresa> query, CompanyFilterDTO filter, Distintivo distintivo = null)
+        private static IQueryable<Empresa> ApplyFilters(
+            IQueryable<Empresa> query,
+            CompanyFilterDTO filter,
+            Distintivo distintivo = null
+        )
         {
             if (filter.CountryId > 0)
                 query = query.Where(x => x.PaisId == filter.CountryId);
@@ -217,98 +240,163 @@ namespace Sitca.DataAccess.Data.Repository
 
         public List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data)
         {
-            bool? homologacion = data.homologacion == "-1" ? true : data.homologacion == "1" ? false : (bool?)null;
+            bool? homologacion =
+                data.homologacion == "-1" ? true
+                : data.homologacion == "1" ? false
+                : (bool?)null;
 
             var meses = data.meses ?? 1;
             var dueDate = DateTime.Now.AddMonths(meses);
-            var empresas = _db.Empresa.Include(x => x.Tipologias).Where(x => x.Nombre != null
-             && (x.PaisId == data.country || data.country == 0)
-              && (x.EsHomologacion == homologacion || homologacion == null)
-             //&& (x.Estado == 8)
-             && (x.ResultadoVencimiento != null && x.ResultadoVencimiento < dueDate)
-             && (data.tipologia == 0 || data.tipologia == null || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia)))
-            );
+            var empresas = _db
+                .Empresa.Include(x => x.Tipologias)
+                .Where(x =>
+                    x.Nombre != null
+                    && (x.PaisId == data.country || data.country == 0)
+                    && (x.EsHomologacion == homologacion || homologacion == null)
+                    //&& (x.Estado == 8)
+                    && (x.ResultadoVencimiento != null && x.ResultadoVencimiento < dueDate)
+                    && (
+                        data.tipologia == 0
+                        || data.tipologia == null
+                        || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia))
+                    )
+                );
 
-            var result = empresas.Select(x => new EmpresaVm
-            {
-                Nombre = x.Nombre,
-                Pais = x.Pais.Name,
-                Id = x.Id,
-                Status = x.Estado.ToString(),
-                Vencimiento = x.ResultadoVencimiento.ToStringArg(),
-                Responsable = _db.ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id).FirstName,
-                Certificacion = x.ResultadoActual,
-                Tipologias = x.Tipologias.Any() ? x.Tipologias.Select(z => z.Tipologia.Name).ToList() : null
-            }).ToList();
+            var result = empresas
+                .Select(x => new EmpresaVm
+                {
+                    Nombre = x.Nombre,
+                    Pais = x.Pais.Name,
+                    Id = x.Id,
+                    Status = x.Estado.ToString(),
+                    Vencimiento = x.ResultadoVencimiento.ToStringArg(),
+                    Responsable = _db
+                        .ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id)
+                        .FirstName,
+                    Certificacion = x.ResultadoActual,
+                    Tipologias = x.Tipologias.Any()
+                        ? x.Tipologias.Select(z => z.Tipologia.Name).ToList()
+                        : null,
+                })
+                .ToList();
 
             foreach (var item in result)
             {
                 item.Status = item.Status.ToDecimal().GetEstado(data.lang);
             }
-
 
             return result;
         }
 
         public List<EmpresaVm> GetListRenovacionReporte(FiltroEmpresaReporteVm data)
         {
+            var empresas = _db
+                .Empresa.Include(x => x.Tipologias)
+                .Where(x =>
+                    x.Nombre != null
+                    && (x.PaisId == data.country || data.country == 0)
+                    && (x.Estado < 8 && x.Estado > 0)
+                    && (x.ResultadoVencimiento != null)
+                    && (x.Certificaciones.Count > 1)
+                    && (
+                        data.tipologia == 0
+                        || data.tipologia == null
+                        || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia))
+                    )
+                );
 
-            var empresas = _db.Empresa.Include(x => x.Tipologias).Where(x => x.Nombre != null
-             && (x.PaisId == data.country || data.country == 0)
-             && (x.Estado < 8 && x.Estado > 0)
-             && (x.ResultadoVencimiento != null)
-             && (x.Certificaciones.Count > 1)
-             && (data.tipologia == 0 || data.tipologia == null || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia)))
-            );
-
-            var result = empresas.Select(x => new EmpresaVm
-            {
-                Nombre = x.Nombre,
-                Pais = x.Pais.Name,
-                Id = x.Id,
-                Status = x.Estado.ToString(),
-                Vencimiento = x.ResultadoVencimiento.ToStringArg(),
-                Responsable = _db.ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id).FirstName,
-                Certificacion = x.ResultadoActual,
-                Tipologias = x.Tipologias.Any() ?
-                data.lang == "es" ? x.Tipologias.Select(z => z.Tipologia.Name).ToList() : x.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList()
-                : null
-            }).ToList();
+            var result = empresas
+                .Select(x => new EmpresaVm
+                {
+                    Nombre = x.Nombre,
+                    Pais = x.Pais.Name,
+                    Id = x.Id,
+                    Status = x.Estado.ToString(),
+                    Vencimiento = x.ResultadoVencimiento.ToStringArg(),
+                    Responsable = _db
+                        .ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id)
+                        .FirstName,
+                    Certificacion = x.ResultadoActual,
+                    Tipologias = x.Tipologias.Any()
+                        ? data.lang == "es"
+                            ? x.Tipologias.Select(z => z.Tipologia.Name).ToList()
+                            : x.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList()
+                        : null,
+                })
+                .ToList();
 
             foreach (var item in result)
             {
                 item.Status = item.Status.ToDecimal().GetEstado(data.lang);
             }
 
-
             return result;
         }
 
         public List<EmpresaVm> GetListReporte(FiltroEmpresaReporteVm data)
         {
-            bool? homologacion = data.homologacion == "-1" ? true : data.homologacion == "1" ? false : (bool?)null;
+            bool? homologacion =
+                data.homologacion == "-1" ? true
+                : data.homologacion == "1" ? false
+                : (bool?)null;
 
-            var empresas = _db.Empresa.Include(x => x.Tipologias).Where(x => x.Nombre != null
-             && (x.PaisId == data.country || data.country == 0)
-             && (x.Estado == data.estado || data.estado == -1)
-             && (x.EsHomologacion == homologacion || homologacion == null)
-             && (data.tipologia == 0 || data.tipologia == null || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia)))
-            );
+            var empresas = _db
+                .Empresa.Include(x => x.Tipologias)
+                .Where(x =>
+                    x.Nombre != null
+                    && (x.PaisId == data.country || data.country == 0)
+                    && (x.Estado == data.estado || data.estado == -1)
+                    && (x.EsHomologacion == homologacion || homologacion == null)
+                    && (
+                        data.tipologia == 0
+                        || data.tipologia == null
+                        || (x.Tipologias.Any(z => z.IdTipologia == data.tipologia))
+                    )
+                );
 
-            var result = empresas.Select(x => new EmpresaVm
-            {
-                Nombre = x.Nombre,
-                Pais = x.Pais.Name,
-                Id = x.Id,
-                Status = x.Estado.ToString(),
-                Responsable = _db.ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id).FirstName,
-                Certificacion = x.Estado > 1 ?
-                                 x.Estado == 8 ? !x.Certificaciones.OrderByDescending(x => x.Id).First().Resultados.First().Aprobado ? "No Certificado"
-                                : data.lang == "es" ? x.Certificaciones.OrderByDescending(x => x.Id).First().Resultados.First().Distintivo.Name : x.Certificaciones.OrderByDescending(x => x.Id).First().Resultados.First().Distintivo.NameEnglish
-                                : data.lang == "es" ? "En Proceso" : "In Process"
-                                : data.lang == "es" ? "No comenzada" : "Not started",
-                Tipologias = x.Tipologias.Any() ? data.lang == "es" ? x.Tipologias.Select(z => z.Tipologia.Name).ToList() : x.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList() : null
-            }).ToList();
+            var result = empresas
+                .Select(x => new EmpresaVm
+                {
+                    Nombre = x.Nombre,
+                    Pais = x.Pais.Name,
+                    Id = x.Id,
+                    Status = x.Estado.ToString(),
+                    Responsable = _db
+                        .ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id)
+                        .FirstName,
+                    Certificacion =
+                        x.Estado > 1
+                            ? x.Estado == 8
+                                ? !x
+                                    .Certificaciones.OrderByDescending(x => x.Id)
+                                    .First()
+                                    .Resultados.First()
+                                    .Aprobado
+                                    ? "No Certificado"
+                                    : data.lang == "es"
+                                        ? x
+                                            .Certificaciones.OrderByDescending(x => x.Id)
+                                            .First()
+                                            .Resultados.First()
+                                            .Distintivo.Name
+                                        : x
+                                            .Certificaciones.OrderByDescending(x => x.Id)
+                                            .First()
+                                            .Resultados.First()
+                                            .Distintivo.NameEnglish
+                                : data.lang == "es"
+                                    ? "En Proceso"
+                                    : "In Process"
+                            : data.lang == "es"
+                                ? "No comenzada"
+                                : "Not started",
+                    Tipologias = x.Tipologias.Any()
+                        ? data.lang == "es"
+                            ? x.Tipologias.Select(z => z.Tipologia.Name).ToList()
+                            : x.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList()
+                        : null,
+                })
+                .ToList();
 
             foreach (var item in result)
             {
@@ -317,19 +405,23 @@ namespace Sitca.DataAccess.Data.Repository
 
             if (data.certificacion != "Todas")
             {
-                result = result.Where(s => s.Certificacion.ToLower() == data.certificacion.ToLower()).ToList();
+                result = result
+                    .Where(s => s.Certificacion.ToLower() == data.certificacion.ToLower())
+                    .ToList();
             }
 
             return result;
         }
 
-        public async Task<Result<List<EmpresaPersonalVm>>> GetListReportePersonalAsync(FiltroEmpresaReporteVm data)
+        public async Task<Result<List<EmpresaPersonalVm>>> GetListReportePersonalAsync(
+            FiltroEmpresaReporteVm data
+        )
         {
             try
             {
                 // 1. Construir y ejecutar la consulta base
-                var empresasQuery = _db.Empresa
-                    .Include(z => z.Pais)
+                var empresasQuery = _db
+                    .Empresa.Include(z => z.Pais)
                     .Include(s => s.Certificaciones)
                     .AsNoTracking()
                     .Where(x => x.Nombre != null && x.Estado > 0);
@@ -343,33 +435,40 @@ namespace Sitca.DataAccess.Data.Repository
                     .Select(e => new
                     {
                         Empresa = e,
-                        UltimaCertificacion = e.Certificaciones.OrderByDescending(c => c.Id).FirstOrDefault()
+                        UltimaCertificacion = e
+                            .Certificaciones.OrderByDescending(c => c.Id)
+                            .FirstOrDefault(),
                     })
                     .ToListAsync();
 
                 // 3. Obtener todos los IDs de usuarios relacionados
                 var userIds = empresas
                     .Where(e => e.UltimaCertificacion != null)
-                    .SelectMany(e => new[]
-                    {
-                e.UltimaCertificacion.AsesorId,
-                e.UltimaCertificacion.AuditorId,
-                e.UltimaCertificacion.UserGeneraId
-                    })
+                    .SelectMany(e =>
+                        new[]
+                        {
+                            e.UltimaCertificacion.AsesorId,
+                            e.UltimaCertificacion.AuditorId,
+                            e.UltimaCertificacion.UserGeneraId,
+                        }
+                    )
                     .Where(id => id != null)
                     .Distinct()
                     .ToList();
 
-                var usuarios = await _db.ApplicationUser
-                .AsNoTracking()
-                .Where(u => userIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => new CommonUserVm
-                {
-                    id = u.Id,
-                    email = u.Email,
-                    fullName = $"{u.FirstName} {u.LastName}",
-                    codigo = u.Codigo
-                });
+                var usuarios = await _db
+                    .ApplicationUser.AsNoTracking()
+                    .Where(u => userIds.Contains(u.Id))
+                    .ToDictionaryAsync(
+                        u => u.Id,
+                        u => new CommonUserVm
+                        {
+                            id = u.Id,
+                            email = u.Email,
+                            fullName = $"{u.FirstName} {u.LastName}",
+                            codigo = u.Codigo,
+                        }
+                    );
 
                 // 5. Mapear los resultados
                 var listaEmpresas = empresas
@@ -379,12 +478,18 @@ namespace Sitca.DataAccess.Data.Repository
                         Nombre = e.Empresa.Nombre,
                         Pais = e.Empresa.Pais.Name,
                         Status = e.Empresa.Estado.GetEstado(data.lang),
-                        Asesor = e.UltimaCertificacion.AsesorId != null ?
-                            usuarios.GetValueOrDefault(e.UltimaCertificacion.AsesorId) : null,
-                        Auditor = e.UltimaCertificacion.AuditorId != null ?
-                            usuarios.GetValueOrDefault(e.UltimaCertificacion.AuditorId) : null,
-                        TecnicoPais = e.UltimaCertificacion.UserGeneraId != null ?
-                            usuarios.GetValueOrDefault(e.UltimaCertificacion.UserGeneraId) : null
+                        Asesor =
+                            e.UltimaCertificacion.AsesorId != null
+                                ? usuarios.GetValueOrDefault(e.UltimaCertificacion.AsesorId)
+                                : null,
+                        Auditor =
+                            e.UltimaCertificacion.AuditorId != null
+                                ? usuarios.GetValueOrDefault(e.UltimaCertificacion.AuditorId)
+                                : null,
+                        TecnicoPais =
+                            e.UltimaCertificacion.UserGeneraId != null
+                                ? usuarios.GetValueOrDefault(e.UltimaCertificacion.UserGeneraId)
+                                : null,
                     })
                     .ToList();
 
@@ -397,7 +502,10 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        private static IQueryable<Empresa> ApplyCountryFilter(IQueryable<Empresa> query, int countryId)
+        private static IQueryable<Empresa> ApplyCountryFilter(
+            IQueryable<Empresa> query,
+            int countryId
+        )
         {
             return countryId == 0 ? query : query.Where(x => x.PaisId == countryId);
         }
@@ -407,7 +515,11 @@ namespace Sitca.DataAccess.Data.Repository
             return estado == -1 ? query : query.Where(x => x.Estado == estado);
         }
 
-        public async Task<List<EmpresaVm>> ListForRoleAsync(ApplicationUser user, string role, CompanyFilterDTO filter)
+        public async Task<List<EmpresaVm>> ListForRoleAsync(
+            ApplicationUser user,
+            string role,
+            CompanyFilterDTO filter
+        )
         {
             try
             {
@@ -417,15 +529,15 @@ namespace Sitca.DataAccess.Data.Repository
                 if (user == null)
                     throw new ArgumentNullException(nameof(user));
 
-                var query = _db.ProcesoCertificacion
-                      .Include(x => x.Empresa)
-                          .ThenInclude(e => e.Pais)
-                      .Include(x => x.Empresa)
-                          .ThenInclude(e => e.Tipologias)
-                              .ThenInclude(t => t.Tipologia)
-                      .Include(x => x.Resultados)
-                          .ThenInclude(r => r.Distintivo)
-                      .AsNoTracking();
+                var query = _db
+                    .ProcesoCertificacion.Include(x => x.Empresa)
+                    .ThenInclude(e => e.Pais)
+                    .Include(x => x.Empresa)
+                    .ThenInclude(e => e.Tipologias)
+                    .ThenInclude(t => t.Tipologia)
+                    .Include(x => x.Resultados)
+                    .ThenInclude(r => r.Distintivo)
+                    .AsNoTracking();
 
                 // Aplicar filtros según el rol
                 query = role switch
@@ -433,8 +545,11 @@ namespace Sitca.DataAccess.Data.Repository
                     RoleConstants.Asesor => EmpresaSpecifications.ForAsesor(query, user.Id),
                     RoleConstants.Auditor => EmpresaSpecifications.ForAuditor(query, user.Id),
                     RoleConstants.CTC => EmpresaSpecifications.ForCTC(query, user.PaisId ?? 0),
-                    RoleConstants.Consultor => EmpresaSpecifications.ForConsultor(query, user.PaisId ?? 0),
-                    _ => throw new ArgumentException($"Role {role} not supported", nameof(role))
+                    RoleConstants.Consultor => EmpresaSpecifications.ForConsultor(
+                        query,
+                        user.PaisId ?? 0
+                    ),
+                    _ => throw new ArgumentException($"Role {role} not supported", nameof(role)),
                 };
 
                 // Aplicar filtros adicionales
@@ -444,38 +559,49 @@ namespace Sitca.DataAccess.Data.Repository
                 }
 
                 var companies = await query
-                  .Select(x => new EmpresaVm
-                  {
-                      Id = x.EmpresaId,
-                      Status = ((int)x.Empresa.Estado).ToLocalizedString(user.Lenguage),
-                      Pais = x.Empresa.Pais.Name,
-                      Nombre = x.Empresa.Nombre,
-                      Recertificacion = x.Recertificacion,
-                      Tipologias = x.Empresa.Tipologias.Any()
-                        ? GetTipologias(x.Empresa.Tipologias, user.Lenguage)
-                        : null,
-                      Responsable = x.Empresa.NombreRepresentante,
-                      Distintivo = x.Resultados
-                          .Where(r => r.Aprobado)
-                          .OrderByDescending(r => r.Id)
-                          .Select(r => user.Lenguage == "es" ? r.Distintivo.Name : r.Distintivo.NameEnglish)
-                          .FirstOrDefault() ?? "Sin Distintivo"
-                  }).ToListAsync();
+                    .Select(x => new EmpresaVm
+                    {
+                        Id = x.EmpresaId,
+                        Status = ((int)x.Empresa.Estado).ToLocalizedString(user.Lenguage),
+                        Pais = x.Empresa.Pais.Name,
+                        Nombre = x.Empresa.Nombre,
+                        Recertificacion = x.Recertificacion,
+                        Tipologias = x.Empresa.Tipologias.Any()
+                            ? GetTipologias(x.Empresa.Tipologias, user.Lenguage)
+                            : null,
+                        Responsable = x.Empresa.NombreRepresentante,
+                        Distintivo =
+                            x.Resultados.Where(r => r.Aprobado)
+                                .OrderByDescending(r => r.Id)
+                                .Select(r =>
+                                    user.Lenguage == "es"
+                                        ? r.Distintivo.Name
+                                        : r.Distintivo.NameEnglish
+                                )
+                                .FirstOrDefault() ?? "Sin Distintivo",
+                    })
+                    .ToListAsync();
 
                 return companies;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting company list for role with filter {@Filter}", filter);
+                _logger.LogError(
+                    ex,
+                    "Error getting company list for role with filter {@Filter}",
+                    filter
+                );
                 throw;
             }
         }
 
         private static IQueryable<ProcesoCertificacion> ApplyCompanyFilters(
             IQueryable<ProcesoCertificacion> query,
-            CompanyFilterDTO filter)
+            CompanyFilterDTO filter
+        )
         {
-            if (filter == null) return query;
+            if (filter == null)
+                return query;
 
             if (filter.CountryId > 0)
             {
@@ -483,13 +609,16 @@ namespace Sitca.DataAccess.Data.Repository
             }
 
             if (filter.TypologyId > 0)
-                query = query.Where(x => x.Empresa.Tipologias.Any(z => z.IdTipologia == filter.TypologyId));
+                query = query.Where(x =>
+                    x.Empresa.Tipologias.Any(z => z.IdTipologia == filter.TypologyId)
+                );
 
             if (filter.DistinctiveId > 0)
             {
-                query = query.Where(x => x.Resultados
-                    .OrderByDescending(r => r.Id)
-                    .Any(r => r.Aprobado && r.DistintivoId == filter.DistinctiveId));
+                query = query.Where(x =>
+                    x.Resultados.OrderByDescending(r => r.Id)
+                        .Any(r => r.Aprobado && r.DistintivoId == filter.DistinctiveId)
+                );
             }
 
             if (!string.IsNullOrEmpty(filter.Name))
@@ -505,22 +634,26 @@ namespace Sitca.DataAccess.Data.Repository
             return query;
         }
 
-        private static List<string> GetTipologias(IEnumerable<TipologiasEmpresa> tipologias, string language) =>
-        language == "es"
-            ? tipologias.Select(z => z.Tipologia.Name).ToList()
-            : tipologias.Select(z => z.Tipologia.NameEnglish).ToList();
-
+        private static List<string> GetTipologias(
+            IEnumerable<TipologiasEmpresa> tipologias,
+            string language
+        ) =>
+            language == "es"
+                ? tipologias.Select(z => z.Tipologia.Name).ToList()
+                : tipologias.Select(z => z.Tipologia.NameEnglish).ToList();
 
         public async Task<Result<bool>> SolicitaAuditoriaAsync(int idEmpresa)
         {
             try
             {
-                var procesoCertificacion = await _db.ProcesoCertificacion
-                    .OrderByDescending(s => s.Id)
+                var procesoCertificacion = await _db
+                    .ProcesoCertificacion.OrderByDescending(s => s.Id)
                     .FirstOrDefaultAsync(s => s.EmpresaId == idEmpresa);
 
                 if (procesoCertificacion == null)
-                    return Result<bool>.Failure($"No se encontró proceso de certificación para la empresa {idEmpresa}");
+                    return Result<bool>.Failure(
+                        $"No se encontró proceso de certificación para la empresa {idEmpresa}"
+                    );
 
                 procesoCertificacion.FechaSolicitudAuditoria = DateTime.UtcNow;
 
@@ -529,7 +662,11 @@ namespace Sitca.DataAccess.Data.Repository
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al solicitar auditoría para empresa {EmpresaId}", idEmpresa);
+                _logger.LogError(
+                    ex,
+                    "Error al solicitar auditoría para empresa {EmpresaId}",
+                    idEmpresa
+                );
                 return Result<bool>.Failure($"Error al solicitar auditoría: {ex.Message}");
             }
         }
@@ -539,14 +676,20 @@ namespace Sitca.DataAccess.Data.Repository
             try
             {
                 //Empresas que estan en asesoria
-                var empresasPorTipologia = _db.Tipologia.Include(s => s.Empresas).Select(x => new EstadisticaItemVm
-                {
-                    Id = x.Id,
-                    Name = lenguage == "es" ? x.Name : x.NameEnglish,
-                    Count = x.Empresas.Where(s => s.Empresa.Estado > 0 && s.Empresa.Estado < 4
-                        && (s.Empresa.PaisId == idPais || idPais == 0)).Count()
-                });
-
+                var empresasPorTipologia = _db
+                    .Tipologia.Include(s => s.Empresas)
+                    .Select(x => new EstadisticaItemVm
+                    {
+                        Id = x.Id,
+                        Name = lenguage == "es" ? x.Name : x.NameEnglish,
+                        Count = x
+                            .Empresas.Where(s =>
+                                s.Empresa.Estado > 0
+                                && s.Empresa.Estado < 4
+                                && (s.Empresa.PaisId == idPais || idPais == 0)
+                            )
+                            .Count(),
+                    });
 
                 return await empresasPorTipologia.ToListAsync();
             }
@@ -562,44 +705,68 @@ namespace Sitca.DataAccess.Data.Repository
             {
                 var distintivos = await _db.Distintivo.ToListAsync();
 
-                var query = await _db.ProcesoCertificacion
-                    .Include(u => u.AuditorProceso)
+                var query = await _db
+                    .ProcesoCertificacion.Include(u => u.AuditorProceso)
                     .Include(z => z.AsesorProceso)
                     .Include(x => x.Empresa)
                     .ThenInclude(s => s.Tipologias)
                     .ThenInclude(s => s.Tipologia)
                     .Include(m => m.Resultados)
-                    .Where(s => s.Status.Contains("8") && s.Empresa.PaisId == idPais).ToListAsync();
+                    .Where(s => s.Status.Contains("8") && s.Empresa.PaisId == idPais)
+                    .ToListAsync();
 
                 var noCertificado = language == "es" ? "No Certificado" : "Not Certified";
 
-                var result = query.Select(x => new EmpresasCalificadas
-                {
-                    Id = x.Id,
-                    EmpresaId = x.EmpresaId,
-                    Name = x.Empresa.Nombre,
-                    Aprobado = x.Resultados.First().Aprobado,
-                    Asesor = x.AsesorProceso != null ? new CommonUserVm
+                var result = query
+                    .Select(x => new EmpresasCalificadas
                     {
-                        fullName = x.AsesorProceso.FirstName + " " + x.AsesorProceso.LastName,
-                        codigo = x.AsesorProceso.Codigo,
-                        id = x.AsesorId
-                    } : null,
-                    Auditor = x.AuditorProceso != null ? new CommonUserVm
-                    {
-                        fullName = x.AuditorProceso.FirstName + " " + x.AuditorProceso.LastName,
-                        codigo = x.AuditorProceso.Codigo,
-                        id = x.AuditorId
-                    } : null,
-                    Tipologia = new CommonVm
-                    {
-                        name = language == "es" ? x.Empresa.Tipologias.First().Tipologia.Name : x.Empresa.Tipologias.First().Tipologia.NameEnglish,
-                    },
-                    Observaciones = x.Resultados.First().Observaciones,
-                    FechaDictamen = x.FechaFinalizacion.Value.AddHours(-6).ToStringArg(),
-                    Distintivo = x.Resultados.First().Aprobado ? language == "es" ? distintivos.FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId).Name : distintivos.FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId).NameEnglish : noCertificado,
-                    NumeroDictamen = x.Resultados.First().NumeroDictamen,
-                }).ToList();
+                        Id = x.Id,
+                        EmpresaId = x.EmpresaId,
+                        Name = x.Empresa.Nombre,
+                        Aprobado = x.Resultados.First().Aprobado,
+                        Asesor =
+                            x.AsesorProceso != null
+                                ? new CommonUserVm
+                                {
+                                    fullName =
+                                        x.AsesorProceso.FirstName + " " + x.AsesorProceso.LastName,
+                                    codigo = x.AsesorProceso.Codigo,
+                                    id = x.AsesorId,
+                                }
+                                : null,
+                        Auditor =
+                            x.AuditorProceso != null
+                                ? new CommonUserVm
+                                {
+                                    fullName =
+                                        x.AuditorProceso.FirstName
+                                        + " "
+                                        + x.AuditorProceso.LastName,
+                                    codigo = x.AuditorProceso.Codigo,
+                                    id = x.AuditorId,
+                                }
+                                : null,
+                        Tipologia = new CommonVm
+                        {
+                            name =
+                                language == "es"
+                                    ? x.Empresa.Tipologias.First().Tipologia.Name
+                                    : x.Empresa.Tipologias.First().Tipologia.NameEnglish,
+                        },
+                        Observaciones = x.Resultados.First().Observaciones,
+                        FechaDictamen = x.FechaFinalizacion.Value.AddHours(-6).ToStringArg(),
+                        Distintivo = x.Resultados.First().Aprobado
+                            ? language == "es"
+                                ? distintivos
+                                    .FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId)
+                                    .Name
+                                : distintivos
+                                    .FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId)
+                                    .NameEnglish
+                            : noCertificado,
+                        NumeroDictamen = x.Resultados.First().NumeroDictamen,
+                    })
+                    .ToList();
 
                 return result;
             }
@@ -615,13 +782,22 @@ namespace Sitca.DataAccess.Data.Repository
             try
             {
                 //Empresas que estan en asesoria
-                var empresasPorTipologia = _db.Tipologia.Include(s => s.Empresas).Select(x => new EstadisticaItemVm
-                {
-                    Id = x.Id,
-                    Name = lang == "es" ? x.Name : x.NameEnglish,
-                    Count = x.Empresas.Where(s => s.Empresa.Active && s.Empresa.Estado > 0 && s.Empresa.Estado > 5 && s.Empresa.Estado < 8
-                        && (s.Empresa.PaisId == idPais || idPais == 0)).Count()
-                });
+                var empresasPorTipologia = _db
+                    .Tipologia.Include(s => s.Empresas)
+                    .Select(x => new EstadisticaItemVm
+                    {
+                        Id = x.Id,
+                        Name = lang == "es" ? x.Name : x.NameEnglish,
+                        Count = x
+                            .Empresas.Where(s =>
+                                s.Empresa.Active
+                                && s.Empresa.Estado > 0
+                                && s.Empresa.Estado > 5
+                                && s.Empresa.Estado < 8
+                                && (s.Empresa.PaisId == idPais || idPais == 0)
+                            )
+                            .Count(),
+                    });
 
                 return await empresasPorTipologia.ToListAsync();
             }
@@ -636,24 +812,24 @@ namespace Sitca.DataAccess.Data.Repository
             ArgumentNullException.ThrowIfNull(user, nameof(user));
             try
             {
-                var empresa = await _db.Empresa
-                  .AsNoTracking()
-                  .Include(p => p.Pais)
-                  .Include(t => t.Tipologias)
-                  .Include(x => x.Archivos.Where(a => a.Activo))
+                var empresa = await _db
+                    .Empresa.AsNoTracking()
+                    .Include(p => p.Pais)
+                    .Include(t => t.Tipologias)
+                    .Include(x => x.Archivos.Where(a => a.Activo))
                     .ThenInclude(c => c.UsuarioCarga)
-                  .FirstOrDefaultAsync(s => s.Id == empresaId && s.Active);
+                    .FirstOrDefaultAsync(s => s.Id == empresaId && s.Active);
 
                 if (empresa == null)
                 {
                     _logger.LogWarning("Empresa no encontrada o inactiva: {EmpresaId}", empresaId);
-                    throw new NotFoundException($"La empresa {empresaId} no existe o está inactiva.");
+                    throw new NotFoundException(
+                        $"La empresa {empresaId} no existe o está inactiva."
+                    );
                 }
 
                 // Obtener tipologías
-                var allTipologias = await _db.Tipologia
-                  .AsNoTracking()
-                  .ToListAsync();
+                var allTipologias = await _db.Tipologia.AsNoTracking().ToListAsync();
 
                 // Construir el resultado usando un builder pattern
                 var resultBuilder = new EmpresaUpdateBuilder(empresa, user)
@@ -676,12 +852,19 @@ namespace Sitca.DataAccess.Data.Repository
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener datos de empresa para usuario {UserId}", user.Id);
+                _logger.LogError(
+                    ex,
+                    "Error al obtener datos de empresa para usuario {UserId}",
+                    user.Id
+                );
                 throw new BusinessException("Error al obtener datos de la empresa.", ex);
             }
         }
 
-        private async Task EnrichWithCertificationsAsync(EmpresaUpdateVm result, ApplicationUser user)
+        private async Task EnrichWithCertificationsAsync(
+            EmpresaUpdateVm result,
+            ApplicationUser user
+        )
         {
             result.Certificaciones = await GetCertificacionesAsync(user, result.Id);
 
@@ -692,30 +875,40 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        private async Task CheckAndNotifyExpirationAsync(CertificacionDetailsVm certification, ApplicationUser user)
+        private async Task CheckAndNotifyExpirationAsync(
+            CertificacionDetailsVm certification,
+            ApplicationUser user
+        )
         {
-            if (certification.alertaVencimiento && !await _notificationService.HasBeenNotifiedAsync(user.Id, certification.Id))
+            if (
+                certification.alertaVencimiento
+                && !await _notificationService.HasBeenNotifiedAsync(user.Id, certification.Id)
+            )
             {
                 await _notificationService.SendExpirationNotificationAsync(user, certification);
             }
         }
 
         private static List<CommonVm> MapTipologias(
-        List<Tipologia> allTipologias,
-        ICollection<TipologiasEmpresa> empresaTipologias,
-        string language)
+            List<Tipologia> allTipologias,
+            ICollection<TipologiasEmpresa> empresaTipologias,
+            string language
+        )
         {
-            return allTipologias.Select(x => new CommonVm
-            {
-                name = language == "es" ? x.Name : x.NameEnglish,
-                id = x.Id,
-                isSelected = empresaTipologias.Any(z => z.IdTipologia == x.Id)
-            }).ToList();
+            return allTipologias
+                .Select(x => new CommonVm
+                {
+                    name = language == "es" ? x.Name : x.NameEnglish,
+                    id = x.Id,
+                    isSelected = empresaTipologias.Any(z => z.IdTipologia == x.Id),
+                })
+                .ToList();
         }
 
         private static List<ArchivoVm> MapArchivos(ICollection<Archivo> archivos, string userId)
         {
-            if (archivos == null) return null;
+            if (archivos == null)
+                return null;
 
             return archivos
                 .Where(s => s.Activo)
@@ -727,17 +920,21 @@ namespace Sitca.DataAccess.Data.Repository
                     Tipo = z.Tipo,
                     Cargador = $"{z.UsuarioCarga.FirstName} {z.UsuarioCarga.LastName}",
                     FechaCarga = z.FechaCarga.ToUtc(),
-                    Propio = z.UsuarioCargaId == userId
-                }).ToList();
+                    Propio = z.UsuarioCargaId == userId,
+                })
+                .ToList();
         }
 
-        private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(ApplicationUser user, int companyId)
+        private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(
+            ApplicationUser user,
+            int companyId
+        )
         {
             var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
 
-            return await _db.ProcesoCertificacion
-                .Include(i => i.Resultados)
-                    .ThenInclude(it => it.Distintivo)
+            return await _db
+                .ProcesoCertificacion.Include(i => i.Resultados)
+                .ThenInclude(it => it.Distintivo)
                 .Include(x => x.AsesorProceso)
                 .Include(x => x.AuditorProceso)
                 .Include(x => x.UserGenerador)
@@ -754,7 +951,7 @@ namespace Sitca.DataAccess.Data.Repository
                     Generador = MapCommonUser(x.UserGenerador),
                     Resultado = GetResultado(x.Resultados, user.Lenguage, noCertificado),
                     FechaVencimiento = x.FechaVencimiento.ToStringArg(),
-                    Id = x.Id
+                    Id = x.Id,
                 })
                 .ToListAsync();
         }
@@ -767,16 +964,18 @@ namespace Sitca.DataAccess.Data.Repository
                 fullName = $"{user.FirstName} {user.LastName}",
                 id = user.Id,
                 phone = user.PhoneNumber,
-                codigo = user.NumeroCarnet
+                codigo = user.NumeroCarnet,
             };
         }
 
         private static string GetResultado(
             ICollection<ResultadoCertificacion> resultados,
             string language,
-            string noCertificado)
+            string noCertificado
+        )
         {
-            if (!resultados.Any()) return string.Empty;
+            if (!resultados.Any())
+                return string.Empty;
 
             var firstResult = resultados.First();
             return firstResult.Aprobado
@@ -787,11 +986,10 @@ namespace Sitca.DataAccess.Data.Repository
         }
 
         private static CertificacionDetailsVm ProcessCurrentCertification(
-            List<CertificacionDetailsVm> certificaciones)
+            List<CertificacionDetailsVm> certificaciones
+        )
         {
-            var currentCertification = certificaciones
-              .OrderByDescending(s => s.Id)
-              .First();
+            var currentCertification = certificaciones.OrderByDescending(s => s.Id).First();
 
             if (currentCertification.FechaVencimiento != null)
             {
@@ -806,27 +1004,29 @@ namespace Sitca.DataAccess.Data.Repository
             return currentCertification;
         }
 
-
         public EstadisticasVm Estadisticas(string lang)
         {
             var empresasPorPais = _db.Pais.Select(x => new EstadisticaItemVm
             {
                 Id = x.Id,
-                Name = (x.Name == "Republica Dominicana" && lang == "en") ? "Dominican Republic" : x.Name,
-                Count = x.Empresas.Count(s => s.Active)
+                Name =
+                    (x.Name == "Republica Dominicana" && lang == "en")
+                        ? "Dominican Republic"
+                        : x.Name,
+                Count = x.Empresas.Count(s => s.Active),
             });
 
             var empresasPorTipologia = _db.Tipologia.Select(x => new EstadisticaItemVm
             {
                 Id = x.Id,
                 Name = lang == "es" ? x.Name : x.NameEnglish,
-                Count = x.Empresas.Count()
+                Count = x.Empresas.Count(),
             });
 
             var result = new EstadisticasVm
             {
                 EmpresasPorPais = empresasPorPais,
-                EmpresasPorTipologia = empresasPorTipologia
+                EmpresasPorTipologia = empresasPorTipologia,
             };
 
             return result;
@@ -842,18 +1042,15 @@ namespace Sitca.DataAccess.Data.Repository
                 {
                     if (empresa.PaisId != paisId)
                     {
-                        return new UrlResult
-                        {
-                            Success = false,
-                            Message = "Error 403 Forbidden"
-                        };
+                        return new UrlResult { Success = false, Message = "Error 403 Forbidden" };
                     }
                 }
 
                 var homologaciones = _db.Homologacion.Where(s => s.EmpresaId == id);
                 var proceso = _db.ProcesoCertificacion.Where(s => s.EmpresaId == id);
-                var cuestionarios = _db.CuestionarioItem.Include(s => s.Archivos).Where(s => s.Cuestionario.IdEmpresa == id);
-
+                var cuestionarios = _db
+                    .CuestionarioItem.Include(s => s.Archivos)
+                    .Where(s => s.Cuestionario.IdEmpresa == id);
 
                 foreach (var item in cuestionarios)
                 {
@@ -862,7 +1059,9 @@ namespace Sitca.DataAccess.Data.Repository
                         _db.Archivo.RemoveRange(item.Archivos);
                     }
 
-                    var obs = _db.CuestionarioItemObservaciones.Where(s => s.CuestionarioItemId == item.Id);
+                    var obs = _db.CuestionarioItemObservaciones.Where(s =>
+                        s.CuestionarioItemId == item.Id
+                    );
                     if (obs.Any())
                     {
                         _db.CuestionarioItemObservaciones.RemoveRange(obs);
@@ -882,7 +1081,9 @@ namespace Sitca.DataAccess.Data.Repository
                 _db.SaveChanges();
                 foreach (var item in proceso)
                 {
-                    var resultado = _db.ResultadoCertificacion.Where(s => s.CertificacionId == item.Id);
+                    var resultado = _db.ResultadoCertificacion.Where(s =>
+                        s.CertificacionId == item.Id
+                    );
                     _db.ResultadoCertificacion.RemoveRange(resultado);
                 }
                 await _db.SaveChangesAsync();
@@ -898,23 +1099,24 @@ namespace Sitca.DataAccess.Data.Repository
                 return new UrlResult
                 {
                     Success = false,
-                    Message = e.InnerException + " " + e.Message
+                    Message = e.InnerException + " " + e.Message,
                 };
             }
 
-            return new UrlResult
-            {
-                Success = true
-            };
+            return new UrlResult { Success = true };
         }
 
-        public async Task<ResponseListadoExterno> GetCertificadasParaExterior(ListadoExternoFiltro filtro)
+        public async Task<ResponseListadoExterno> GetCertificadasParaExterior(
+            ListadoExternoFiltro filtro
+        )
         {
             var countries = await _db.Pais.ToListAsync();
             var pais = 0;
             if (!string.IsNullOrEmpty(filtro.Pais))
             {
-                var paisObj = countries.FirstOrDefault(s => s.Name.ToLower() == filtro.Pais.ToLower());
+                var paisObj = countries.FirstOrDefault(s =>
+                    s.Name.ToLower() == filtro.Pais.ToLower()
+                );
                 if (paisObj != null)
                 {
                     pais = paisObj.Id;
@@ -924,39 +1126,46 @@ namespace Sitca.DataAccess.Data.Repository
             try
             {
                 //empresas que estan en recertificacion teniendo un solo proceso (importadas) o empresas que tienen un proceso finalizado y con fechavencimiento valida
-                var empresasImportadas = await _db.Empresa
-                    .Include(s => s.Certificaciones)
+                var empresasImportadas = await _db
+                    .Empresa.Include(s => s.Certificaciones)
                     .Include(s => s.Tipologias)
                     .ThenInclude(s => s.Tipologia)
-                    .Where(s => (s.PaisId == pais || pais == 0)
-                        && ((s.Certificaciones.Count == 1 && s.Certificaciones.Any(x => x.Recertificacion))
-                        || s.Certificaciones.Any(s => s.FechaVencimiento != null && s.FechaVencimiento > DateTime.Now.Date))).ToListAsync();
+                    .Where(s =>
+                        (s.PaisId == pais || pais == 0)
+                        && (
+                            (
+                                s.Certificaciones.Count == 1
+                                && s.Certificaciones.Any(x => x.Recertificacion)
+                            )
+                            || s.Certificaciones.Any(s =>
+                                s.FechaVencimiento != null && s.FechaVencimiento > DateTime.Now.Date
+                            )
+                        )
+                    )
+                    .ToListAsync();
 
                 return new ResponseListadoExterno
                 {
                     Success = true,
-                    Data = empresasImportadas.Select(x => new ListadoExterno
-                    {
-                        Id = x.Id.ToString(),
-                        Nombre = x.Nombre,
-                        Pais = x.Pais.Name,
-                        Tipologia = x.Tipologias.First().Tipologia.Name
-                    }).ToList()
+                    Data = empresasImportadas
+                        .Select(x => new ListadoExterno
+                        {
+                            Id = x.Id.ToString(),
+                            Nombre = x.Nombre,
+                            Pais = x.Pais.Name,
+                            Tipologia = x.Tipologias.First().Tipologia.Name,
+                        })
+                        .ToList(),
                 };
             }
             catch (Exception e)
             {
-
                 return new ResponseListadoExterno
                 {
                     Success = false,
-                    Message = e.InnerException.ToString()
-
+                    Message = e.InnerException.ToString(),
                 };
             }
-
-
-
         }
     }
 }

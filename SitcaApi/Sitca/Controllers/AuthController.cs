@@ -534,30 +534,62 @@ namespace Sitca.Controllers
             }
         }
 
+        /// <summary>
+        /// Registers a new user in the system
+        /// </summary>
+        /// <param name="model">Registration data transfer object</param>
+        /// <returns>ActionResult with registration result</returns>
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDTO model)
+        [ProducesResponseType(typeof(AuthResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(AuthResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(
+            typeof(ApiResponse<string>),
+            StatusCodes.Status500InternalServerError
+        )]
+        public async Task<ActionResult<ApiResponse<AuthResult>>> Register(RegisterDTO model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(
+                    new ApiResponse<AuthResult>
+                    {
+                        Success = false,
+                        Message = ModelState.GetErrorMessagesLines(),
+                    }
+                );
+            }
             try
             {
                 var result = await _unitOfWork.Auth.RegisterAsync(model);
 
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result);
-                }
-
-                return Ok(result);
+                return result.Succeeded
+                    ? Ok(new ApiResponse<AuthResult> { Data = result, Success = true })
+                    : BadRequest(
+                        new ApiResponse<AuthResult>
+                        {
+                            Success = false,
+                            Message = string.Join(", ", result.Errors),
+                        }
+                    );
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during registration for user {Email}", model.Email);
+                _logger.LogError(
+                    ex,
+                    "Error during registration for user {Email}. Error: {Error}",
+                    model.Email,
+                    ex.Message
+                );
+
                 return StatusCode(
-                    500,
-                    new
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<string>
                     {
-                        error = model.Language == "en"
-                            ? "An error occurred during registration"
-                            : "Ocurrió un error durante el registro",
+                        Success = false,
+                        Message =
+                            model.Language == "en"
+                                ? "An error occurred during registration. Please try again later."
+                                : "Ocurrió un error durante el registro. Por favor intente más tarde.",
                     }
                 );
             }

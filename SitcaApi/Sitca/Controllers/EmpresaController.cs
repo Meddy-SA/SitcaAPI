@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +17,6 @@ using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Utilities.Common;
 
 namespace Sitca.Controllers
@@ -64,7 +64,11 @@ namespace Sitca.Controllers
             ApplicationUser appUser = (ApplicationUser)userFromDb;
             var role = User.Claims.ToList()[2].Value;
 
-            var res = await _unitOfWork.Empresa.Delete(id, appUser.PaisId.GetValueOrDefault(), role);
+            var res = await _unitOfWork.Empresa.Delete(
+                id,
+                appUser.PaisId.GetValueOrDefault(),
+                role
+            );
 
             if (res.Success)
             {
@@ -73,18 +77,19 @@ namespace Sitca.Controllers
                 {
                     var result = await _userManager.DeleteAsync(userToDelete.FirstOrDefault());
                 }
-                catch (Exception)
-                {
-
-                }
-
+                catch (Exception) { }
             }
 
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
@@ -95,7 +100,8 @@ namespace Sitca.Controllers
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return Unauthorized();
+                if (appUser == null)
+                    return Unauthorized();
 
                 var filter = new CompanyFilterDTO();
                 if (!User.IsInRole("Admin"))
@@ -103,13 +109,20 @@ namespace Sitca.Controllers
                     filter.CountryId = appUser.PaisId ?? 0;
                 }
 
-                var companies = await _unitOfWork.Empresa.GetCompanyListAsync(filter, appUser.Lenguage);
+                var companies = await _unitOfWork.Empresa.GetCompanyListAsync(
+                    filter,
+                    appUser.Lenguage
+                );
                 return this.HandleResponse(companies, true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting company list");
-                return this.HandleResponse<List<EmpresaVm>>(null, false, StatusCodes.Status500InternalServerError);
+                return this.HandleResponse<List<EmpresaVm>>(
+                    null,
+                    false,
+                    StatusCodes.Status500InternalServerError
+                );
             }
         }
 
@@ -123,19 +136,27 @@ namespace Sitca.Controllers
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return Unauthorized();
+                if (appUser == null)
+                    return Unauthorized();
                 if (!User.IsInRole("Admin"))
                 {
                     filter.CountryId = appUser.PaisId ?? 0;
                 }
 
-                var companies = await _unitOfWork.Empresa.GetCompanyListAsync(filter, appUser.Lenguage);
+                var companies = await _unitOfWork.Empresa.GetCompanyListAsync(
+                    filter,
+                    appUser.Lenguage
+                );
                 return this.HandleResponse(companies, true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting company list with filter {@Filter}", filter);
-                return this.HandleResponse<List<EmpresaVm>>(null, false, StatusCodes.Status500InternalServerError);
+                return this.HandleResponse<List<EmpresaVm>>(
+                    null,
+                    false,
+                    StatusCodes.Status500InternalServerError
+                );
             }
         }
 
@@ -150,7 +171,8 @@ namespace Sitca.Controllers
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return Unauthorized();
+                if (appUser == null)
+                    return Unauthorized();
 
                 var role = User.FindFirst(ClaimTypes.Role)?.Value;
                 if (string.IsNullOrEmpty(role))
@@ -162,12 +184,20 @@ namespace Sitca.Controllers
             catch (ArgumentException ex)
             {
                 _logger.LogWarning(ex, "Invalid argument when getting company list");
-                return this.HandleResponse<List<EmpresaVm>>(null, false, StatusCodes.Status400BadRequest);
+                return this.HandleResponse<List<EmpresaVm>>(
+                    null,
+                    false,
+                    StatusCodes.Status400BadRequest
+                );
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting company list");
-                return this.HandleResponse<List<EmpresaVm>>(null, false, StatusCodes.Status500InternalServerError);
+                return this.HandleResponse<List<EmpresaVm>>(
+                    null,
+                    false,
+                    StatusCodes.Status500InternalServerError
+                );
             }
         }
 
@@ -179,20 +209,26 @@ namespace Sitca.Controllers
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return Unauthorized();
+                if (appUser == null)
+                    return Unauthorized();
 
-                if (!User.IsInRole("Admin"))
+                if (!User.IsInRole(Constants.Roles.Admin))
                 {
                     data.country = appUser.PaisId ?? 0;
                 }
 
                 var res = _unitOfWork.Empresa.GetListReporte(data);
 
-                return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                            new JsonSerializerSettings()
-                            {
-                                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                            }));
+                return Ok(
+                    JsonConvert.SerializeObject(
+                        res,
+                        Formatting.None,
+                        new JsonSerializerSettings()
+                        {
+                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                        }
+                    )
+                );
             }
             catch (Exception ex)
             {
@@ -207,7 +243,8 @@ namespace Sitca.Controllers
         public async Task<IActionResult> GetListRenovacionReporte(FiltroEmpresaReporteVm data)
         {
             var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null) return Unauthorized();
+            if (appUser == null)
+                return Unauthorized();
 
             if (!User.IsInRole("Admin"))
             {
@@ -216,11 +253,16 @@ namespace Sitca.Controllers
 
             var res = _unitOfWork.Empresa.GetListRenovacionReporte(data);
 
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
@@ -241,11 +283,16 @@ namespace Sitca.Controllers
 
             var res = _unitOfWork.Empresa.GetListXVencerReporte(data);
 
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [HttpPost("ListReportePersonal")]
@@ -253,10 +300,15 @@ namespace Sitca.Controllers
         [ProducesResponseType(typeof(Result<List<EmpresaPersonalVm>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Result<List<EmpresaPersonalVm>>>> ListReportePersonal(FiltroEmpresaReporteVm data)
+        public async Task<ActionResult<Result<List<EmpresaPersonalVm>>>> ListReportePersonal(
+            FiltroEmpresaReporteVm data
+        )
         {
             var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null) return Unauthorized(Result<List<EmpresaPersonalVm>>.Failure("Usuario no autenticado"));
+            if (appUser == null)
+                return Unauthorized(
+                    Result<List<EmpresaPersonalVm>>.Failure("Usuario no autenticado")
+                );
 
             if (!User.IsInRole(Constants.Roles.Admin))
             {
@@ -276,12 +328,20 @@ namespace Sitca.Controllers
             var userFromDb = await _userManager.FindByEmailAsync(user);
             ApplicationUser appUser = (ApplicationUser)userFromDb;
 
-            var res = await _unitOfWork.Empresa.EvaluadasEnCtc(appUser.PaisId ?? 0, appUser.Lenguage);
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            var res = await _unitOfWork.Empresa.EvaluadasEnCtc(
+                appUser.PaisId ?? 0,
+                appUser.Lenguage
+            );
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Route("EnCertificacion")]
@@ -294,12 +354,20 @@ namespace Sitca.Controllers
             var userFromDb = await _userManager.FindByEmailAsync(user);
             ApplicationUser appUser = (ApplicationUser)userFromDb;
 
-            var res = await _unitOfWork.Empresa.EnCertificacion(appUser.PaisId ?? 0, appUser.Lenguage);
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            var res = await _unitOfWork.Empresa.EnCertificacion(
+                appUser.PaisId ?? 0,
+                appUser.Lenguage
+            );
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Route("EstadisticasCtc")]
@@ -312,12 +380,20 @@ namespace Sitca.Controllers
             var userFromDb = await _userManager.FindByEmailAsync(user);
             ApplicationUser appUser = (ApplicationUser)userFromDb;
 
-            var res = await _unitOfWork.Empresa.EstadisticasCtc(appUser.PaisId ?? 0, appUser.Lenguage);
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            var res = await _unitOfWork.Empresa.EstadisticasCtc(
+                appUser.PaisId ?? 0,
+                appUser.Lenguage
+            );
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Authorize(Roles = AuthorizationPolicies.Empresa.View)]
@@ -326,9 +402,11 @@ namespace Sitca.Controllers
         {
             var appUser = await this.GetCurrentUserAsync(_userManager);
 
-            if (appUser == null) return Unauthorized();
+            if (appUser == null)
+                return Unauthorized();
 
-            if (!appUser.EmpresaId.HasValue) return Ok(0);
+            if (!appUser.EmpresaId.HasValue)
+                return Ok(0);
 
             var res = await _unitOfWork.Empresa.GetCompanyStatusAsync(appUser.EmpresaId.Value);
 
@@ -344,11 +422,16 @@ namespace Sitca.Controllers
             int EmpresaId = appUser.EmpresaId ?? 0;
             var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
 
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            return Ok(
+                JsonConvert.SerializeObject(
+                    res,
+                    Formatting.None,
+                    new JsonSerializerSettings()
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                    }
+                )
+            );
         }
 
         [Authorize(Roles = AuthorizationPolicies.Empresa.Details)]
@@ -359,7 +442,8 @@ namespace Sitca.Controllers
             var role = User.Claims.ToList()[2].Value;
 
             var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null) return Unauthorized();
+            if (appUser == null)
+                return Unauthorized();
 
             var res = await _unitOfWork.Empresa.Data(Id, appUser);
 
@@ -369,12 +453,15 @@ namespace Sitca.Controllers
                 var status = new CertificacionStatusVm
                 {
                     CertificacionId = res.CertificacionActual.Id,
-                    Status = StatusConstants.GetLocalizedStatus(toStatus, "es")
+                    Status = StatusConstants.GetLocalizedStatus(toStatus, "es"),
                 };
                 await _unitOfWork.ProcesoCertificacion.ChangeStatus(status, toStatus);
 
                 res.Estado = toStatus;
-                res.CertificacionActual.Status = StatusConstants.GetLocalizedStatus(toStatus, appUser.Lenguage);
+                res.CertificacionActual.Status = StatusConstants.GetLocalizedStatus(
+                    toStatus,
+                    appUser.Lenguage
+                );
             }
 
             return this.HandleResponse(res, true);
@@ -391,7 +478,6 @@ namespace Sitca.Controllers
 
             var res = _unitOfWork.Empresa.Estadisticas(appUser.Lenguage);
             return Ok(JsonConvert.SerializeObject(res));
-
         }
 
         [Authorize]
@@ -399,7 +485,8 @@ namespace Sitca.Controllers
         public async Task<ActionResult<bool>> ActualizarDatos([FromBody] EmpresaUpdateVm datos)
         {
             var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
-            if (appUser == null) return Unauthorized();
+            if (appUser == null)
+                return Unauthorized();
 
             var res = await _unitOfWork.Empresa.ActualizarDatos(datos, appUser, role);
             try
@@ -409,12 +496,16 @@ namespace Sitca.Controllers
                     await _notificationService.SendNotificacionSpecial(
                         datos.Id,
                         NotificationTypes.NuevaEmpresa,
-                        appUser.Lenguage);
+                        appUser.Lenguage
+                    );
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al enviar notificación Actualizando datos de la empresa");
+                _logger.LogError(
+                    ex,
+                    "Error al enviar notificación Actualizando datos de la empresa"
+                );
             }
 
             return this.HandleResponse(res, true);

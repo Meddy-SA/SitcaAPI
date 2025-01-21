@@ -24,6 +24,7 @@ public class AuthRepository : IAuthRepository
     private readonly IEmailSender _emailService;
     private readonly IConfiguration _config;
     private readonly IViewRenderService _viewRenderService;
+    private readonly IEmpresaRepository _empresa;
     private readonly ILogger<AuthRepository> _logger;
     private readonly string _url;
 
@@ -33,6 +34,7 @@ public class AuthRepository : IAuthRepository
         IEmailSender emailService,
         IConfiguration config,
         IViewRenderService viewRenderService,
+        IEmpresaRepository empresa,
         ILogger<AuthRepository> logger
     )
     {
@@ -41,6 +43,7 @@ public class AuthRepository : IAuthRepository
         _emailService = emailService;
         _config = config;
         _viewRenderService = viewRenderService;
+        _empresa = empresa;
         _logger = logger;
         _url =
             _config["ExternalServices:WebUrl"]
@@ -87,6 +90,20 @@ public class AuthRepository : IAuthRepository
             {
                 return AuthResult.Failed(GetLocalizedMessage("EmailExists", register.Language));
             }
+
+            var company = await _empresa.SaveEmpresaAsync(register);
+
+            if (!company.IsSuccess)
+            {
+                _logger.LogError(
+                    company.Error,
+                    "Error al crear la empresa: {Email}",
+                    register.Email
+                );
+                return AuthResult.Failed(company.Error);
+            }
+
+            register.CompanyId = company.Value;
 
             var newUser = CreateApplicationUser(register);
             var result = await CreateUserAsync(newUser, register);
@@ -208,13 +225,25 @@ public class AuthRepository : IAuthRepository
         {
             Email = register.Email,
             UserName = register.Email,
-            FirstName = register.FirstName,
-            LastName = register.LastName,
-            PhoneNumber = register.PhoneNumber,
+            FirstName = register.Representante,
+            LastName = string.Empty,
+            PhoneNumber = register.PhoneNumber ?? string.Empty,
             PaisId = register.CountryId,
             Lenguage = register.Language,
             Active = true,
             Notificaciones = true,
+            EmpresaId = register.CompanyId,
+            Codigo = string.Empty,
+            Departamento = string.Empty,
+            Ciudad = string.Empty,
+            Direccion = string.Empty,
+            FechaIngreso = DateTime.UtcNow.ToString("dd/MM/yyyy"),
+            NumeroCarnet = string.Empty,
+            Nacionalidad = string.Empty,
+            Profesion = string.Empty,
+            DocumentoAcreditacion = string.Empty,
+            HojaDeVida = string.Empty,
+            DocumentoIdentidad = string.Empty,
         };
 
     private async Task<bool> UserExistsAsync(string email) =>
