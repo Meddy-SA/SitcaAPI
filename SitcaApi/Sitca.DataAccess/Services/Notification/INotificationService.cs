@@ -7,8 +7,16 @@ namespace Sitca.DataAccess.Services.Notification;
 
 public interface INotificationService
 {
-  Task<bool> HasBeenNotifiedAsync(string userId, int certificacionId);
-  Task SendExpirationNotificationAsync(ApplicationUser user, CertificacionDetailsVm certification);
-  Task<NotificacionVm> SendNotification(int idCertificacion, int? status, string lang = "es");
-  Task<NotificacionVm> SendNotificacionSpecial(int idEmpresa, NotificationTypes notificationType, string lang = "es");
+    Task<bool> HasBeenNotifiedAsync(string userId, int certificacionId);
+    Task SendExpirationNotificationAsync(
+        ApplicationUser user,
+        CertificacionDetailsVm certification,
+        int empresaId
+    );
+    Task<NotificacionVm> SendNotification(int idCertificacion, int? status, string lang = "es");
+    Task<NotificacionVm> SendNotificacionSpecial(
+        int idEmpresa,
+        NotificationTypes notificationType,
+        string lang = "es"
+    );
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -331,6 +332,218 @@ namespace Sitca.DataAccess.Data.Repository
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Obtiene una lista de empresas filtrada según los criterios especificados.
+        /// </summary>
+        /// <param name="filtro">Objeto que contiene los criterios de filtrado.</param>
+        /// <returns>Lista de empresas que cumplen con los criterios de filtrado.</returns>
+        /// <exception cref="ArgumentNullException">Se lanza cuando el filtro es null.</exception>
+        public async Task<List<EmpresaVm>> GetListReporteAsync(FilterCompanyDTO filtro)
+        {
+            try
+            {
+                // 1. Validar parámetros
+                ArgumentNullException.ThrowIfNull(filtro, nameof(filtro));
+
+                // 2. Construir especificaciones de filtrado
+                var specifications = BuildFilterSpecifications(filtro);
+
+                // 3. Construir y ejecutar query
+                var empresas = await BuildAndExecuteQuery(specifications, filtro.Lang);
+
+                // 4. Aplicar filtro de certificación si es necesario
+                return ApplyCertificacionFilter(empresas, filtro.Certificacion);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error obteniendo lista de empresas con filtro {@Filter}",
+                    filtro
+                );
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Representa las especificaciones de filtrado para la consulta de empresas.
+        /// </summary>
+        /// <param name="Homologacion">Indica si se debe filtrar por homologación.</param>
+        /// <param name="BaseFilter">Expresión lambda que contiene los criterios de filtrado base.</param>
+        private record FilterSpecifications(
+            bool? Homologacion,
+            Expression<Func<Empresa, bool>> BaseFilter
+        );
+
+        /// <summary>
+        /// Construye las especificaciones de filtrado basadas en los criterios proporcionados.
+        /// </summary>
+        /// <param name="filtro">Objeto que contiene los criterios de filtrado.</param>
+        /// <returns>Especificaciones de filtrado configuradas según los criterios.</returns>
+        private FilterSpecifications BuildFilterSpecifications(FilterCompanyDTO filtro)
+        {
+            // Convertir el filtro de homologación
+            var homologacion = filtro.Homologacion switch
+            {
+                "-1" => true,
+                "1" => false,
+                _ => null as bool?,
+            };
+
+            // Construir expresión de filtro base
+            Expression<Func<Empresa, bool>> baseFilter = x =>
+                x.Nombre != null
+                && (filtro.Country == 0 || x.PaisId == filtro.Country)
+                && (filtro.Estado == -1 || x.Estado == filtro.Estado)
+                && (!homologacion.HasValue || x.EsHomologacion == homologacion)
+                && (
+                    filtro.Tipologia == 0
+                    || filtro.Tipologia == null
+                    || x.Tipologias.Any(z => z.IdTipologia == filtro.Tipologia)
+                )
+                && (!filtro.Activo.HasValue || x.Active == filtro.Activo.Value);
+
+            return new FilterSpecifications(homologacion, baseFilter);
+        }
+
+        /// <summary>
+        /// Construye y ejecuta la consulta para obtener las empresas según las especificaciones proporcionadas.
+        /// </summary>
+        /// <param name="specs">Especificaciones de filtrado a aplicar en la consulta.</param>
+        /// <param name="lang">Idioma para la localización de los resultados ("es" o "en").</param>
+        /// <returns>Lista de empresas que cumplen con los criterios especificados.</returns>
+        private async Task<List<EmpresaVm>> BuildAndExecuteQuery(
+            FilterSpecifications specs,
+            string lang
+        )
+        {
+            return await _db
+                .Empresa.AsNoTracking()
+                .Where(specs.BaseFilter)
+                .Include(x => x.Pais)
+                .Include(x => x.Tipologias)
+                .ThenInclude(t => t.Tipologia)
+                .Include(x => x.Certificaciones)
+                .ThenInclude(c => c.Resultados)
+                .ThenInclude(r => r.Distintivo)
+                .Select(x => new EmpresaVm
+                {
+                    Id = x.Id,
+                    Nombre = x.Nombre,
+                    Pais = x.Pais.Name,
+                    Status = x.Estado.ToString().ToDecimal().GetEstado(lang),
+                    Responsable = x.NombreRepresentante,
+                    Certificacion = GetCertificacionStatus(x, lang),
+                    Tipologias = x.Tipologias.Any()
+                        ? lang == "es"
+                            ? x.Tipologias.Select(z => z.Tipologia.Name).ToList()
+                            : x.Tipologias.Select(z => z.Tipologia.NameEnglish).ToList()
+                        : null,
+                    Recertificacion = GetIsRecertificacion(x, lang),
+                    Activo = x.Active,
+                })
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Aplica un filtro adicional basado en el estado de certificación de las empresas.
+        /// </summary>
+        /// <param name="empresas">Lista de empresas a filtrar.</param>
+        /// <param name="certificacion">Estado de certificación por el cual filtrar.</param>
+        /// <returns>Lista filtrada de empresas según el estado de certificación especificado.</returns>
+        /// <remarks>
+        /// Si certificacion es null o "Todas", retorna la lista completa sin filtrar.
+        /// La comparación del estado de certificación no es sensible a mayúsculas/minúsculas.
+        /// </remarks>
+        private static List<EmpresaVm> ApplyCertificacionFilter(
+            List<EmpresaVm> empresas,
+            string certificacion
+        )
+        {
+            if (string.IsNullOrEmpty(certificacion) || certificacion == "Todas")
+                return empresas;
+
+            return empresas
+                .Where(s =>
+                    s.Certificacion.Equals(certificacion, StringComparison.OrdinalIgnoreCase)
+                )
+                .ToList();
+        }
+
+        /// <summary>
+        /// Contiene las constantes de texto para los diferentes estados en español e inglés.
+        /// </summary>
+        private static class StatusText
+        {
+            public static readonly (string Es, string En) NotStarted = (
+                "No iniciada",
+                "Not started"
+            );
+            public static readonly (string Es, string En) InProcess = ("En Proceso", "In Process");
+            public static readonly (string Es, string En) NotCertified = (
+                "No Certificado",
+                "Not Certified"
+            );
+            public static readonly (string Es, string En) NoDistintivo = (
+                "Sin distintivo",
+                "Not Badge"
+            );
+        }
+
+        /// <summary>
+        /// Determina el estado de certificación de una empresa basado en su estado actual y certificaciones.
+        /// </summary>
+        /// <param name="empresa">Empresa cuyo estado de certificación se va a determinar.</param>
+        /// <param name="lang">Idioma para la localización del estado ("es" o "en").</param>
+        /// <returns>Estado de certificación localizado según el idioma especificado.</returns>
+        private static string GetCertificacionStatus(Empresa empresa, string lang)
+        {
+            // Validar estado inicial
+            if (empresa.Estado < 1)
+                return lang == "es" ? StatusText.NotStarted.Es : StatusText.NotStarted.En;
+
+            if (empresa.Estado != 8)
+                return lang == "es" ? StatusText.InProcess.Es : StatusText.InProcess.En;
+
+            // Buscar última certificación con resultados
+            var certificacionConResultado = empresa
+                .Certificaciones?.OrderByDescending(x => x.Id)
+                ?.FirstOrDefault();
+
+            if (certificacionConResultado?.Resultados == null)
+                return lang == "es" ? StatusText.NotCertified.Es : StatusText.NotCertified.En;
+
+            var resultado = certificacionConResultado
+                .Resultados.OrderByDescending(x => x.Id)
+                .FirstOrDefault();
+
+            var isRecertificacion = resultado.ProcesoCertificacion.Recertificacion;
+
+            // Validar resultado y aprobación
+            if (resultado == null || !resultado.Aprobado)
+                return lang == "es" ? StatusText.NotCertified.Es : StatusText.NotCertified.En;
+
+            // Validar distintivo
+            if (resultado.Distintivo == null)
+                return lang == "es" ? StatusText.NotCertified.Es : StatusText.NotCertified.En;
+
+            // Retornar nombre del distintivo según idioma
+            return lang == "es" ? resultado.Distintivo.Name : resultado.Distintivo.NameEnglish;
+        }
+
+        private static bool GetIsRecertificacion(Empresa empresa, string lang)
+        {
+            var certificacion = empresa
+                .Certificaciones?.OrderByDescending(x => x.Id)
+                ?.FirstOrDefault();
+
+            if (certificacion == null)
+                return false;
+
+            var isRecertificacion = certificacion.Recertificacion;
+            return isRecertificacion;
         }
 
         public List<EmpresaVm> GetListReporte(FiltroEmpresaReporteVm data)
@@ -871,13 +1084,25 @@ namespace Sitca.DataAccess.Data.Repository
             if (result.Certificaciones.Any())
             {
                 result.CertificacionActual = ProcessCurrentCertification(result.Certificaciones);
-                await CheckAndNotifyExpirationAsync(result.CertificacionActual, user);
+                try
+                {
+                    await CheckAndNotifyExpirationAsync(
+                        result.CertificacionActual,
+                        user,
+                        result.Id
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al notificar la expiración de certificación. ");
+                }
             }
         }
 
         private async Task CheckAndNotifyExpirationAsync(
             CertificacionDetailsVm certification,
-            ApplicationUser user
+            ApplicationUser user,
+            int empresaId
         )
         {
             if (
@@ -885,7 +1110,11 @@ namespace Sitca.DataAccess.Data.Repository
                 && !await _notificationService.HasBeenNotifiedAsync(user.Id, certification.Id)
             )
             {
-                await _notificationService.SendExpirationNotificationAsync(user, certification);
+                await _notificationService.SendExpirationNotificationAsync(
+                    user,
+                    certification,
+                    empresaId
+                );
             }
         }
 

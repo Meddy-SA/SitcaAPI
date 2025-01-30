@@ -14,6 +14,13 @@ public static class Constants
         public const string Consultor = "Consultor";
     }
 
+    public static class Distintivos
+    {
+        public const string Rojo = "Distintivo Rojo";
+        public const string Azul = "Distintivo Azul";
+        public const string Verde = "Distintivo Verde";
+    }
+
     public static class ProcessStatus
     {
         public const int Initial = 0;
@@ -27,14 +34,15 @@ public static class Constants
         public const int Completed = 8;
     }
 
-    public static readonly string[] KnowRoles = {
-      Roles.Asesor,
-      Roles.TecnicoPais,
-      Roles.Empresa,
-      Roles.CTC,
-      Roles.Admin,
-      Roles.Auditor,
-      Roles.AsesorAuditor,
-      Roles.Consultor
+    public static readonly string[] KnowRoles =
+    {
+        Roles.Asesor,
+        Roles.TecnicoPais,
+        Roles.Empresa,
+        Roles.CTC,
+        Roles.Admin,
+        Roles.Auditor,
+        Roles.AsesorAuditor,
+        Roles.Consultor,
     };
 }

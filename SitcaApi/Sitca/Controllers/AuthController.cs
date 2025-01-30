@@ -395,17 +395,11 @@ namespace Sitca.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDTO model)
+        public async Task<ActionResult<AuthResult>> Login(LoginDTO model)
         {
             try
             {
                 var result = await _unitOfWork.Auth.LoginAsync(model);
-
-                if (!result.Succeeded)
-                {
-                    return BadRequest(result);
-                }
-
                 return Ok(result);
             }
             catch (Exception ex)

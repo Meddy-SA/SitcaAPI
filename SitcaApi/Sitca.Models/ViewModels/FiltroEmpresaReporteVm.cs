@@ -12,5 +12,6 @@ namespace Sitca.Models.ViewModels
         public string? certificacion { get; set; }
         public string? homologacion { get; set; }
         public string? lang { get; set; }
+        public bool? activo { get; set; }
     }
 }
