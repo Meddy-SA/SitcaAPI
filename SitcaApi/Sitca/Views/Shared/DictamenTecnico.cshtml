@@ -4,138 +4,208 @@
 <img style="max-height:500px;" src="@Model.RutaPdf/Resources/Files/imagen-archivos.png" />
 @if (Model.Language == "es")
 {
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;margin-left:.25in;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span style="font-size:7px;">&nbsp;</span></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span style="font-size:7px;">&nbsp;</span></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style='font-size:21px;font-family:"Century Gothic",sans-serif;'>DICTAMEN T&Eacute;CNICO&nbsp;</span></strong></p>
-    <h4 style='margin:0in;text-align:center;font-size:24px;font-family:"Comic Sans MS";'><span style='font-size:21px;font-family:"Century Gothic",sans-serif;'>CTC/ SICCS <strong>No. <span style="font-weight:bold">__@Model.CertificacionActual.Expediente __</span></strong></span></h4>
-
-    
-
-    <h4 style="font-weight:bold;text-align:justify;">COMITÉ   TÉCNICO   DE   CERTIFICACIÓN.   SISTEMA   INTEGRADO   CENTROAMERICANO   DE   CALIDAD   Y <br> SOSTENIBILIDAD <u> SICCS @Model.Pais.name.ToUpper()</u> , Municipio de ______________ A los @DateTime.Now.Day   DÍAS   DEL   MES   DE @Model.MesHoy.ToUpper() DEL @DateTime.Now.Year.</h4>
-
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'><strong>VISTA:</strong> Para dictamen de la Solicitud de Certificaci&oacute;n SICCS del establecimiento <strong><span>  &ldquo;<b> @Model.Nombre.ToUpper()</b> &rdquo;</span></strong> con n&uacute;mero de expediente <strong>No. <span style="font-weight:bold">__@Model.CertificacionActual.Expediente __</span></strong> ubicado en el Municipio/Ciudad de <span> @if(!string.IsNullOrEmpty(Model.Ciudad)){<u>@Model.Ciudad.ToUpper()</u>}else{<span>____________________</span>}  </span> Departamento de <span >__________________</span> y presentada ante la delegaci&oacute;n pa&iacute;s de <b >@Model.Pais.name.ToUpper() </b>, para dictamen t&eacute;cnico, como delegaci&oacute;n aprobada por la Secretaria T&eacute;cnica de Integraci&oacute;n Centroamericana SITCA; este comit&eacute; dictamina lo siguiente:</p>
-
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>&nbsp;</p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>Despu&eacute;s de haberse recibido en el Comit&eacute; T&eacute;cnico de Certificaci&oacute;n el expediente respectivo y realizado el an&aacute;lisis t&eacute;cnico correspondiente, este comit&eacute; concluye que el establecimiento es acreedor al Sello <strong>SICCS &nbsp;<span style="background:yellow;">@Model.CertificacionActual.Resultado</span></strong>, bajo la norma de  <strong> @Model.Tipologias.First(s =>s.isSelected).name </strong>, siempre y cuando cumpla con los requerimientos que establece dicha norma.&nbsp;</p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>&nbsp;</p>
-    
-
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>&nbsp;</p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">Presidente Comit&eacute; T&eacute;cnico de Certificaci&oacute;n SICCS</span></strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;margin-left:.25in;text-align:justify;'><span style='font-size:13px;font-family:"Arial",sans-serif;'>&nbsp;</span></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span style='font-size:13px;font-family:"Arial",sans-serif;'>&nbsp;</span></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">VICE Presidente Comit&eacute; T&eacute;cnico de Certificaci&oacute;n SICCS</span></strong></p>
-
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
-    <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span style="font-size:13px;">REPRESENTANTE DE LA NORMA DE &nbsp; <u>@Model.Tipologias.First(s =>s.isSelected).name</u>  </span></strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;margin-left:.25in;text-align:justify;'>
+  <strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span
+    style="font-size:7px;">&nbsp;</span></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span
+    style="font-size:7px;">&nbsp;</span></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style='font-size:21px;font-family:"Century Gothic",sans-serif;'>DICTAMEN T&Eacute;CNICO&nbsp;</span></strong></p>
+<h4 style='margin:0in;text-align:center;font-size:24px;font-family:"Comic Sans MS";'><span
+    style='font-size:21px;font-family:"Century Gothic",sans-serif;'>CTC/ SICCS <strong>No. <span
+        style="font-weight:bold">__@Model.CertificacionActual.Expediente __</span></strong></span></h4>
 
 
 
+<h4 style="font-weight:bold;text-align:justify;">COMITÉ   TÉCNICO   DE   CERTIFICACIÓN.   SISTEMA   INTEGRADO  
+  CENTROAMERICANO   DE   CALIDAD   Y <br> SOSTENIBILIDAD <u> SICCS @Model.Pais.name.ToUpper()</u> , Municipio de
+  ______________ A los @DateTime.Now.Day   DÍAS   DEL   MES   DE @Model.MesHoy.ToUpper() DEL @DateTime.Now.Year.</h4>
+
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>
+  <strong>VISTA:</strong> Para dictamen de la Solicitud de Certificaci&oacute;n SICCS del establecimiento
+  <strong><span>  &ldquo;<b> @Model.Nombre.ToUpper()</b> &rdquo;</span></strong> con n&uacute;mero de expediente
+  <strong>No. <span style="font-weight:bold">__@Model.CertificacionActual.Expediente __</span></strong> ubicado en el
+  Municipio/Ciudad de <span>
+    @if(!string.IsNullOrEmpty(Model.Ciudad)){<u>@Model.Ciudad.ToUpper()</u>}else{<span>____________________</span>}
+  </span> Departamento de <span>__________________</span> y presentada ante la delegaci&oacute;n pa&iacute;s de
+  <b>@Model.Pais.name.ToUpper() </b>, para dictamen t&eacute;cnico, como delegaci&oacute;n aprobada por la Secretaria
+  T&eacute;cnica de Integraci&oacute;n Centroamericana SITCA; este comit&eacute; dictamina lo siguiente:</p>
+
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>
+  &nbsp;</p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>
+  Despu&eacute;s de haberse recibido en el Comit&eacute; T&eacute;cnico de Certificaci&oacute;n el expediente respectivo
+  y realizado el an&aacute;lisis t&eacute;cnico correspondiente, este comit&eacute; concluye que el establecimiento es
+  acreedor al Sello <strong>SICCS &nbsp;<span
+      style="background:yellow;">@Model.CertificacionActual.Resultado</span></strong>, bajo la norma de  <strong>
+    @Model.Tipologias.First(s =>s.isSelected).name </strong>, siempre y cuando cumpla con los requerimientos que
+  establece dicha norma.&nbsp;</p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>
+  &nbsp;</p>
+
+
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>&nbsp;</p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">Presidente Comit&eacute; T&eacute;cnico de Certificaci&oacute;n SICCS</span></strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;margin-left:.25in;text-align:justify;'><span
+    style='font-size:13px;font-family:"Arial",sans-serif;'>&nbsp;</span></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><span
+    style='font-size:13px;font-family:"Arial",sans-serif;'>&nbsp;</span></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">VICE Presidente Comit&eacute; T&eacute;cnico de Certificaci&oacute;n SICCS</span></strong>
+</p>
+
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong>&nbsp;</strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
+<p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
+      style="font-size:13px;">REPRESENTANTE DE LA NORMA DE &nbsp; <u>@Model.Tipologias.First(s
+        =>s.isSelected).name</u>  </span></strong></p>
 
 
 
 
-    <div style="page-break-before: always;"></div>
-    <img style="max-height:500px;" src="@Model.RutaPdf/Resources/Files/imagen-archivos.png" />
 
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><strong><span style="font-size: 18px;">&nbsp;</span></strong></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>DELEGACION PAIS SICCS. <span>___________________</span>, MUNICIPIO <span>_________________________</span>,a los <span> @DateTime.Now.Day</span> días del mes de <span> @Model.MesHoy.ToUpper() </span> DE <span> @DateTime.Now.Year </span>.</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 16px;"><strong>APRU&Eacute;BASE  </strong>El Dictamen T&eacute;cnico CTC/SICCS    <span style="background:yellow;">No. @Model.CertificacionActual.Expediente</span> emitido por el Comit&eacute; T&eacute;cnico de Certificaci&oacute;n de fecha <span>@Model.CertificacionActual.FechaFin</span> En consecuencia t&eacute;ngase por evacuado la solicitud y proc&eacute;dase al tr&aacute;mite correspondiente.<strong>&nbsp;C&Uacute;MPLASE.</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>Director&nbsp;Pa&iacute;s SICCS</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>Coordinador Pa&iacute;s SICCS</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
-    <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'><strong><span style="font-size: 18px;">&nbsp;</span></strong></p>
+
+
+<div style="page-break-before: always;"></div>
+<img style="max-height:500px;" src="@Model.RutaPdf/Resources/Files/imagen-archivos.png" />
+
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <strong><span style="font-size: 18px;">&nbsp;</span></strong></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>DELEGACION PAIS SICCS. <span>___________________</span>, MUNICIPIO
+      <span>_________________________</span>,a los <span> @DateTime.Now.Day</span> días del mes de <span>
+        @Model.MesHoy.ToUpper() </span> DE <span> @DateTime.Now.Year </span>.</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 16px;"><strong>APRU&Eacute;BASE  </strong>El Dictamen T&eacute;cnico CTC/SICCS    <span
+      style="background:yellow;">No. @Model.CertificacionActual.Expediente</span> emitido por el Comit&eacute;
+    T&eacute;cnico de Certificaci&oacute;n de fecha <span>@Model.CertificacionActual.FechaFin</span> En consecuencia
+    t&eacute;ngase por evacuado la solicitud y proc&eacute;dase al tr&aacute;mite
+    correspondiente.<strong>&nbsp;C&Uacute;MPLASE.</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>Director&nbsp;Pa&iacute;s SICCS</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; line-height: 2;'><span
+    style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>Coordinador Pa&iacute;s SICCS</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: center; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <span style="font-size: 18px;"><strong>&nbsp;</strong></span></p>
+<p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 2;'>
+  <strong><span style="font-size: 18px;">&nbsp;</span></strong></p>
 
 
 }else{
 
 
-    <p style='font-size:19px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold' >TECHNICAL OPINION CTC SICCS <u>               </u></p>
+<p style='font-size:19px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold'>TECHNICAL OPINION CTC
+  SICCS <u>               </u></p>
 
 
-    <p style='font-size:17px;font-family:"Times New Roman",serif;text-align:justify;' >
-       <b style='font-size:17px'>CERTIFICATION TECHNICAL COMMITTEE.</b> <b> </b> Central American Integrated System of Quality & Sustainability. <u>                      </u>, MUNICIPALITY OF <u>                      </u>, DISTRICT OF<u>                      </u> DATED<u> @DateTime.Now.ToString("dd/MM/yyyy")</u>
-    </p>
+<p style='font-size:17px;font-family:"Times New Roman",serif;text-align:justify;'>
+  <b style='font-size:17px'>CERTIFICATION TECHNICAL COMMITTEE.</b> <b> </b> Central American Integrated System of
+  Quality & Sustainability. <u>                      </u>, MUNICIPALITY OF <u>                      </u>, DISTRICT
+  OF<u>                      </u> DATED<u> @DateTime.Now.ToString("dd/MM/yyyy")</u>
+</p>
 
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;' >
-        <b>REVIEWED:</b> To the SICCS Certification Request of the <u>  @Model.Nombre  </u> establishment/institution, file number No.  <u>  @Model.CertificacionActual.Expediente    </u>, located in the Municipality of <u>                      </u>, District of <u>                      </u>, and presented to the country delegation of <u>   @Model.Pais.name  </u>, for a technical opinion, as a delegation approved by the Technical Secretariat for Central American Integration (SITCA), this committee issues the following opinion:
-    </p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>
+  <b>REVIEWED:</b> To the SICCS Certification Request of the <u>  @Model.Nombre  </u> establishment/institution, file
+  number No. <u>  @Model.CertificacionActual.Expediente    </u>, located in the Municipality of
+  <u>                      </u>, District of <u>                      </u>, and presented to the country delegation of
+  <u>   @Model.Pais.name  </u>, for a technical opinion, as a delegation approved by the Technical Secretariat for
+  Central American Integration (SITCA), this committee issues the following opinion:
+</p>
 
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;' >
-        The Certification Technical Committee, having received the respective file and performed the corresponding technical analysis, concludes that the establishment is worthy of the SICCS <u>  @Model.CertificacionActual.Resultado    </u> , under the <u>    @Model.Tipologias.First(s =>s.isSelected).name</u> STANDARD, for as long as it complies with the requirements established by said standard. 
-    </p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>
+  The Certification Technical Committee, having received the respective file and performed the corresponding technical
+  analysis, concludes that the establishment is worthy of the SICCS <u>  @Model.CertificacionActual.Resultado    </u> ,
+  under the <u>    @Model.Tipologias.First(s =>s.isSelected).name</u> STANDARD, for as long as it complies with the
+  requirements established by said standard.
+</p>
 
 
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:200px'>
-        Vº Bº__________________________________________<br>
-        President of the SICCS Certification Technical Committee
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:200px'>
+  Vº Bº__________________________________________<br>
+  President of the SICCS Certification Technical Committee
 
-    </p>
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
-        Vº Bº__________________________________________<br>
-        Vice President of the SICCS Certification Technical Committee
+</p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
+  Vº Bº__________________________________________<br>
+  Vice President of the SICCS Certification Technical Committee
 
-    </p>
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
-        Vº Bº__________________________________________<br>
-        Representative of the @Model.Tipologias.First(s =>s.isSelected).name STANDARD
+</p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
+  Vº Bº__________________________________________<br>
+  Representative of the @Model.Tipologias.First(s =>s.isSelected).name STANDARD
 
-    </p>
+</p>
 
-    <div style="page-break-before: always;"></div>
+<div style="page-break-before: always;"></div>
 
-    <img style="max-height:500px;" src="@Model.RutaPdf/Resources/Files/imagen-archivos.png" />
+<img style="max-height:500px;" src="@Model.RutaPdf/Resources/Files/imagen-archivos.png" />
 
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;' >
-        <b>SICCS COUNTRY DELEGATION. _____________________, MUNICIPALITY OF__________________, DISTRICT OF ______________, DATED <u> @DateTime.Now.ToString("dd/MM/yyyy")</u>.</b>
-    </p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>
+  <b>SICCS COUNTRY DELEGATION. _____________________, MUNICIPALITY OF__________________, DISTRICT OF ______________,
+    DATED <u> @DateTime.Now.ToString("dd/MM/yyyy")</u>.</b>
+</p>
 
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;' >
-        <b>APPROVAL:</b> Technical Opinion CTC/SICCS ___________________- issued by the Certification Technical Committee, dated <u> @DateTime.Now.ToString("dd/MM/yyyy")</u>, deems that the request has been granted and the corresponding procedure has been followed. 
-    </p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:justify;'>
+  <b>APPROVAL:</b> Technical Opinion CTC/SICCS ___________________- issued by the Certification Technical Committee,
+  dated <u> @DateTime.Now.ToString("dd/MM/yyyy")</u>, deems that the request has been granted and the corresponding
+  procedure has been followed.
+</p>
 
-    
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:200px'>
-        __________________________________________<br>
-        SICCS Country Director
 
-    </p>
-    <p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
-        __________________________________________<br>
-        SICCS Country Coordinator
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:200px'>
+  __________________________________________<br>
+  SICCS Country Director
 
-    </p>
-    
+</p>
+<p style='font-size:18px;font-family:"Times New Roman",serif;text-align:center;font-weight:bold;margin-top:130px'>
+  __________________________________________<br>
+  SICCS Country Coordinator
+
+</p>
+
 
 }
-
-    

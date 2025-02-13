@@ -1,8 +1,9 @@
-﻿
+﻿using System.Threading.Tasks;
+
 namespace Sitca.DataAccess.Data.Initializer
 {
-  public interface IDbInitializer
-  {
-    void Initialize();
-  }
+    public interface IDbInitializer
+    {
+        Task<bool> Initialize();
+    }
 }

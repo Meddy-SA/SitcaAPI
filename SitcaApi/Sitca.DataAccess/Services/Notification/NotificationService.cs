@@ -21,12 +21,13 @@ namespace Sitca.DataAccess.Services.Notification;
 
 public class NotificationService : INotificationService
 {
-    private readonly ApplicationDbContext _db;
-    private readonly IDapper _dapper;
-    private readonly IEmailSender _emailSender;
-    private readonly IViewRenderService _viewRenderService;
-    private readonly IConfiguration _config;
-    private readonly ILogger<NotificationService> _logger;
+    private readonly ApplicationDbContext _db; // Database context for entity operations
+    private readonly IDapper _dapper; // Dapper for optimized database queries
+    private readonly IEmailSender _emailSender; // Email sending service
+    private readonly IViewRenderService _viewRenderService; // Service for rendering email templates
+    private readonly IConfiguration _config; // Configuration access
+    private readonly ILogger<NotificationService> _logger; // Logging service
+    private const string GET_USERS_BY_ROLE_SP = "[dbo].[GetUsersByRole]";
 
     public NotificationService(
         ApplicationDbContext db,
@@ -46,6 +47,12 @@ public class NotificationService : INotificationService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Checks if a user has been notified about a specific certification within the last month
+    /// </summary>
+    /// <param name="userId">The ID of the user to check</param>
+    /// <param name="certificacionId">The ID of the certification</param>
+    /// <returns>True if the user has been notified in the last month, false otherwise</returns>
     public async Task<bool> HasBeenNotifiedAsync(string userId, int certificacionId)
     {
         return await _db.NotificacionesEnviadas.AnyAsync(n =>
@@ -55,6 +62,13 @@ public class NotificationService : INotificationService
         );
     }
 
+    /// <summary>
+    /// Sends expiration notifications for a certification to relevant users
+    /// </summary>
+    /// <param name="user">The user associated with the certification</param>
+    /// <param name="certification">Details of the certification</param>
+    /// <param name="empresaId">ID of the company</param>
+    /// <returns>A task representing the asynchronous operation</returns>
     public async Task SendExpirationNotificationAsync(
         ApplicationUser user,
         CertificacionDetailsVm certification,
@@ -139,6 +153,11 @@ public class NotificationService : INotificationService
         );
     }
 
+    /// <summary>
+    /// Sends notification to company users
+    /// </summary>
+    /// <param name="recipient">The recipient user</param>
+    /// <param name="template">Notification template</param>
     private async Task SendCompanyNotificationAsync(UsersListVm recipient, Notificacion template)
     {
         var notificationModel = new NotificacionSigleVm { Data = template, User = recipient };
@@ -160,6 +179,12 @@ public class NotificationService : INotificationService
         );
     }
 
+    /// <summary>
+    /// Retrieves both internal and company recipients for notifications
+    /// </summary>
+    /// <param name="user">The user initiating the notification</param>
+    /// <param name="empresaId">ID of the company</param>
+    /// <returns>NotificationRecipientGroups containing internal and company recipients</returns>
     private async Task<NotificationRecipientGroups> GetNotificationRecipients(
         ApplicationUser user,
         int empresaId
@@ -191,6 +216,11 @@ public class NotificationService : INotificationService
         return recipients;
     }
 
+    /// <summary>
+    /// Retrieves users associated with a specific company
+    /// </summary>
+    /// <param name="empresaId">ID of the company</param>
+    /// <returns>List of users from the company</returns>
     private async Task<List<UsersListVm>> GetCompanyUsers(int empresaId)
     {
         var users = new List<UsersListVm>();
@@ -215,6 +245,12 @@ public class NotificationService : INotificationService
         return users;
     }
 
+    /// <summary>
+    /// Retrieves users in a specific role for a country
+    /// </summary>
+    /// <param name="roleId">ID of the role</param>
+    /// <param name="paisId">ID of the country</param>
+    /// <returns>List of users in the specified role</returns>
     private async Task<List<UsersListVm>> GetUsersInRole(string roleId, int paisId)
     {
         var parameters = new DynamicParameters();
@@ -245,6 +281,13 @@ public class NotificationService : INotificationService
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Sends notifications when a certification process begins or changes status
+    /// </summary>
+    /// <param name="idCertificacion">ID of the certification process</param>
+    /// <param name="status">Optional status to override company status</param>
+    /// <param name="lang">Language code for the notification (default: "es")</param>
+    /// <returns>NotificacionVm containing notification data and recipient users</returns>
     public async Task<NotificacionVm> SendNotification(
         int idCertificacion,
         int? status,
@@ -253,29 +296,35 @@ public class NotificationService : INotificationService
     {
         try
         {
+            // 1. Obtiene los detalles de la certificación, empresa y país usando tuple deconstruction
             var (certificacion, empresa, paisData) = await GetCertificationDetailsAsync(
                 idCertificacion
             );
             if (certificacion == null)
                 return null;
 
+            // 2. Obtiene la plantilla de notificación basada en el estado proporcionado o el estado de la empresa
             var notifData = await GetNotificationDataAsync(status ?? empresa.Estado);
             if (notifData == null)
                 return null;
 
+            // 3. Actualiza el texto si es una recertificación (cambia "certificación" por "re certificación")
             UpdateNotificationTextForRecertification(
                 notifData,
                 certificacion.Recertificacion,
                 lang
             );
 
+            // 4. Si el idioma no es español, obtiene los textos en el idioma solicitado
             if (lang != "es")
             {
                 notifData = SetTextLanguages(notifData, lang);
             }
 
+            // 5. Obtiene la lista de usuarios a notificar
             var usersToNotify = await GetUsersToNotifyAsync(notifData, certificacion, empresa);
 
+            // 6. Envía las notificaciones a todos los usuarios
             await SendNotificationsToAllUsersAsync(
                 usersToNotify,
                 notifData,
@@ -284,6 +333,7 @@ public class NotificationService : INotificationService
                 paisData
             );
 
+            // 7. Retorna el objeto con los datos de la notificación y los usuarios notificados
             return new NotificacionVm { Data = notifData, Users = usersToNotify };
         }
         catch (Exception ex)
@@ -297,6 +347,13 @@ public class NotificationService : INotificationService
         }
     }
 
+    /// <summary>
+    /// Sends special notifications to a company
+    /// </summary>
+    /// <param name="idEmpresa">ID of the target company</param>
+    /// <param name="notifType">Type of notification to send</param>
+    /// <param name="lang">Language code for the notification (default: "es")</param>
+    /// <returns>NotificacionVm containing notification data and recipient users</returns>
     public async Task<NotificacionVm> SendNotificacionSpecial(
         int idEmpresa,
         NotificationTypes notifType,
@@ -427,6 +484,7 @@ public class NotificationService : INotificationService
         Pais paisData
     )> GetCertificationDetailsAsync(int idCertificacion)
     {
+        // 1. Obtiene la certificación con su empresa relacionada
         var certificacion = await _db
             .ProcesoCertificacion.AsNoTracking()
             .Include(s => s.Empresa)
@@ -435,18 +493,24 @@ public class NotificationService : INotificationService
         if (certificacion == null)
             return (null, null, null);
 
+        // 2. Obtiene los datos del país relacionado
         var paisData = await _db.Pais.FindAsync(certificacion.Empresa.PaisId);
+
+        // 3. Retorna una tupla con todos los datos
         return (certificacion, certificacion.Empresa, paisData);
     }
 
+    // Método que obtiene la plantilla de notificación según el estado
     private async Task<Notificacion> GetNotificationDataAsync(decimal? status)
     {
+        // Obtiene la plantilla de notificación incluyendo los grupos de notificación
         return await _db
             .Notificacion.AsNoTracking()
             .Include(x => x.NotificationGroups)
             .FirstOrDefaultAsync(s => s.Status == status);
     }
 
+    // Método que obtiene los usuarios a notificar
     private async Task<List<UsersListVm>> GetUsersToNotifyAsync(
         Notificacion notifData,
         ProcesoCertificacion certificacion,
@@ -454,42 +518,105 @@ public class NotificationService : INotificationService
     )
     {
         var usersToNotify = new List<UsersListVm>();
+        // 1. Obtiene el rol de empresa
         var empresaRole = await GetEmpresaRoleAsync();
 
-        await AddNonCompanyUsersAsync(usersToNotify, notifData, certificacion, empresaRole.Id);
-        await AddAdminUsersAsync(usersToNotify);
+        // 2. Agrega usuarios administradores
+        await AddAdminUsersAsync(usersToNotify, notifData, certificacion, empresaRole.Id);
+        // 3. Agrega usuarios de cuentas especiales
         await AddSpecialAccountUsersAsync(usersToNotify, empresa.PaisId.Value);
+        // 4. Agrega usuarios con roles específicos (asesores, auditores)
         await AddSpecificRoleUsersAsync(usersToNotify, certificacion);
 
+        // 5. Retorna la lista sin duplicados
         return usersToNotify.Distinct().ToList();
     }
 
+    /// <summary>
+    /// Obtiene el rol de empresa del sistema
+    /// </summary>
+    /// <returns>IdentityRole del rol Empresa</returns>
+    /// <exception cref="InvalidOperationException">Si no se encuentra el rol Empresa</exception>
     private async Task<IdentityRole> GetEmpresaRoleAsync()
     {
-        return await _db.Roles.FirstAsync(s => s.Name == ConstantRoles.Empresa)
-            ?? throw new InvalidOperationException("Empresa role not found");
+        return await _db
+                .Roles.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Name == ConstantRoles.Empresa)
+            ?? throw new InvalidOperationException($"Rol {ConstantRoles.Empresa} no encontrado");
     }
 
-    private async Task AddNonCompanyUsersAsync(
+    private async Task<List<UsersListVm>> GetUsersByRoleAndPaisAsync(
+        string roleName,
+        int paisId,
+        string[] additionalRoles = null
+    )
+    {
+        var users = await _db
+            .Users.AsNoTracking()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.Pais)
+            .Where(u =>
+                (u.PaisId == paisId || u.UserRoles.Any(r => r.Role.Name == ConstantRoles.Admin))
+                && u.Active
+                && u.Notificaciones
+                && (
+                    u.UserRoles.Any(ur => ur.Role.Name == roleName)
+                    || (
+                        additionalRoles != null
+                        && u.UserRoles.Any(ur => additionalRoles.Contains(ur.Role.Name))
+                    )
+                )
+            )
+            .Select(u => new UsersListVm
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Rol = u.UserRoles.FirstOrDefault().Role.Name,
+                Notificaciones = u.Notificaciones,
+                Active = u.Active,
+                Lang = u.Lenguage,
+                Pais = u.Pais.Name,
+            })
+            .ToListAsync();
+
+        return users;
+    }
+
+    /// <summary>
+    /// Agrega usuarios administradores, como Admin y TecnicoPais
+    /// </summary>
+    /// <param name="usersToNotify">Lista de usuarios a notificar</param>
+    /// <param name="notifData">Datos de la notificación</param>
+    /// <param name="certificacion">Proceso de certificación</param>
+    /// <param name="empresaRoleId">ID del rol de empresa</param>
+    private async Task AddAdminUsersAsync(
         List<UsersListVm> usersToNotify,
         Notificacion notifData,
         ProcesoCertificacion certificacion,
         string empresaRoleId
     )
     {
-        var nonCompanyGroups = notifData.NotificationGroups.Where(s => s.RoleId != empresaRoleId);
+        // Status 1 -> Empresa, TecnicoPais, Asesor, Admin.
+        // Status 4 -> Empresa, TecnicoPais, Auditor, Admin.
 
-        int paisId = certificacion.Empresa.PaisId.HasValue
-            ? certificacion.Empresa.PaisId.Value
-            : certificacion.Empresa.IdPais;
+        var paisId = certificacion.Empresa.PaisId ?? certificacion.Empresa.IdPais;
 
-        foreach (var group in nonCompanyGroups)
+        var adminUsers = await GetUsersByRoleAndPaisAsync(
+            ConstantRoles.Admin,
+            paisId,
+            new[] { ConstantRoles.TecnicoPais, ConstantRoles.Admin }
+        );
+
+        if (adminUsers.Any())
         {
-            var users = await GetUsersByRoleAndCountryAsync(group.RoleId, paisId);
-
-            var activeUsers = users.Where(s => s.Notificaciones && s.Active).ToList();
-
-            usersToNotify.AddRange(activeUsers);
+            usersToNotify.AddRange(adminUsers);
+            _logger.LogInformation(
+                "Agregando {Count} administradores de notificaciones",
+                adminUsers.Count
+            );
         }
     }
 
@@ -499,27 +626,19 @@ public class NotificationService : INotificationService
         parameters.Add("Pais", paisId);
         parameters.Add("Role", roleId);
 
-        return await Task.FromResult(
-            _dapper.GetAll<UsersListVm>(
-                "[dbo].[GetUsersByRole]",
-                parameters,
-                commandType: CommandType.StoredProcedure
-            )
+        var users = await _dapper.GetAllAsync<UsersListVm>(
+            GET_USERS_BY_ROLE_SP,
+            parameters,
+            commandType: CommandType.StoredProcedure
         );
+        return users;
     }
 
-    private async Task AddAdminUsersAsync(List<UsersListVm> usersToNotify)
-    {
-        var adminUsers = await Task.Run(
-            () =>
-                usersToNotify
-                    .Where(s => s.Rol != ConstantRoles.Asesor && s.Rol != ConstantRoles.Auditor)
-                    .ToList()
-        );
-
-        usersToNotify.AddRange(adminUsers);
-    }
-
+    /// <summary>
+    /// Agrega usuarios de cuentas especiales a la lista de notificaciones
+    /// </summary>
+    /// <param name="usersToNotify">Lista de usuarios a notificar</param>
+    /// <param name="paisId">ID del país</param>
     private async Task AddSpecialAccountUsersAsync(List<UsersListVm> usersToNotify, int paisId)
     {
         try
@@ -527,17 +646,24 @@ public class NotificationService : INotificationService
             var specialAccounts = await _db
                 .NotificationCustomUsers.AsNoTracking()
                 .Where(s => s.PaisId == paisId || s.Global)
+                .Select(account => new UsersListVm
+                {
+                    Email = account.Email,
+                    FirstName = account.Name,
+                    Rol = ConstantRoles.Admin,
+                    Lang = "es",
+                })
                 .ToListAsync();
 
-            var specialUsers = specialAccounts.Select(account => new UsersListVm
+            if (specialAccounts.Any())
             {
-                Email = account.Email,
-                FirstName = account.Name,
-                Rol = ConstantRoles.Admin,
-                Lang = "es",
-            });
-
-            usersToNotify.AddRange(specialUsers);
+                usersToNotify.AddRange(specialAccounts);
+                _logger.LogInformation(
+                    "Agregadas {Count} cuentas especiales para país {PaisId}",
+                    specialAccounts.Count,
+                    paisId
+                );
+            }
         }
         catch (Exception ex)
         {
@@ -549,50 +675,52 @@ public class NotificationService : INotificationService
         }
     }
 
+    /// <summary>
+    /// Agrega usuarios con roles específicos a la lista de notificaciones
+    /// </summary>
+    /// <param name="usersToNotify">Lista de usuarios a notificar</param>
+    /// <param name="certificacion">Proceso de certificación</param>
     private async Task AddSpecificRoleUsersAsync(
         List<UsersListVm> usersToNotify,
         ProcesoCertificacion certificacion
     )
     {
-        await AddRoleUserIfExistsAsync(usersToNotify, certificacion.AsesorId, ConstantRoles.Asesor);
-
-        await AddRoleUserIfExistsAsync(
-            usersToNotify,
-            certificacion.AuditorId,
-            ConstantRoles.Auditor
-        );
-    }
-
-    private async Task AddRoleUserIfExistsAsync(
-        List<UsersListVm> usersToNotify,
-        string userId,
-        string roleName
-    )
-    {
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        var user = await Task.Run(() => usersToNotify.FirstOrDefault(s => s.Id == userId));
-        if (user != null)
+        var paisId = certificacion.Empresa.PaisId ?? certificacion.Empresa.IdPais;
+        var specificRoles = new Dictionary<string, (string UserId, string RoleName)>
         {
-            _logger.LogInformation(
-                "Adding {RoleName} user {UserId} to notification list",
-                roleName,
-                userId
-            );
+            { ConstantRoles.Asesor, (certificacion.AsesorId, ConstantRoles.Asesor) },
+            { ConstantRoles.Auditor, (certificacion.AuditorId, ConstantRoles.Auditor) },
+        };
 
-            usersToNotify.Add(user);
-        }
-        else
+        foreach (var (role, (userId, roleName)) in specificRoles)
         {
-            _logger.LogWarning(
-                "{RoleName} user {UserId} not found in users list",
-                roleName,
-                userId
-            );
+            if (string.IsNullOrEmpty(userId))
+                continue;
+
+            var users = await GetUsersByRoleAndPaisAsync(ConstantRoles.Admin, paisId, [roleName]);
+            var specificUser = users.FirstOrDefault(u => u.Id == userId);
+
+            if (specificUser != null)
+            {
+                _logger.LogInformation(
+                    "Usuario {Role} {UserId} agregado a la lista de notificaciones",
+                    roleName,
+                    userId
+                );
+                usersToNotify.Add(specificUser);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Usuario {Role} {UserId} no encontrado en la lista",
+                    roleName,
+                    userId
+                );
+            }
         }
     }
 
+    // Método que envía las notificaciones a todos los usuarios
     private async Task SendNotificationsToAllUsersAsync(
         List<UsersListVm> usersToNotify,
         Notificacion notifData,
@@ -601,14 +729,18 @@ public class NotificationService : INotificationService
         Pais paisData
     )
     {
+        // 1. Obtiene el email del remitente desde la configuración
         var senderEmail = _config["EmailSender:UserName"];
+        // 2. Obtiene el usuario de la empresa
         var empresaUser = await GetCompanyUserAsync(empresa);
 
+        // 3. Si existe usuario de empresa, envía la notificación
         if (empresaUser != null)
         {
             await SendCompanyNotificationAsync(empresaUser, notifData, empresa, senderEmail);
         }
 
+        // 4. Envía notificaciones a usuarios internos (no empresas)
         foreach (var user in usersToNotify.Where(s => s.Rol != ConstantRoles.Empresa))
         {
             await SendInternalNotificationAsync(user, notifData, empresa, paisData, senderEmail);
@@ -675,6 +807,12 @@ public class NotificationService : INotificationService
         }
     }
 
+    /// <summary>
+    /// Sends notification to internal users (admins, country technicians)
+    /// </summary>
+    /// <param name="recipient">The recipient user</param>
+    /// <param name="empresa">Company information</param>
+    /// <param name="template">Notification template</param>
     private async Task SendInternalNotificationAsync(
         UsersListVm user,
         Notificacion notifData,

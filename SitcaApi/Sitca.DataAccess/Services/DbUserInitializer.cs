@@ -11,12 +11,12 @@ namespace Sitca.DataAccess.Services;
 
 public class DbUserInitializer(
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole> roleManager,
+    RoleManager<ApplicationRole> roleManager,
     ILogger<DbUserInitializer> logger
 )
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
-    private readonly RoleManager<IdentityRole> _roleManager = roleManager;
+    private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly ILogger<DbUserInitializer> _logger = logger;
 
     private const string DefaultPassword = "Password123!";
@@ -28,13 +28,13 @@ public class DbUserInitializer(
         {
             var users = new List<(ApplicationUser User, string Role)>
             {
-              (CreateUserModel("empresa", "Empresa", "Test"), "Empresa"),
-              (CreateUserModel("ctc", "CTC", "Test"), "CTC"),
-              (CreateUserModel("tecnicopais", "Técnico País", "Test"), "TecnicoPais"),
-              (CreateUserModel("admin", "Admin", "Test"), "Admin"),
-              (CreateUserModel("asesor", "Asesor", "Test", AsesorCompanyId), "Asesor"),
-              (CreateUserModel("auditor", "Auditor", "Test"), "Auditor"),
-              (CreateUserModel("consultor", "Consultor", "Test"), "Consultor")
+                (CreateUserModel("empresa", "Empresa", "Test"), "Empresa"),
+                (CreateUserModel("ctc", "CTC", "Test"), "CTC"),
+                (CreateUserModel("tecnicopais", "Técnico País", "Test"), "TecnicoPais"),
+                (CreateUserModel("admin", "Admin", "Test"), "Admin"),
+                (CreateUserModel("asesor", "Asesor", "Test", AsesorCompanyId), "Asesor"),
+                (CreateUserModel("auditor", "Auditor", "Test"), "Auditor"),
+                (CreateUserModel("consultor", "Consultor", "Test"), "Consultor"),
             };
 
             foreach (var (user, role) in users)
@@ -52,7 +52,12 @@ public class DbUserInitializer(
         }
     }
 
-    private ApplicationUser CreateUserModel(string identifier, string firstName, string lastName, int? compAuditoraId = null)
+    private ApplicationUser CreateUserModel(
+        string identifier,
+        string firstName,
+        string lastName,
+        int? compAuditoraId = null
+    )
     {
         return new ApplicationUser
         {
@@ -77,7 +82,7 @@ public class DbUserInitializer(
             FechaIngreso = DateTime.Now.ToString("dd/MM/yyyy"),
             HojaDeVida = "N/A",
             DocumentoAcreditacion = "N/A",
-            CompAuditoraId = compAuditoraId
+            CompAuditoraId = compAuditoraId,
         };
     }
 
@@ -85,16 +90,24 @@ public class DbUserInitializer(
     {
         try
         {
-            var nameRol = rol.ToString();
+            if (string.IsNullOrEmpty(rol))
+            {
+                return Result<bool>.Failure("El nombre del rol no puede estar vacío");
+            }
+
+            var nameRol = rol.Trim();
             var alreadyExists = await _roleManager.RoleExistsAsync(nameRol);
             if (!alreadyExists)
             {
-                var result = await _roleManager.CreateAsync(new IdentityRole(nameRol));
+                var role = new ApplicationRole(nameRol);
+                var result = await _roleManager.CreateAsync(role);
                 if (!result.Succeeded)
                 {
-                    _logger.LogError("Error al crear rol {Role}: {Errors}",
+                    _logger.LogError(
+                        "Error al crear rol {Role}: {Errors}",
                         nameRol,
-                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                        string.Join(", ", result.Errors.Select(e => e.Description))
+                    );
                     return Result<bool>.Failure($"Error al crear el rol {nameRol}");
                 }
                 _logger.LogInformation("Rol creado: {Role}", nameRol);
@@ -104,7 +117,7 @@ public class DbUserInitializer(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al asegurar roles");
-            return Result<bool>.Failure("Error interno al crear roles");
+            return Result<bool>.Failure($"Error interno al crear rol: {ex.Message}");
         }
     }
 
@@ -122,14 +135,16 @@ public class DbUserInitializer(
                     var appUser = (ApplicationUser)existingUser;
                     appUser.CompAuditoraId = AsesorCompanyId;
                     await _userManager.UpdateAsync(appUser);
-                    _logger.LogInformation("Actualizado CompAuditoraId para usuario {Email}", user.Email);
+                    _logger.LogInformation(
+                        "Actualizado CompAuditoraId para usuario {Email}",
+                        user.Email
+                    );
                 }
                 if (role == "Empresa" && existingUser.EmpresaId == null)
                 {
                     var appUser = (ApplicationUser)existingUser;
                     appUser.CompAuditoraId = 140;
                     await _userManager.UpdateAsync(appUser);
-
                 }
                 return true;
             }
@@ -138,13 +153,19 @@ public class DbUserInitializer(
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, role);
-                _logger.LogInformation("Usuario {Email} creado exitosamente con rol {Role}", user.Email, role);
+                _logger.LogInformation(
+                    "Usuario {Email} creado exitosamente con rol {Role}",
+                    user.Email,
+                    role
+                );
                 return true;
             }
 
-            _logger.LogWarning("Error al crear usuario {Email}: {Errors}",
+            _logger.LogWarning(
+                "Error al crear usuario {Email}: {Errors}",
                 user.Email,
-                string.Join(", ", result.Errors.Select(e => e.Description)));
+                string.Join(", ", result.Errors.Select(e => e.Description))
+            );
             return false;
         }
         catch (Exception ex)
@@ -154,4 +175,3 @@ public class DbUserInitializer(
         }
     }
 }
-

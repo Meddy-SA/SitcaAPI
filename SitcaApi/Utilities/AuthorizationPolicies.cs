@@ -12,6 +12,14 @@ public static class AuthorizationPolicies
         public const string DeleteFiles = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
     }
 
+    public static class Certificaciones
+    {
+        public const string Comenzar = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
+        public const string AsignaAuditor = Constants.Roles.TecnicoPais;
+        public const string GenerarCuestionario =
+            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}, {Constants.Roles.Auditor}, {Constants.Roles.Asesor} ";
+    }
+
     public static class Empresa
     {
         public const string View = Constants.Roles.Empresa;

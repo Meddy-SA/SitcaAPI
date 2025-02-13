@@ -1,38 +1,39 @@
 ﻿@model Sitca.Models.ViewModels.CuestionarioDetailsVm
 
 <style>
-    table {
-        font-family: arial, sans-serif;
-        border-collapse: collapse;
-        width: 100%;
-        page-break-inside: auto
-    }
+  table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: auto
+  }
 
-    td, th {
-        border: 1px solid #dddddd;
-        text-align: left;
-        padding: 8px;
-        page-break-inside: avoid;
-        page-break-after: auto;
-        font-size: 21px
-    }
+  td,
+  th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+    page-break-inside: avoid;
+    page-break-after: auto;
+    font-size: 21px
+  }
 
-    tr:nth-child(even) {
-        background-color: #dddddd;
-    }
+  tr:nth-child(even) {
+    background-color: #dddddd;
+  }
 
-    .center {
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        width: 50%;
-    }
+  .center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+  }
 </style>
 
 @if (Model.Lang == "en")
 {
 
-    <p align="center" style="font-size:65px">SICCS</p>
+<p align="center" style="font-size:65px">SICCS</p>
 <img class="center" src="@Model.path/Resources/Files/logo-caratula-SICCS.png" />
 
 <p style="font-size:38px">File Number <b>@Model.Expediente</b></p>
@@ -42,15 +43,15 @@
 <p style="font-size:38px">Auditor: <b>@Model.Auditor.fullName</b></p>
 
 <p style="font-size:38px">
-    Auditor Card Nº:
-    @if (string.IsNullOrEmpty(Model.Auditor.codigo))
-    {
-        <b>______________</b>
-    }
-    else
-    {
-        <b>@Model.Auditor.codigo</b>
-    }
+  Auditor Card Nº:
+  @if (string.IsNullOrEmpty(Model.Auditor.codigo))
+  {
+  <b>______________</b>
+  }
+  else
+  {
+  <b>@Model.Auditor.codigo</b>
+  }
 
 </p>
 
@@ -61,241 +62,241 @@
 <div style='page-break-after: always;'></div>
 
 
-    int index = 0;
-    int index2 = 0;
+int index = 0;
+int index2 = 0;
 
 
 @foreach (var item in Model.Modulos)
 {
-    index++;
-    <h2>@item.Nomenclatura @item.Nombre</h2>
+index++;
+<h2>@item.Nomenclatura @item.Nombre</h2>
 
-    <table>
-        <tr>
-            <td style="width:15%">Requirement</td>
-            <td style="width:60%">Question</td>
-            <td style="width:10%">Yes/No</td>
-            <td>Verification Mode</td>
-        </tr>
+<table>
+  <tr>
+    <td style="width:15%">Requirement</td>
+    <td style="width:60%">Question</td>
+    <td style="width:10%">Yes/No</td>
+    <td>Verification Mode</td>
+  </tr>
 
-        @foreach (var subItem in item.Items)
-        {
-            <tr>
-                <td>
-                    @subItem.Nomenclatura
-                    @if (subItem.Obligatoria)
-                    {
-                        <span>(O)</span>
-                    }
-                </td>
-                <td>@subItem.Text</td>
-                <td>
+  @foreach (var subItem in item.Items)
+  {
+  <tr>
+    <td>
+      @subItem.Nomenclatura
+      @if (subItem.Obligatoria)
+      {
+      <span>(O)</span>
+      }
+    </td>
+    <td>@subItem.Text</td>
+    <td>
 
-                    @switch (subItem.Result)
-                    {
-                        case -1:
-                            <span><b>No</b></span>
-                            break;
-                        case 1:
-                            <span><b>Yes</b></span>
-                            break;
-                        case 2:
-                            <span><b>N/A</b></span>
-                            break;
+      @switch (subItem.Result)
+      {
+      case -1:
+      <span><b>No</b></span>
+      break;
+      case 1:
+      <span><b>Yes</b></span>
+      break;
+      case 2:
+      <span><b>N/A</b></span>
+      break;
 
-                    }
+      }
 
-                </td>
-                <td></td>
-            </tr>
-        }
+    </td>
+    <td></td>
+  </tr>
+  }
 
-    </table>
-
-
-    <h3>Company results</h3>
-    <h2>Results report</h2>
-
-    <table>
-        <tr>
-            <td colspan="7">results by module @item.Nomenclatura @item.Nombre </td>
-        </tr>
-        <tr>
-            <td>
-                Module
-            </td>
-
-            <td>
-                Mandatory
-                Evaluated
-            </td>
-            <td>
-                Complementary
-                Evaluated
-            </td>
+</table>
 
 
-            <td>
-                Mandatory
-                Compliance
-            </td>
+<h3>Company results</h3>
+<h2>Results report</h2>
 
-            <td>
-                Complementary
-                Compliance
-            </td>
+<table>
+  <tr>
+    <td colspan="7">results by module @item.Nomenclatura @item.Nombre </td>
+  </tr>
+  <tr>
+    <td>
+      Module
+    </td>
 
-            <td>
-                Percentaje
-                Mandatory
-            </td>
+    <td>
+      Mandatory
+      Evaluated
+    </td>
+    <td>
+      Complementary
+      Evaluated
+    </td>
 
-            <td>
-                Percentaje
-                Complementary
-            </td>
-        </tr>
-        <tr>
-            <td>@index</td>
-            <td>@item.Resultados.TotalObligatorias</td>
-            <td>@item.Resultados.TotalComplementarias</td>
 
-            <td>@item.Resultados.ObligCumple</td>
-            <td>@item.Resultados.ComplementCumple</td>
+    <td>
+      Mandatory
+      Compliance
+    </td>
 
-            <td>@item.Resultados.PorcObligCumple</td>
-            <td>@item.Resultados.PorcComplementCumple</td>
-        </tr>
-        <tr>
-            <td colspan="7">
-                <b>Sugested Result: @item.Resultados.ResultModulo</b>
-            </td>
-        </tr>
-    </table>
+    <td>
+      Complementary
+      Compliance
+    </td>
 
-    <div style='page-break-after: always;'></div>
+    <td>
+      Percentaje
+      Mandatory
+    </td>
+
+    <td>
+      Percentaje
+      Complementary
+    </td>
+  </tr>
+  <tr>
+    <td>@index</td>
+    <td>@item.Resultados.TotalObligatorias</td>
+    <td>@item.Resultados.TotalComplementarias</td>
+
+    <td>@item.Resultados.ObligCumple</td>
+    <td>@item.Resultados.ComplementCumple</td>
+
+    <td>@item.Resultados.PorcObligCumple</td>
+    <td>@item.Resultados.PorcComplementCumple</td>
+  </tr>
+  <tr>
+    <td colspan="7">
+      <b>Sugested Result: @item.Resultados.ResultModulo</b>
+    </td>
+  </tr>
+</table>
+
+<div style='page-break-after: always;'></div>
 }
 
 
 <h2>Results report</h2>
 @foreach (var item in Model.Modulos)
 {
-    index2++;
-    <h2>@item.Nomenclatura @item.Nombre</h2>
+index2++;
+<h2>@item.Nomenclatura @item.Nombre</h2>
 
 
-    <table>
-        <tr>
-            <td colspan="7">Results Module @item.Nomenclatura @item.Nombre </td>
-        </tr>
-        <tr>
-            <td>
-                Module
-            </td>
+<table>
+  <tr>
+    <td colspan="7">Results Module @item.Nomenclatura @item.Nombre </td>
+  </tr>
+  <tr>
+    <td>
+      Module
+    </td>
 
-            <td>
-                Mandatory
-                Evaluated
-            </td>
-            <td>
-                Complementary
-                Evaluated
-            </td>
+    <td>
+      Mandatory
+      Evaluated
+    </td>
+    <td>
+      Complementary
+      Evaluated
+    </td>
 
 
-            <td>
-                Mandatory
-                Compliance
-            </td>
+    <td>
+      Mandatory
+      Compliance
+    </td>
 
-            <td>
-                Complementary
-                Compliance
-            </td>
+    <td>
+      Complementary
+      Compliance
+    </td>
 
-            <td>
-                Percentaje
-                Mandatory
-            </td>
+    <td>
+      Percentaje
+      Mandatory
+    </td>
 
-            <td>
-                Percentaje
-                Complementary
-            </td>
-        </tr>
-        <tr>
-            <td>@index2</td>
-            <td>@item.Resultados.TotalObligatorias</td>
-            <td>@item.Resultados.TotalComplementarias</td>
+    <td>
+      Percentaje
+      Complementary
+    </td>
+  </tr>
+  <tr>
+    <td>@index2</td>
+    <td>@item.Resultados.TotalObligatorias</td>
+    <td>@item.Resultados.TotalComplementarias</td>
 
-            <td>@item.Resultados.ObligCumple</td>
-            <td>@item.Resultados.ComplementCumple</td>
+    <td>@item.Resultados.ObligCumple</td>
+    <td>@item.Resultados.ComplementCumple</td>
 
-            <td>@item.Resultados.PorcObligCumple</td>
-            <td>@item.Resultados.PorcComplementCumple</td>
-        </tr>
-        <tr>
-            <td colspan="7">
-                <b>Sugested Result: @item.Resultados.ResultModulo</b>
-            </td>
-        </tr>
-    </table>
+    <td>@item.Resultados.PorcObligCumple</td>
+    <td>@item.Resultados.PorcComplementCumple</td>
+  </tr>
+  <tr>
+    <td colspan="7">
+      <b>Sugested Result: @item.Resultados.ResultModulo</b>
+    </td>
+  </tr>
+</table>
 
-    
+
 }
 <div style='page-break-after: always;'></div>
 
 
 @foreach (var item in Model.Modulos)
 {
-    <h3>Exhibit @item.Nomenclatura @item.Nombre Audit Photographic Report SICCS</h3>
+<h3>Exhibit @item.Nomenclatura @item.Nombre Audit Photographic Report SICCS</h3>
 
-    <table>
+<table>
 
-        <tr>
-            <td style="width:15%">Item</td>
-            <td style="width:30%">Document</td>
-            <td>Image</td>
-        </tr>
-        @foreach (var subItem in item.Items)
-        {
-            if (subItem.Archivos != null)
-            {
-                foreach (var archivo in subItem.Archivos)
-                {
-                    <tr>
-                        <td>
-                            @subItem.Nomenclatura
-                        </td>
-                        <td>
-                            @archivo.Nombre 
-                            <p style="font-size:18px">@subItem.Text</p>
-                        </td>
-                        <td>
-                            <img style="max-height:500px;" src="@Model.path/Resources/Files/@archivo.Ruta" />
-                        </td>
-                    </tr>
-                }
+  <tr>
+    <td style="width:15%">Item</td>
+    <td style="width:30%">Document</td>
+    <td>Image</td>
+  </tr>
+  @foreach (var subItem in item.Items)
+  {
+  if (subItem.Archivos != null)
+  {
+  foreach (var archivo in subItem.Archivos)
+  {
+  <tr>
+    <td>
+      @subItem.Nomenclatura
+    </td>
+    <td>
+      @archivo.Nombre
+      <p style="font-size:18px">@subItem.Text</p>
+    </td>
+    <td>
+      <img style="max-height:500px;" src="@Model.path/Resources/Files/@archivo.Ruta" />
+    </td>
+  </tr>
+  }
 
-            }
-
-
+  }
 
 
-        }
 
-    </table>
 
-        <div style='page-break-after: always;'></div>
+  }
 
-    }
+</table>
+
+<div style='page-break-after: always;'></div>
+
+}
 
 }
 else
 {
 
 
-    <p align="center" style="font-size:65px">Sistema Integrado Centroamericano de calidad y sostenibilidad</p>
+<p align="center" style="font-size:65px">Sistema Integrado Centroamericano de calidad y sostenibilidad</p>
 <img class="center" src="@Model.path/Resources/Files/logo-caratula-SICCS.png" />
 
 <p style="font-size:38px">Número de Expediente <b>@Model.Expediente</b></p>
@@ -305,15 +306,15 @@ else
 <p style="font-size:38px">Auditor: <b>@Model.Auditor.fullName</b></p>
 
 <p style="font-size:38px">
-    Codigo Auditor:
-    @if (string.IsNullOrEmpty(Model.Auditor.codigo))
-    {
-        <b>______________</b>
-    }
-    else
-    {
-        <b>@Model.Auditor.codigo</b>
-    }
+  Codigo Auditor:
+  @if (string.IsNullOrEmpty(Model.Auditor.codigo))
+  {
+  <b>______________</b>
+  }
+  else
+  {
+  <b>@Model.Auditor.codigo</b>
+  }
 
 </p>
 
@@ -324,236 +325,235 @@ else
 <div style='page-break-after: always;'></div>
 
 
-    int index = 0;
-    int index2 = 0;
+int index = 0;
+int index2 = 0;
 
 
 @foreach (var item in Model.Modulos)
 {
-    index++;
-    <h2>@item.Nomenclatura @item.Nombre</h2>
+index++;
+<h2>@item.Nomenclatura @item.Nombre</h2>
 
-    <table>
-        <tr>
-            <td style="width:15%">Requerimiento</td>
-            <td style="width:60%">Pregunta</td>
-            <td style="width:10%">Si/No</td>
-            <td>Modo Verificacion</td>
-        </tr>
+<table>
+  <tr>
+    <td style="width:15%">Requerimiento</td>
+    <td style="width:60%">Pregunta</td>
+    <td style="width:10%">Si/No</td>
+    <td>Modo Verificacion</td>
+  </tr>
 
-        @foreach (var subItem in item.Items)
-        {
-            <tr>
-                <td>
-                    @subItem.Nomenclatura
-                    @if (subItem.Obligatoria)
-                    {
-                        <span>(O)</span>
-                    }
-                </td>
-                <td>@subItem.Text</td>
-                <td>
+  @foreach (var subItem in item.Items)
+  {
+  <tr>
+    <td>
+      @subItem.Nomenclatura
+      @if (subItem.Obligatoria)
+      {
+      <span>(O)</span>
+      }
+    </td>
+    <td>@subItem.Text</td>
+    <td>
 
-                    @switch (subItem.Result)
-                    {
-                        case -1:
-                            <span><b>No</b></span>
-                            break;
-                        case 1:
-                            <span><b>Si</b></span>
-                            break;
-                        case 2:
-                            <span><b>N/A</b></span>
-                            break;
+      @switch (subItem.Result)
+      {
+      case -1:
+      <span><b>No</b></span>
+      break;
+      case 1:
+      <span><b>Si</b></span>
+      break;
+      case 2:
+      <span><b>N/A</b></span>
+      break;
 
-                    }
+      }
 
-                </td>
-                <td></td>
-            </tr>
-        }
+    </td>
+    <td></td>
+  </tr>
+  }
 
-    </table>
-
-
-    <h3>Resumen de Resultados de la Empresa</h3>
-    <h2>Cuadro Resumen de resultados</h2>
-
-    <table>
-        <tr>
-            <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
-        </tr>
-        <tr>
-            <td>
-                Modulo
-            </td>
-
-            <td>
-                Obligatorios
-                Evaluados
-            </td>
-            <td>
-                Complementarios
-                Evaluados
-            </td>
+</table>
 
 
-            <td>
-                Obligatiorios
-                Cumplidos
-            </td>
+<h3>Resumen de Resultados de la Empresa</h3>
+<h2>Cuadro Resumen de resultados</h2>
 
-            <td>
-                Complementarios
-                Cumplidos
-            </td>
+<table>
+  <tr>
+    <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
+  </tr>
+  <tr>
+    <td>
+      Modulo
+    </td>
 
-            <td>
-                Porcentaje
-                Obligatiorios
-            </td>
+    <td>
+      Obligatorios
+      Evaluados
+    </td>
+    <td>
+      Complementarios
+      Evaluados
+    </td>
 
-            <td>
-                Porcentaje
-                Complementarios
-            </td>
-        </tr>
-        <tr>
-            <td>@index</td>
-            <td>@item.Resultados.TotalObligatorias</td>
-            <td>@item.Resultados.TotalComplementarias</td>
 
-            <td>@item.Resultados.ObligCumple</td>
-            <td>@item.Resultados.ComplementCumple</td>
+    <td>
+      Obligatiorios
+      Cumplidos
+    </td>
 
-            <td>@item.Resultados.PorcObligCumple</td>
-            <td>@item.Resultados.PorcComplementCumple</td>
-        </tr>
-        <tr>
-            <td colspan="7">
-                <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
-            </td>
-        </tr>
-    </table>
+    <td>
+      Complementarios
+      Cumplidos
+    </td>
 
-    <div style='page-break-after: always;'></div>
+    <td>
+      Porcentaje
+      Obligatiorios
+    </td>
+
+    <td>
+      Porcentaje
+      Complementarios
+    </td>
+  </tr>
+  <tr>
+    <td>@index</td>
+    <td>@item.Resultados.TotalObligatorias</td>
+    <td>@item.Resultados.TotalComplementarias</td>
+
+    <td>@item.Resultados.ObligCumple</td>
+    <td>@item.Resultados.ComplementCumple</td>
+
+    <td>@item.Resultados.PorcObligCumple</td>
+    <td>@item.Resultados.PorcComplementCumple</td>
+  </tr>
+  <tr>
+    <td colspan="7">
+      <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
+    </td>
+  </tr>
+</table>
+
+<div style='page-break-after: always;'></div>
 }
 
 
 <h2>Cuadro Resumen de resultados</h2>
 @foreach (var item in Model.Modulos)
 {
-    index2++;
-    <h2>@item.Nomenclatura @item.Nombre</h2>
+index2++;
+<h2>@item.Nomenclatura @item.Nombre</h2>
 
 
-    <table>
-        <tr>
-            <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
-        </tr>
-        <tr>
-            <td>
-                Modulo
-            </td>
+<table>
+  <tr>
+    <td colspan="7">Resumen de Resultados modulo @item.Nomenclatura @item.Nombre </td>
+  </tr>
+  <tr>
+    <td>
+      Modulo
+    </td>
 
-            <td>
-                Obligatorios
-                Evaluados
-            </td>
-            <td>
-                Complementarios
-                Evaluados
-            </td>
+    <td>
+      Obligatorios
+      Evaluados
+    </td>
+    <td>
+      Complementarios
+      Evaluados
+    </td>
 
 
-            <td>
-                Obligatiorios
-                Cumplidos
-            </td>
+    <td>
+      Obligatiorios
+      Cumplidos
+    </td>
 
-            <td>
-                Complementarios
-                Cumplidos
-            </td>
+    <td>
+      Complementarios
+      Cumplidos
+    </td>
 
-            <td>
-                Porcentaje
-                Obligatiorios
-            </td>
+    <td>
+      Porcentaje
+      Obligatiorios
+    </td>
 
-            <td>
-                Porcentaje
-                Complementarios
-            </td>
-        </tr>
-        <tr>
-            <td>@index2</td>
-            <td>@item.Resultados.TotalObligatorias</td>
-            <td>@item.Resultados.TotalComplementarias</td>
+    <td>
+      Porcentaje
+      Complementarios
+    </td>
+  </tr>
+  <tr>
+    <td>@index2</td>
+    <td>@item.Resultados.TotalObligatorias</td>
+    <td>@item.Resultados.TotalComplementarias</td>
 
-            <td>@item.Resultados.ObligCumple</td>
-            <td>@item.Resultados.ComplementCumple</td>
+    <td>@item.Resultados.ObligCumple</td>
+    <td>@item.Resultados.ComplementCumple</td>
 
-            <td>@item.Resultados.PorcObligCumple</td>
-            <td>@item.Resultados.PorcComplementCumple</td>
-        </tr>
-        <tr>
-            <td colspan="7">
-                <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
-            </td>
-        </tr>
-    </table>
+    <td>@item.Resultados.PorcObligCumple</td>
+    <td>@item.Resultados.PorcComplementCumple</td>
+  </tr>
+  <tr>
+    <td colspan="7">
+      <b>Resultado Sugerido: @item.Resultados.ResultModulo</b>
+    </td>
+  </tr>
+</table>
 
-    
+
 }
 <div style='page-break-after: always;'></div>
 
 
 @foreach (var item in Model.Modulos)
 {
-    <h3>Anexo @item.Nomenclatura @item.Nombre Informe fotográfico Auditoria SICCS</h3>
+<h3>Anexo @item.Nomenclatura @item.Nombre Informe fotográfico Auditoria SICCS</h3>
 
-    <table>
+<table>
 
-        <tr>
-            <td style="width:15%">Item</td>
-            <td style="width:15%">Comprobación:Documental</td>
-            <td>Fotografia</td>
-        </tr>
-        @foreach (var subItem in item.Items)
-        {
-            if (subItem.Archivos != null)
-            {
-                foreach (var archivo in subItem.Archivos)
-                {
-                    <tr>
-                        <td>
-                            @subItem.Nomenclatura
-                        </td>
-                        <td>
-                            @archivo.Nombre 
-                            <p style="font-size:18px">@subItem.Text</p>
-                        </td>
-                        <td>
-                            <img style="max-height:500px;" src="@Model.path/Resources/Files/@archivo.Ruta" />
-                        </td>
-                    </tr>
-                }
+  <tr>
+    <td style="width:15%">Item</td>
+    <td style="width:15%">Comprobación:Documental</td>
+    <td>Fotografia</td>
+  </tr>
+  @foreach (var subItem in item.Items)
+  {
+  if (subItem.Archivos != null)
+  {
+  foreach (var archivo in subItem.Archivos)
+  {
+  <tr>
+    <td>
+      @subItem.Nomenclatura
+    </td>
+    <td>
+      @archivo.Nombre
+      <p style="font-size:18px">@subItem.Text</p>
+    </td>
+    <td>
+      <img style="max-height:500px;" src="@Model.path/Resources/Files/@archivo.Ruta" />
+    </td>
+  </tr>
+  }
 
-            }
-
-
+  }
 
 
-        }
-
-    </table>
-
-        <div style='page-break-after: always;'></div>
-
-    }
 
 
-    
+  }
+
+</table>
+
+<div style='page-break-after: always;'></div>
+
 }
 
+
+
+}

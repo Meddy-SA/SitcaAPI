@@ -1159,30 +1159,38 @@ namespace Sitca.DataAccess.Data.Repository
             int companyId
         )
         {
-            var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
+            try
+            {
+                var noCertificado = user.Lenguage == "es" ? "No certificado" : "Not certified";
 
-            return await _db
-                .ProcesoCertificacion.Include(i => i.Resultados)
-                .ThenInclude(it => it.Distintivo)
-                .Include(x => x.AsesorProceso)
-                .Include(x => x.AuditorProceso)
-                .Include(x => x.UserGenerador)
-                .Where(s => s.EmpresaId == companyId)
-                .Select(x => new CertificacionDetailsVm
-                {
-                    Status = Utilities.Utilities.CambiarIdiomaEstado(x.Status, user.Lenguage),
-                    FechaInicio = x.FechaInicio.ToUtc(),
-                    FechaFin = x.FechaFinalizacion.ToUtc(),
-                    Expediente = x.NumeroExpediente,
-                    Recertificacion = x.Recertificacion,
-                    Asesor = MapCommonUser(x.AsesorProceso),
-                    Auditor = x.AuditorId != null ? MapCommonUser(x.AuditorProceso) : null,
-                    Generador = MapCommonUser(x.UserGenerador),
-                    Resultado = GetResultado(x.Resultados, user.Lenguage, noCertificado),
-                    FechaVencimiento = x.FechaVencimiento.ToStringArg(),
-                    Id = x.Id,
-                })
-                .ToListAsync();
+                return await _db
+                    .ProcesoCertificacion.Include(i => i.Resultados)
+                    .ThenInclude(it => it.Distintivo)
+                    .Include(x => x.AsesorProceso)
+                    .Include(x => x.AuditorProceso)
+                    .Include(x => x.UserGenerador)
+                    .Where(s => s.EmpresaId == companyId)
+                    .Select(x => new CertificacionDetailsVm
+                    {
+                        Status = Utilities.Utilities.CambiarIdiomaEstado(x.Status, user.Lenguage),
+                        FechaInicio = x.FechaInicio.ToUtc(),
+                        FechaFin = x.FechaFinalizacion.ToUtc(),
+                        Expediente = x.NumeroExpediente,
+                        Recertificacion = x.Recertificacion,
+                        Asesor = x.AsesorProceso != null ? MapCommonUser(x.AsesorProceso) : null,
+                        Auditor = x.AuditorProceso != null ? MapCommonUser(x.AuditorProceso) : null,
+                        Generador = x.UserGenerador != null ? MapCommonUser(x.UserGenerador) : null,
+                        Resultado = GetResultado(x.Resultados, user.Lenguage, noCertificado),
+                        FechaVencimiento = x.FechaVencimiento.ToStringArg(),
+                        Id = x.Id,
+                    })
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<CertificacionDetailsVm>();
+            }
         }
 
         private static CommonUserVm MapCommonUser(ApplicationUser user)
