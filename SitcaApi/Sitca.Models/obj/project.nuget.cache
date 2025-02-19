@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "EICyTqEsJbbqhfQhaQAG4y4rV7Ru/goFX2oWvMjy77OrWcsZ8tz+7p8HWSM0jYAC2oZzC0Rxjxcu0R7PvDcvZg==",
+  "dgSpecHash": "Ssyf7cbSY3Wg6VMfElq3xyAwpImp7T62gueMGdpjJkIB6+jfC9znpP7LmBziPc2YsUY9yOyr8Gu++gwvM06szQ==",
   "success": true,
   "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
   "expectedPackageFiles": [
@@ -53,6 +53,7 @@
     "/Users/leonardoillanez/.nuget/packages/microsoft.win32.systemevents/6.0.0/microsoft.win32.systemevents.6.0.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/nettopologysuite/2.5.0/nettopologysuite.2.5.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/nettopologysuite.io.sqlserverbytes/2.1.0/nettopologysuite.io.sqlserverbytes.2.1.0.nupkg.sha512",
+    "/Users/leonardoillanez/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/system.collections.immutable/5.0.0/system.collections.immutable.5.0.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/system.configuration.configurationmanager/6.0.1/system.configuration.configurationmanager.6.0.1.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/system.diagnostics.diagnosticsource/6.0.0/system.diagnostics.diagnosticsource.6.0.0.nupkg.sha512",

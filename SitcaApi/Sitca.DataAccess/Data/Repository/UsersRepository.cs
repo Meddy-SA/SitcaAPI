@@ -11,6 +11,7 @@ using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
+using Roles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository
 {
@@ -43,22 +44,345 @@ namespace Sitca.DataAccess.Data.Repository
             return true;
         }
 
-        public async Task<List<UsersListVm>> GetPersonal(int pais, int EmpresaAuditoraId)
+        public async Task<Result<List<CompAuditoraListVm>>> GetCompaniesAsync(int paisId)
         {
-            var dbPara = new DynamicParameters();
+            try
+            {
+                var companies = await _db
+                    .CompAuditoras.AsNoTracking()
+                    .Include(c => c.Pais)
+                    .Include(c => c.Usuarios.Where(u => u.Active))
+                    .Where(c => (c.PaisId == paisId || paisId == 0) && !c.Special)
+                    .Select(c => new CompAuditoraListVm
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        Email = c.Email,
+                        Telefono = c.Telefono,
+                        Direccion = c.Direccion,
+                        PaisId = c.PaisId,
+                        Pais = c.Pais.Name,
+                        Status = c.Status,
+                        Representante = c.Representante,
+                        NumeroCertificado = c.NumeroCertificado,
+                        TotalUsuarios = c.Usuarios.Count,
+                        VencimientoConcesion =
+                            c.FechaFinConcesion != null
+                                ? c.FechaFinConcesion.Value.ToString("dd/MM/yyyy")
+                                : null,
+                        Usuarios = c
+                            .Usuarios.Select(u => new UsersListVm
+                            {
+                                Id = u.Id,
+                                Email = u.Email,
+                                FirstName = u.FirstName,
+                                LastName = u.LastName,
+                                PhoneNumber = u.PhoneNumber ?? string.Empty,
+                                Codigo = u.Codigo,
+                                NumeroCarnet = u.NumeroCarnet,
+                                VencimientoCarnet = u.VencimientoCarnet.ToString(),
+                                Active = u.Active,
+                                Rol = "ROL", // Si necesitas el rol específico, deberías incluir UserRoles
+                                DocumentoIdentidad = u.DocumentoIdentidad,
+                                Profesion = u.Profesion,
+                                Lang = u.Lenguage,
+                            })
+                            .ToList(),
+                    })
+                    .ToListAsync();
 
-            dbPara.Add("Pais", pais);
-            dbPara.Add("CompanyId", EmpresaAuditoraId);
+                if (!companies.Any())
+                {
+                    _logger.LogInformation(
+                        "No se encontraron compañías auditoras para el país {PaisId}",
+                        paisId
+                    );
+                    return Result<List<CompAuditoraListVm>>.Success(new List<CompAuditoraListVm>());
+                }
 
-            var result = await Task.FromResult(
-                _dapper.GetAll<UsersListVm>(
-                    "[dbo].[GetUserByCompany]",
-                    dbPara,
-                    commandType: CommandType.StoredProcedure
-                )
+                return Result<List<CompAuditoraListVm>>.Success(companies);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener las compañías auditoras para el país {PaisId}",
+                    paisId
+                );
+                return Result<List<CompAuditoraListVm>>.Failure(
+                    $"Error al obtener las compañías auditoras: {ex.Message}"
+                );
+            }
+        }
+
+        public async Task<Result<List<UsersListVm>>> GetPersonalAsync(
+            int paisId,
+            int empresaAuditoraId
+        )
+        {
+            try
+            {
+                var allowedRoles = new[] { Roles.Asesor, Roles.Auditor };
+
+                // Construir la consulta base
+                IQueryable<ApplicationUser> query = _db
+                    .Users.AsNoTracking()
+                    .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .Include(u => u.Pais);
+
+                // Aplicar filtros
+                query = query.Where(u =>
+                    (paisId == 0 || u.PaisId == paisId)
+                    && u.Active
+                    && u.UserRoles.Any(ur => allowedRoles.Contains(ur.Role.Name))
+                );
+
+                // Aplicar filtro de empresa auditora si es necesario
+                if (empresaAuditoraId != 0)
+                {
+                    query = query.Where(u => u.CompAuditoraId == empresaAuditoraId);
+                }
+
+                // Proyección a DTO
+                var usersQuery = query.Select(u => new UsersListVm
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    PhoneNumber = u.PhoneNumber,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    PaisId = u.PaisId ?? 0,
+                    Codigo = u.Codigo,
+                    Direccion = u.Direccion,
+                    Ciudad = u.Ciudad,
+                    Departamento = u.Departamento,
+                    FechaIngreso = u.FechaIngreso,
+                    NumeroCarnet = u.NumeroCarnet,
+                    Rol = u.UserRoles.First().Role.Name,
+                    Active = u.Active,
+                    CompAuditoraId = u.CompAuditoraId,
+                    Pais = u.Pais != null ? u.Pais.Name : string.Empty,
+                });
+
+                // Ejecutar la consulta
+                var users = await usersQuery.ToListAsync();
+
+                return Result<List<UsersListVm>>.Success(users);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error al obtener los usuarios");
+                return Result<List<UsersListVm>>.Failure(
+                    $"Error al obtener los usuarios: {exception.Message}"
+                );
+            }
+        }
+
+        // Método base para validaciones comunes
+        private async Task<Result<bool>> ValidateCompanyAndUsersAsync(
+            int companyId,
+            string[] userIds,
+            bool checkExistingAssignment = false
+        )
+        {
+            if (companyId <= 0)
+                return Result<bool>.Failure("ID de compañía inválido");
+
+            if (userIds == null || !userIds.Any())
+                return Result<bool>.Failure("Debe proporcionar al menos un usuario");
+
+            var companyExists = await _db
+                .CompAuditoras.AsNoTracking()
+                .AnyAsync(c => c.Id == companyId);
+
+            if (!companyExists)
+                return Result<bool>.Failure($"No se encontró la compañía con ID {companyId}");
+
+            if (checkExistingAssignment)
+            {
+                var alreadyAssignedUsers = await _db
+                    .Users.AsNoTracking()
+                    .Where(u =>
+                        userIds.Contains(u.Id)
+                        && u.CompAuditoraId != null
+                        && u.CompAuditoraId != companyId
+                    )
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.CompAuditoraId,
+                        u.FirstName,
+                        u.LastName,
+                    })
+                    .ToListAsync();
+
+                if (alreadyAssignedUsers.Any())
+                {
+                    var companiesInfo = await _db
+                        .CompAuditoras.AsNoTracking()
+                        .Where(c =>
+                            alreadyAssignedUsers.Select(u => u.CompAuditoraId).Contains(c.Id)
+                        )
+                        .ToDictionaryAsync(c => c.Id, c => c.Name);
+
+                    var conflicts = alreadyAssignedUsers
+                        .Select(u =>
+                            $"Usuario {u.FirstName} {u.LastName} ya está asignado a {companiesInfo[u.CompAuditoraId.Value]}"
+                        )
+                        .ToList();
+
+                    return Result<bool>.Failure(
+                        $"Algunos usuarios ya están asignados a otras compañías: {string.Join(", ", conflicts)}"
+                    );
+                }
+            }
+
+            return Result<bool>.Success(true);
+        }
+
+        // Método genérico para ejecutar operaciones con usuarios
+        private async Task<Result<T>> ExecuteUserOperationAsync<T>(
+            int companyId,
+            string[] userIds,
+            Func<IList<ApplicationUser>, Task<T>> operation,
+            string operationName
+        )
+        {
+            try
+            {
+                var strategy = _db.Database.CreateExecutionStrategy();
+
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _db.Database.BeginTransactionAsync();
+                    try
+                    {
+                        var users = await _db
+                            .Users.Where(u => userIds.Contains(u.Id))
+                            .ToListAsync();
+
+                        var foundUserIds = users.Select(u => u.Id).ToHashSet();
+                        var missingUserIds = userIds.Except(foundUserIds).ToList();
+
+                        if (missingUserIds.Any())
+                            return Result<T>.Failure(
+                                $"No se encontraron los siguientes usuarios: {string.Join(", ", missingUserIds)}"
+                            );
+
+                        var result = await operation(users.Cast<ApplicationUser>().ToList());
+                        await _db.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        return Result<T>.Success(result);
+                    }
+                    catch (DbUpdateConcurrencyException ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(
+                            ex,
+                            "Error de concurrencia al {Operation} usuarios de la compañía {CompanyId}",
+                            operationName,
+                            companyId
+                        );
+                        return Result<T>.Failure(
+                            $"Error de concurrencia al {operationName} usuarios"
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(
+                            "Error no controlado al {Operation} usuarios de la companía {CompanyId}. {Error}",
+                            operationName,
+                            companyId,
+                            ex.Message
+                        );
+                        throw;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error no controlado al {Operation} usuarios de la compañía {CompanyId}",
+                    operationName,
+                    companyId
+                );
+                return Result<T>.Failure($"Error al {operationName} usuarios: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<CompAuditoras>> AssignUserToCompanyAsync(
+            int companyId,
+            string[] userIds
+        )
+        {
+            var validationResult = await ValidateCompanyAndUsersAsync(companyId, userIds, true);
+            if (!validationResult.IsSuccess)
+                return Result<CompAuditoras>.Failure(validationResult.Error);
+
+            return await ExecuteUserOperationAsync<CompAuditoras>(
+                companyId,
+                userIds,
+                async users =>
+                {
+                    var company = await _db
+                        .CompAuditoras.Include(c => c.Usuarios)
+                        .FirstAsync(c => c.Id == companyId);
+
+                    foreach (var user in users)
+                    {
+                        user.CompAuditoraId = companyId;
+                        _db.Entry(user).State = EntityState.Modified;
+                    }
+
+                    _logger.LogInformation(
+                        "Asignados {UserCount} usuarios a la compañía {CompanyId}",
+                        users.Count,
+                        companyId
+                    );
+
+                    return company;
+                },
+                "asignar"
             );
+        }
 
-            return result;
+        public async Task<Result<bool>> UnassignUsersFromCompanyAsync(
+            int companyId,
+            string[] userIds
+        )
+        {
+            var validationResult = await ValidateCompanyAndUsersAsync(companyId, userIds);
+            if (!validationResult.IsSuccess)
+                return Result<bool>.Failure(validationResult.Error);
+
+            return await ExecuteUserOperationAsync<bool>(
+                companyId,
+                userIds,
+                async users =>
+                {
+                    var usrs = await Task.FromResult(
+                        users.Where(u => u.CompAuditoraId == companyId).ToList()
+                    );
+                    foreach (var user in usrs)
+                    {
+                        user.CompAuditoraId = null;
+                        _db.Entry(user).State = EntityState.Modified;
+                    }
+
+                    _logger.LogInformation(
+                        "Desasignados {UserCount} usuarios de la compañía {CompanyId}",
+                        users.Count,
+                        companyId
+                    );
+
+                    return true;
+                },
+                "desasignar"
+            );
         }
 
         public async Task<Result<List<UsersListVm>>> GetUsersAsync(

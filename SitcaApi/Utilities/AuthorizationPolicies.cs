@@ -14,6 +14,8 @@ public static class AuthorizationPolicies
 
     public static class Certificaciones
     {
+        public const string ConvertirARecetificacion =
+            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
         public const string Comenzar = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
         public const string AsignaAuditor = Constants.Roles.TecnicoPais;
         public const string GenerarCuestionario =
@@ -28,6 +30,6 @@ public static class AuthorizationPolicies
         public const string AdmTecCons =
             $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}, {Constants.Roles.Consultor}";
         public const string Details =
-            $"{Constants.Roles.TecnicoPais}, {Constants.Roles.Admin}, {Constants.Roles.Asesor}, {Constants.Roles.Auditor}, {Constants.Roles.CTC}, {Constants.Roles.Consultor}";
+            $"{Constants.Roles.TecnicoPais},{Constants.Roles.Admin},{Constants.Roles.Asesor},{Constants.Roles.Auditor},{Constants.Roles.CTC},{Constants.Roles.Consultor}, {Constants.Roles.EmpresaAuditora}";
     }
 }

@@ -1,18 +1,18 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.Linq;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
-using Sitca.Extensions;
-using Utilities.Common;
+using Sitca.Models.ViewModels;
+using Roles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.Controllers
 {
@@ -23,7 +23,6 @@ namespace Sitca.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _config;
         private readonly UserManager<ApplicationUser> _userManager;
-
 
         public CompaniaAuditoraController(
             IUnitOfWork unitOfWork,
@@ -44,7 +43,8 @@ namespace Sitca.Controllers
             {
                 var res = await _unitOfWork.CompañiasAuditoras.Get(id);
 
-                if (res == null) return NotFound();
+                if (res == null)
+                    return NotFound();
 
                 var response = Result<CompAuditoras>.Success(res);
 
@@ -52,28 +52,38 @@ namespace Sitca.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, Result<CompAuditoras>.Failure($"An error occurred while retrieving the audit company: {ex.Message}"));
+                return StatusCode(
+                    500,
+                    Result<CompAuditoras>.Failure(
+                        $"An error occurred while retrieving the audit company: {ex.Message}"
+                    )
+                );
             }
         }
 
-        [HttpGet]
+        [HttpGet("available/{id}")]
         [Authorize]
-        [Route("GetPersonal")]
-        public async Task<IActionResult> GetPersonal(int? idPais, int idEmpresa)
+        public async Task<ActionResult<Result<List<UsersListVm>>>> GetUsersByCompany(int id)
+        {
+            var res = await _unitOfWork.Users.GetPersonalAsync(0, id);
+            return this.HandleResponse(res);
+        }
+
+        [HttpGet("get-companies")]
+        [Authorize]
+        public async Task<ActionResult<Result<List<CompAuditoraListVm>>>> GetListCompanyByCountry(
+            int idPais
+        )
         {
             var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (!User.IsInRole(Constants.Roles.Admin))
+            if (!User.IsInRole(Roles.Admin))
             {
                 idPais = appUser.PaisId ?? 0;
             }
 
-            var res = await _unitOfWork.Users.GetPersonal(idPais ?? 0, idEmpresa);
+            var res = await _unitOfWork.Users.GetCompaniesAsync(idPais);
 
-            return Ok(JsonConvert.SerializeObject(res, Formatting.None,
-                        new JsonSerializerSettings()
-                        {
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                        }));
+            return this.HandleResponse(res);
         }
 
         [HttpGet("Companies")]
@@ -81,19 +91,27 @@ namespace Sitca.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize]
-        public async Task<ActionResult<Result<List<CompAuditoras>>>> GetAuditCompaniesList(int? idPais, bool special = true)
+        public async Task<ActionResult<Result<List<CompAuditoras>>>> GetAuditCompaniesList(
+            int? idPais,
+            bool special = true
+        )
         {
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return BadRequest("User not found");
+                if (appUser == null)
+                    return BadRequest("User not found");
 
-                if (!User.IsInRole(Constants.Roles.Admin))
+                if (!User.IsInRole(Roles.Admin))
                 {
                     idPais = appUser.PaisId ?? 0;
                 }
 
-                var res = await _unitOfWork.CompañiasAuditoras.GetAll(x => x.PaisId == idPais || idPais == 0, null, "Pais");
+                var res = await _unitOfWork.CompañiasAuditoras.GetAll(
+                    x => x.PaisId == idPais || idPais == 0,
+                    null,
+                    "Pais"
+                );
 
                 if (!special)
                 {
@@ -101,12 +119,17 @@ namespace Sitca.Controllers
                     res = res.Where(x => !x.Special);
                 }
 
-                var response = Result<List<CompAuditoras>>.Success(res.ToList());
+                var response = Result<List<CompAuditoras>>.Success([.. res]);
                 return this.HandleResponse(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, Result<List<CompAuditoras>>.Failure($"An error occurred while retrieving the companies list: {ex.Message}"));
+                return StatusCode(
+                    500,
+                    Result<List<CompAuditoras>>.Failure(
+                        $"An error occurred while retrieving the companies list: {ex.Message}"
+                    )
+                );
             }
         }
 
@@ -116,14 +139,17 @@ namespace Sitca.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Result<CompAuditoras>>> CreateOrUpdateCompany(CompAuditoras data)
+        public async Task<ActionResult<Result<CompAuditoras>>> CreateOrUpdateCompany(
+            CompAuditoras data
+        )
         {
             try
             {
                 var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null) return BadRequest(Result<CompAuditoras>.Failure("User not found"));
+                if (appUser == null)
+                    return BadRequest(Result<CompAuditoras>.Failure("User not found"));
 
-                if (!User.IsInRole(Constants.Roles.Admin))
+                if (!User.IsInRole(Roles.Admin))
                 {
                     data.PaisId = appUser.PaisId ?? 0;
                 }
@@ -134,7 +160,63 @@ namespace Sitca.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, Result<CompAuditoras>.Failure($"An error occurred while saving the company: {ex.Message}"));
+                return StatusCode(
+                    500,
+                    Result<CompAuditoras>.Failure(
+                        $"An error occurred while saving the company: {ex.Message}"
+                    )
+                );
+            }
+        }
+
+        [HttpGet("usuarios/pais/{id}")]
+        [Authorize]
+        public async Task<ActionResult<Result<List<UsersListVm>>>> GetUsersByCountry(int id)
+        {
+            var res = await _unitOfWork.Users.GetPersonalAsync(id, 0);
+            return this.HandleResponse(res);
+        }
+
+        [HttpPost("{id}/usuarios")]
+        [Authorize]
+        public async Task<ActionResult<Result<CompAuditoras>>> AddUserToCompany(
+            int id,
+            [FromBody] string[] users
+        )
+        {
+            try
+            {
+                var res = await _unitOfWork.Users.AssignUserToCompanyAsync(id, users);
+                return this.HandleResponse(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    500,
+                    Result<bool>.Failure(
+                        $"An error occurred while adding users to company: {ex.Message}"
+                    )
+                );
+            }
+        }
+
+        [HttpDelete("{id}/usuarios/{userId}")]
+        [Authorize]
+        public async Task<ActionResult<Result<bool>>> AddUserToCompany(int id, string userId)
+        {
+            try
+            {
+                var res = await _unitOfWork.Users.UnassignUsersFromCompanyAsync(id, [userId]);
+                return this.HandleResponse(res);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    500,
+                    Result<bool>.Failure(
+                        $"An error occurred while adding users to company: {ex.Message}"
+                    )
+                );
             }
         }
     }

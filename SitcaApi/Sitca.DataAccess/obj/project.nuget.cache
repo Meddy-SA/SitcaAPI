@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "lVYLcVwn6fQCmAcTc4G+J/472aPQPBlOAIWCJGE1+UbDXvWMVqnUkGRFXndpo2klymiffL7oMKTsJiZvrNkdIA==",
+  "dgSpecHash": "ZoctWr3Pi+WGilMMxSkk28qA487gEW/A7o+LjBFDQi0OGVdY01IWhSMif2+K7Qz+goD8ffwoHdKvmXpUNNNd5A==",
   "success": true,
   "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
   "expectedPackageFiles": [
@@ -116,7 +116,7 @@
     "/Users/leonardoillanez/.nuget/packages/netstandard.library/1.6.1/netstandard.library.1.6.1.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/nettopologysuite/2.5.0/nettopologysuite.2.5.0.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/nettopologysuite.io.sqlserverbytes/2.1.0/nettopologysuite.io.sqlserverbytes.2.1.0.nupkg.sha512",
-    "/Users/leonardoillanez/.nuget/packages/newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg.sha512",
+    "/Users/leonardoillanez/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/newtonsoft.json.bson/1.0.1/newtonsoft.json.bson.1.0.1.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/polly/8.4.2/polly.8.4.2.nupkg.sha512",
     "/Users/leonardoillanez/.nuget/packages/polly.core/8.4.2/polly.core.8.4.2.nupkg.sha512",

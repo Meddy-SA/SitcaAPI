@@ -2,16 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Builders;
-using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
-using Sitca.DataAccess.Data.Repository.Specifications;
-using Sitca.DataAccess.Extensions;
 using Sitca.DataAccess.Middlewares;
+using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -25,17 +24,20 @@ namespace Sitca.DataAccess.Data.Repository
     {
         private readonly ApplicationDbContext _db;
         private readonly INotificationService _notificationService;
+        private readonly ICompanyQueryBuilder _queryBuilder;
         private readonly ILogger<EmpresaRepository> _logger;
 
         public EmpresaRepository(
             ApplicationDbContext db,
             INotificationService notificationService,
+            ICompanyQueryBuilder queryBuilder,
             ILogger<EmpresaRepository> logger
         )
             : base(db)
         {
             _db = db;
             _notificationService = notificationService;
+            _queryBuilder = queryBuilder;
             _logger = logger;
         }
 
@@ -159,54 +161,9 @@ namespace Sitca.DataAccess.Data.Repository
         {
             try
             {
-                var query = _db
-                    .Empresa.AsNoTracking()
-                    .Include(x => x.Pais)
-                    .Include(x => x.Tipologias)
-                    .ThenInclude(t => t.Tipologia)
-                    .Include(x => x.Certificaciones)
-                    .ThenInclude(c => c.Resultados)
-                    .ThenInclude(r => r.Distintivo)
-                    .Where(x => x.Nombre != null && !x.EsHomologacion);
-
-                // Aplicar filtros
-                Distintivo distintivo = null;
-                if (filter.DistinctiveId > 0)
-                {
-                    distintivo = await _db
-                        .Distintivo.AsNoTracking()
-                        .Where(d => d.Id == filter.DistinctiveId)
-                        .FirstOrDefaultAsync();
-                }
-                query = ApplyFilters(query, filter, distintivo);
-
-                var companies = await query
-                    .Select(x => new EmpresaVm
-                    {
-                        Id = x.Id,
-                        Nombre = x.Nombre,
-                        Certificacion = x
-                            .Certificaciones.OrderByDescending(c => c.Id)
-                            .Select(c => c.Id.ToString())
-                            .FirstOrDefault(),
-                        Pais = x.Pais.Name,
-                        Recertificacion =
-                            x.Certificaciones.Count > 1
-                            || x.Certificaciones.Any(s => s.Recertificacion),
-                        Status = ((int)x.Estado).ToLocalizedString(language),
-                        Responsable = _db
-                            .ApplicationUser.Where(s => s.EmpresaId == x.Id)
-                            .Select(s => s.FirstName)
-                            .FirstOrDefault(),
-                        Tipologias = x
-                            .Tipologias.Select(z =>
-                                language == "es" ? z.Tipologia.Name : z.Tipologia.NameEnglish
-                            )
-                            .ToList(),
-                        Distintivo = x.ResultadoActual,
-                    })
-                    .ToListAsync();
-                return companies;
+                var query = _queryBuilder.BuildGeneralQuery(includeHomologacion: false);
+                query = _queryBuilder.ApplyFilters(query, filter, filter.DistinctiveId);
+                return await _queryBuilder.BuildAndExecuteProjection(query, language);
             }
             catch (Exception ex)
             {
@@ -215,28 +172,27 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        private static IQueryable<Empresa> ApplyFilters(
-            IQueryable<Empresa> query,
-            CompanyFilterDTO filter,
-            Distintivo distintivo = null
+        public async Task<List<EmpresaVm>> ListForRoleAsync(
+            ApplicationUser user,
+            string role,
+            CompanyFilterDTO filter
         )
         {
-            if (filter.CountryId > 0)
-                query = query.Where(x => x.PaisId == filter.CountryId);
-
-            if (filter.StatusId.HasValue && filter.StatusId.Value != -1)
-                query = query.Where(x => x.Estado == filter.StatusId);
-
-            if (filter.TypologyId > 0)
-                query = query.Where(x => x.Tipologias.Any(z => z.IdTipologia == filter.TypologyId));
-
-            if (!string.IsNullOrWhiteSpace(filter.Name))
-                query = query.Where(s => s.Nombre.Contains(filter.Name));
-
-            if (distintivo != null)
-                query = query.Where(x => x.ResultadoActual == distintivo.Name);
-
-            return query;
+            try
+            {
+                var query = _queryBuilder.BuildRoleBasedQuery(user, role);
+                query = _queryBuilder.ApplyFilters(query, filter);
+                return await _queryBuilder.BuildAndExecuteProjection(query, user?.Lenguage ?? "es");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error getting company list for role with filter {@Filter}",
+                    filter
+                );
+                throw;
+            }
         }
 
         public List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data)
@@ -727,133 +683,6 @@ namespace Sitca.DataAccess.Data.Repository
         {
             return estado == -1 ? query : query.Where(x => x.Estado == estado);
         }
-
-        public async Task<List<EmpresaVm>> ListForRoleAsync(
-            ApplicationUser user,
-            string role,
-            CompanyFilterDTO filter
-        )
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(role))
-                    throw new ArgumentNullException(nameof(role));
-
-                if (user == null)
-                    throw new ArgumentNullException(nameof(user));
-
-                var query = _db
-                    .ProcesoCertificacion.Include(x => x.Empresa)
-                    .ThenInclude(e => e.Pais)
-                    .Include(x => x.Empresa)
-                    .ThenInclude(e => e.Tipologias)
-                    .ThenInclude(t => t.Tipologia)
-                    .Include(x => x.Resultados)
-                    .ThenInclude(r => r.Distintivo)
-                    .AsNoTracking();
-
-                // Aplicar filtros según el rol
-                query = role switch
-                {
-                    RoleConstants.Asesor => EmpresaSpecifications.ForAsesor(query, user.Id),
-                    RoleConstants.Auditor => EmpresaSpecifications.ForAuditor(query, user.Id),
-                    RoleConstants.CTC => EmpresaSpecifications.ForCTC(query, user.PaisId ?? 0),
-                    RoleConstants.Consultor => EmpresaSpecifications.ForConsultor(
-                        query,
-                        user.PaisId ?? 0
-                    ),
-                    _ => throw new ArgumentException($"Role {role} not supported", nameof(role)),
-                };
-
-                // Aplicar filtros adicionales
-                if (filter != null)
-                {
-                    query = ApplyCompanyFilters(query, filter);
-                }
-
-                var companies = await query
-                    .Select(x => new EmpresaVm
-                    {
-                        Id = x.EmpresaId,
-                        Status = ((int)x.Empresa.Estado).ToLocalizedString(user.Lenguage),
-                        Pais = x.Empresa.Pais.Name,
-                        Nombre = x.Empresa.Nombre,
-                        Recertificacion = x.Recertificacion,
-                        Tipologias = x.Empresa.Tipologias.Any()
-                            ? GetTipologias(x.Empresa.Tipologias, user.Lenguage)
-                            : null,
-                        Responsable = x.Empresa.NombreRepresentante,
-                        Distintivo =
-                            x.Resultados.Where(r => r.Aprobado)
-                                .OrderByDescending(r => r.Id)
-                                .Select(r =>
-                                    user.Lenguage == "es"
-                                        ? r.Distintivo.Name
-                                        : r.Distintivo.NameEnglish
-                                )
-                                .FirstOrDefault() ?? "Sin Distintivo",
-                    })
-                    .ToListAsync();
-
-                return companies;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error getting company list for role with filter {@Filter}",
-                    filter
-                );
-                throw;
-            }
-        }
-
-        private static IQueryable<ProcesoCertificacion> ApplyCompanyFilters(
-            IQueryable<ProcesoCertificacion> query,
-            CompanyFilterDTO filter
-        )
-        {
-            if (filter == null)
-                return query;
-
-            if (filter.CountryId > 0)
-            {
-                query = query.Where(x => x.Empresa.PaisId == filter.CountryId);
-            }
-
-            if (filter.TypologyId > 0)
-                query = query.Where(x =>
-                    x.Empresa.Tipologias.Any(z => z.IdTipologia == filter.TypologyId)
-                );
-
-            if (filter.DistinctiveId > 0)
-            {
-                query = query.Where(x =>
-                    x.Resultados.OrderByDescending(r => r.Id)
-                        .Any(r => r.Aprobado && r.DistintivoId == filter.DistinctiveId)
-                );
-            }
-
-            if (!string.IsNullOrEmpty(filter.Name))
-            {
-                query = query.Where(x => x.Empresa.Nombre.Contains(filter.Name));
-            }
-
-            if (filter.StatusId.HasValue && filter.StatusId > 0)
-            {
-                query = query.Where(x => x.Empresa.Estado == filter.StatusId.Value);
-            }
-
-            return query;
-        }
-
-        private static List<string> GetTipologias(
-            IEnumerable<TipologiasEmpresa> tipologias,
-            string language
-        ) =>
-            language == "es"
-                ? tipologias.Select(z => z.Tipologia.Name).ToList()
-                : tipologias.Select(z => z.Tipologia.NameEnglish).ToList();
 
         public async Task<Result<bool>> SolicitaAuditoriaAsync(int idEmpresa)
         {

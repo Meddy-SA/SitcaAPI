@@ -22,6 +22,7 @@ public static class LocalizationUtilities
         { Constants.Roles.Empresa, ("Empresa", "Company") },
         { Constants.Roles.CTC, ("CTC", "CCT") },
         { Constants.Roles.AsesorAuditor, ("Asesor/Auditor", "Consultant/Auditor") },
+        { Constants.Roles.EmpresaAuditora, ("EmpresaAuditora", "AuditingCompany") },
     };
 
     private static readonly Dictionary<int, (string Es, string En)> StatusTranslations = new()
@@ -58,6 +59,18 @@ public static class LocalizationUtilities
         { Constants.Distintivos.Azul, ("Distintivo Azul", "Blue Badge") },
         { Constants.Distintivos.Verde, ("Distintivo Verde", "Green Badge") },
     };
+
+    public static string GetDistintivoTranslation(string? distintivo, string language)
+    {
+        if (string.IsNullOrEmpty(distintivo))
+            return string.Empty;
+
+        return DistintivoStatus.TryGetValue(distintivo, out var translation)
+            ? language == "es"
+                ? translation.Es
+                : translation.En
+            : distintivo;
+    }
 
     public static string? GetCountry(int countryId) => Countries.GetValueOrDefault(countryId);
 

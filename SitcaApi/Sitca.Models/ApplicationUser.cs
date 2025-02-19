@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Newtonsoft.Json;
 
 namespace Sitca.Models
 {
@@ -21,7 +22,9 @@ namespace Sitca.Models
         public string Profesion { get; set; } = null!;
         public string Nacionalidad { get; set; } = null!;
         public int? CompAuditoraId { get; set; }
-        public CompAuditoras CompAuditora { get; set; } = null!;
+
+        [JsonIgnore]
+        public virtual CompAuditoras? CompAuditora { get; set; } = null!;
         public bool Active { get; set; }
         public bool Notificaciones { get; set; }
         public string Lenguage { get; set; } = null!;

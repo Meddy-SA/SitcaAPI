@@ -1662,20 +1662,73 @@ namespace Sitca.DataAccess.Data.Repository
             return items;
         }
 
-        public async Task<bool> ConvertirARecertificacion(ApplicationUser user, EmpresaVm data)
+        public async Task<Result<bool>> ConvertirARecertificacionAsync(
+            ApplicationUser user,
+            EmpresaVm data
+        )
         {
-            var certificacion = Int32.Parse(data.Certificacion);
-            var proceso = await _db.ProcesoCertificacion.FirstOrDefaultAsync(s =>
-                s.Id == certificacion && s.EmpresaId == data.Id
-            );
-
-            if (proceso == null)
+            try
             {
-                return false;
-            }
+                if (user == null)
+                    throw new ArgumentNullException(nameof(user));
 
-            proceso.Recertificacion = true;
-            return await _db.SaveChangesAsync() > 0;
+                if (data == null)
+                    throw new ArgumentNullException(nameof(data));
+
+                if (!int.TryParse(data.Certificacion, out int certificacionId))
+                    return Result<bool>.Failure("ID de certificación inválido");
+
+                var proceso = await _db.ProcesoCertificacion.FirstOrDefaultAsync(s =>
+                    s.Id == certificacionId && s.EmpresaId == data.Id
+                );
+
+                if (proceso == null)
+                    return Result<bool>.Failure(
+                        $"No se encontró el proceso de certificación {certificacionId} para la empresa {data.Id}"
+                    );
+
+                // Crear una estrategia de ejecución para manejar reintentos
+                var strategy = _db.Database.CreateExecutionStrategy();
+
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _db.Database.BeginTransactionAsync();
+                    try
+                    {
+                        proceso.Recertificacion = true;
+
+                        await _db.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Proceso {ProcesoId} convertido a recertificación por usuario {UserId}",
+                            certificacionId,
+                            user.Id
+                        );
+
+                        return Result<bool>.Success(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(
+                            ex,
+                            "Error al convertir proceso {ProcesoId} a recertificación",
+                            certificacionId
+                        );
+                        throw;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al convertir proceso a recertificación para empresa {EmpresaId}",
+                    data.Id
+                );
+                return Result<bool>.Failure($"Error al convertir a recertificación: {ex.Message}");
+            }
         }
 
         public async Task<Result<bool>> ReAbrirCuestionario(

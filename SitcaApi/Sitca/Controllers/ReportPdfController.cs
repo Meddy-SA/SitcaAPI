@@ -334,8 +334,8 @@ namespace Sitca.Controllers
 
             int EmpresaId = appUser.EmpresaId ?? 0;
             var res = await _unitOfWork.Empresa.Data(EmpresaId, appUser);
-            res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
 
+            res.RutaPdf = HttpContext.Request.Scheme + "://" + HttpContext.Request.Host.Value;
             res.CertificacionActual.TipologiaName = res.Tipologias.First(s => s.isSelected).name;
 
             try

@@ -13,6 +13,7 @@ using Sitca.DataAccess.Data;
 using Sitca.DataAccess.Data.Initializer;
 using Sitca.DataAccess.Data.Repository;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Email;
 using Sitca.DataAccess.Services.JobsService;
@@ -176,6 +177,9 @@ public static class ServiceCollectionExtensions
 
         // Configurar Cuestionario
         services.AddScoped<ICuestionarioReaperturaService, CuestionarioReaperturaService>();
+
+        // Servicio de Company
+        services.AddScoped<ICompanyQueryBuilder, CompanyQueryBuilder>();
 
         return services;
     }

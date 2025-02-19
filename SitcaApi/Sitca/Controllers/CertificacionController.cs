@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core.Services.Email;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -44,21 +45,40 @@ namespace Sitca.Controllers
             _logger = logger;
         }
 
-        [Authorize(Roles = "Admin,TecnicoPais")]
-        [HttpPost]
-        [Route("ConvertirARecertificacion")]
-        public async Task<IActionResult> ConvertirARecertificacion(EmpresaVm data)
+        [Authorize(Roles = Policies.ConvertirARecetificacion)]
+        [HttpPost("ConvertirARecertificacion")]
+        [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<Result<bool>>> ConvertirARecertificacionAsync(
+            [FromBody] EmpresaVm data
+        )
         {
-            var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null)
-                return Unauthorized();
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-            var res = await _unitOfWork.ProcesoCertificacion.ConvertirARecertificacion(
-                appUser,
-                data
-            );
+                var appUser = await this.GetCurrentUserAsync(_userManager);
+                if (appUser == null)
+                    return Unauthorized();
 
-            return Ok(res);
+                var result = await _unitOfWork.ProcesoCertificacion.ConvertirARecertificacionAsync(
+                    appUser,
+                    data
+                );
+
+                return this.HandleResponse(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al procesar conversión a recertificación para empresa {EmpresaId}",
+                    data.Id
+                );
+                return StatusCode(500, Result<bool>.Failure("Error interno del servidor"));
+            }
         }
 
         [Authorize(Roles = "Admin")]
@@ -479,7 +499,7 @@ namespace Sitca.Controllers
         }
 
         [Authorize(Roles = Policies.AsignaAuditor)]
-        [HttpPost("AsignaAuditor")]
+        [HttpPost("asignacion-auditor")]
         public async Task<ActionResult<Result<int>>> AsignaAuditor(AsignaAuditoriaVm data)
         {
             var appUser = await this.GetCurrentUserAsync(_userManager);

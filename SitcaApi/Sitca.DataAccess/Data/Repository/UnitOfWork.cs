@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Token;
@@ -17,6 +18,7 @@ namespace Sitca.DataAccess.Data.Repository
         private readonly IDapper _dapper;
         private readonly IEmailSender _emailSender;
         private readonly INotificationService _notificationService;
+        private readonly ICompanyQueryBuilder _queryBuilder;
         private readonly IViewRenderService _viewRenderService;
         private readonly IConfiguration _config;
         private readonly IJWTTokenGenerator _jwtToken;
@@ -30,6 +32,7 @@ namespace Sitca.DataAccess.Data.Repository
             IDapper dapper,
             IEmailSender emailSender,
             INotificationService notificationService,
+            ICompanyQueryBuilder queryBuilder,
             IViewRenderService viewRenderService,
             IConfiguration config,
             IJWTTokenGenerator jwtToken,
@@ -42,6 +45,7 @@ namespace Sitca.DataAccess.Data.Repository
             _dapper = dapper;
             _emailSender = emailSender;
             _notificationService = notificationService;
+            _queryBuilder = queryBuilder;
             _viewRenderService = viewRenderService;
             _config = config;
             _jwtToken = jwtToken;
@@ -53,6 +57,7 @@ namespace Sitca.DataAccess.Data.Repository
             Empresa = new EmpresaRepository(
                 _db,
                 _notificationService,
+                _queryBuilder,
                 _loggerFactory.CreateLogger<EmpresaRepository>()
             );
             Auth = new AuthRepository(

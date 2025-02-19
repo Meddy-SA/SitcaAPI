@@ -10,12 +10,14 @@ namespace Sitca.Models.ViewModels
         public string Pais { get; set; } = null!;
         public List<string> Tipologias { get; set; } = [];
         public string Responsable { get; set; } = null!;
-        public string Direccion { get; set; } = null!;
-        public string IdNacionalRepresentante { get; set; } = null!;
+        public string? Direccion { get; set; } = null!;
+        public string? IdNacionalRepresentante { get; set; } = null!;
         public string Status { get; set; } = null!;
         public string Certificacion { get; set; } = null!;
-        public string Vencimiento { get; set; } = null!;
+        public string? Vencimiento { get; set; } = null!;
         public string Distintivo { get; set; } = null!;
+        public Personnal? Asesor { get; set; }
+        public Personnal? Auditor { get; set; }
 
         public bool Recertificacion { get; set; }
         public bool Activo { get; set; }
@@ -62,5 +64,12 @@ namespace Sitca.Models.ViewModels
         public CertificacionDetailsVm? CertificacionActual { get; set; }
 
         public string? Language { get; set; }
+    }
+
+    [NotMapped]
+    public class Personnal
+    {
+        public string Id { get; set; } = null!;
+        public string Name { get; set; } = null!;
     }
 }

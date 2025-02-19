@@ -12,6 +12,7 @@ public static class Constants
         public const string Auditor = "Auditor";
         public const string AsesorAuditor = "Asesor/Auditor";
         public const string Consultor = "Consultor";
+        public const string EmpresaAuditora = "EmpresaAuditora";
     }
 
     public static class Distintivos
@@ -44,5 +45,6 @@ public static class Constants
         Roles.Auditor,
         Roles.AsesorAuditor,
         Roles.Consultor,
+        Roles.EmpresaAuditora
     };
 }

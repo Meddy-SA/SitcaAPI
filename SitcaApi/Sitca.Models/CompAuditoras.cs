@@ -1,4 +1,6 @@
-﻿namespace Sitca.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Sitca.Models;
 
 public class CompAuditoras
 {
@@ -16,5 +18,8 @@ public class CompAuditoras
     public bool Special { get; set; }
     public int PaisId { get; set; }
     public Pais? Pais { get; set; } = default!;
-}
 
+    [JsonIgnore]
+    public virtual ICollection<ApplicationUser> Usuarios { get; set; } =
+        new HashSet<ApplicationUser>();
+}
