@@ -192,6 +192,7 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
                 Pais = x.PaisName,
                 Responsable = x.NombreRepresentante,
                 Status = ((int)x.Estado).ToLocalizedString(language),
+                StatusId = x.Estado,
                 Certificacion = x.LatestCertificacion?.Id.ToString(),
                 Recertificacion =
                     x.CertificacionesCount > 1 || x.TieneCertificacionesRecertificadas,

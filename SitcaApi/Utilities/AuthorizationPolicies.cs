@@ -1,35 +1,38 @@
+using Rol = Utilities.Common.Constants.Roles;
+
 namespace Utilities.Common;
 
 public static class AuthorizationPolicies
 {
     public static class Auth
     {
-        public const string CreateUser = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
+        public const string CreateUser = $"{Rol.Admin}, {Rol.TecnicoPais}";
     }
 
     public static class Capacitaciones
     {
-        public const string DeleteFiles = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
+        public const string DeleteFiles = $"{Rol.Admin}, {Rol.TecnicoPais}";
     }
 
     public static class Certificaciones
     {
-        public const string ConvertirARecetificacion =
-            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
-        public const string Comenzar = $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
-        public const string AsignaAuditor = Constants.Roles.TecnicoPais;
+        public const string ConvertirARecetificacion = $"{Rol.Admin}, {Rol.TecnicoPais}";
+        public const string Comenzar = $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
+        public const string AsignaAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
+        public const string UpdateCaseNumber =
+            $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
+        public const string UpdateAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
         public const string GenerarCuestionario =
-            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}, {Constants.Roles.Auditor}, {Constants.Roles.Asesor} ";
+            $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.Auditor}, {Rol.Asesor}";
     }
 
     public static class Empresa
     {
-        public const string View = Constants.Roles.Empresa;
-        public const string AdminTecnico =
-            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}";
-        public const string AdmTecCons =
-            $"{Constants.Roles.Admin}, {Constants.Roles.TecnicoPais}, {Constants.Roles.Consultor}";
+        public const string View = Rol.Empresa;
+        public const string AdminTecnico = $"{Rol.Admin}, {Rol.TecnicoPais}";
+        public const string ListCompany =
+            $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.Consultor}, {Rol.EmpresaAuditora}";
         public const string Details =
-            $"{Constants.Roles.TecnicoPais},{Constants.Roles.Admin},{Constants.Roles.Asesor},{Constants.Roles.Auditor},{Constants.Roles.CTC},{Constants.Roles.Consultor}, {Constants.Roles.EmpresaAuditora}";
+            $"{Rol.TecnicoPais}, {Rol.Admin}, {Rol.Asesor}, {Rol.Auditor}, {Rol.CTC}, {Rol.Consultor}, {Rol.EmpresaAuditora}";
     }
 }

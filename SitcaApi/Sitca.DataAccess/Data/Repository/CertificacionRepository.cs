@@ -16,7 +16,7 @@ using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using Utilities;
 using static Utilities.Common.Constants;
-using ConstantRoles = Utilities.Common.Constants.Roles;
+using Rol = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository
 {
@@ -222,9 +222,9 @@ namespace Sitca.DataAccess.Data.Repository
                     IdEmpresa = data.EmpresaId,
                     TipologiaId = data.TipologiaId,
                     IdTipologia = data.TipologiaId,
-                    Prueba = role == ConstantRoles.Asesor,
+                    Prueba = role == Rol.Asesor,
                     ProcesoCertificacionId = proceso.Id,
-                    AuditorId = role == ConstantRoles.Auditor ? proceso.AuditorId : null,
+                    AuditorId = role == Rol.Auditor ? proceso.AuditorId : null,
                 };
 
                 await _db.Cuestionario.AddAsync(cuestionario);
@@ -232,7 +232,7 @@ namespace Sitca.DataAccess.Data.Repository
                 // Actualizar estado según rol
                 switch (role)
                 {
-                    case ConstantRoles.Asesor:
+                    case Rol.Asesor:
                         empresa.Estado = ProcessStatus.ConsultancyUnderway;
                         proceso.TipologiaId = cuestionario.TipologiaId;
                         proceso.Status = StatusConstants.GetLocalizedStatus(
@@ -241,7 +241,7 @@ namespace Sitca.DataAccess.Data.Repository
                         );
                         break;
 
-                    case ConstantRoles.Auditor:
+                    case Rol.Auditor:
                         empresa.Estado = ProcessStatus.AuditingUnderway;
                         proceso.Status = StatusConstants.GetLocalizedStatus(
                             ProcessStatus.AuditingUnderway,
@@ -674,12 +674,10 @@ namespace Sitca.DataAccess.Data.Repository
 
             return role switch
             {
-                ConstantRoles.Asesor => proceso.AsesorId == user.Id,
-                ConstantRoles.Auditor => proceso.AuditorId == user.Id,
-                ConstantRoles.Admin
-                or ConstantRoles.TecnicoPais
-                or ConstantRoles.CTC
-                or ConstantRoles.Consultor => true,
+                Rol.Asesor => proceso.AsesorId == user.Id,
+                Rol.Auditor => proceso.AuditorId == user.Id,
+                Rol.Admin or Rol.TecnicoPais or Rol.CTC or Rol.EmpresaAuditora or Rol.Consultor =>
+                    true,
                 _ => false,
             };
         }
@@ -1241,12 +1239,12 @@ namespace Sitca.DataAccess.Data.Repository
                 int toStatus = 0;
                 switch (role)
                 {
-                    case ConstantRoles.Asesor:
+                    case Rol.Asesor:
                         toStatus = 3; // Asesoría finalizada
                         cuestionario.FechaFinalizado = DateTime.UtcNow;
                         cuestionario.Resultado = 1;
                         break;
-                    case ConstantRoles.Auditor:
+                    case Rol.Auditor:
                         if (cuestionario.FechaRevisionAuditor.HasValue)
                             return Result<int>.Failure(
                                 "El cuestionario ya fue revisado por un auditor"
@@ -1260,7 +1258,7 @@ namespace Sitca.DataAccess.Data.Repository
                         if (!resultadoSugerido)
                             return Result<int>.Failure("Error al guardar el resultado sugerido");
                         break;
-                    case ConstantRoles.TecnicoPais:
+                    case Rol.TecnicoPais:
                         if (!cuestionario.FechaRevisionAuditor.HasValue)
                             return Result<int>.Failure(
                                 "El cuestionario debe ser revisado por un auditor primero"

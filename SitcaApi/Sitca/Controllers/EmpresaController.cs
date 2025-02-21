@@ -126,7 +126,7 @@ namespace Sitca.Controllers
             }
         }
 
-        [Authorize(Roles = AuthorizationPolicies.Empresa.AdmTecCons)]
+        [Authorize(Roles = AuthorizationPolicies.Empresa.ListCompany)]
         [HttpPost("list")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ApiResponse<List<EmpresaVm>>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -209,7 +209,7 @@ namespace Sitca.Controllers
         /// <response code="200">Retorna la lista de empresas filtrada.</response>
         /// <response code="401">Usuario no autorizado.</response>
         /// <response code="500">Error interno del servidor al procesar la solicitud.</response>
-        [Authorize(Roles = AuthorizationPolicies.Empresa.AdmTecCons)]
+        [Authorize(Roles = AuthorizationPolicies.Empresa.ListCompany)]
         [HttpPost("ListReporte")]
         [ProducesResponseType(typeof(Result<List<EmpresaVm>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

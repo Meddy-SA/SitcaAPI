@@ -166,8 +166,8 @@ namespace Sitca.Controllers
             return Ok(res);
         }
 
-        [Authorize(Roles = "Admin,TecnicoPais")]
-        [HttpPost("UpdateNumeroExp")]
+        [Authorize(Roles = Policies.UpdateCaseNumber)]
+        [HttpPost("update-case-number")]
         public async Task<ActionResult<Result<bool>>> UpdateNumeroExp(CertificacionDetailsVm data)
         {
             try
@@ -197,7 +197,7 @@ namespace Sitca.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin,TecnicoPais")]
+        [Authorize(Roles = Policies.UpdateAuditor)]
         [HttpPost("CambiarAuditor")]
         public async Task<ActionResult<Result<bool>>> CambiarAuditor(CambioAuditor data)
         {

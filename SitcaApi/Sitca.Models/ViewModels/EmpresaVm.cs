@@ -13,6 +13,7 @@ namespace Sitca.Models.ViewModels
         public string? Direccion { get; set; } = null!;
         public string? IdNacionalRepresentante { get; set; } = null!;
         public string Status { get; set; } = null!;
+        public decimal? StatusId { get; set; }
         public string Certificacion { get; set; } = null!;
         public string? Vencimiento { get; set; } = null!;
         public string Distintivo { get; set; } = null!;
