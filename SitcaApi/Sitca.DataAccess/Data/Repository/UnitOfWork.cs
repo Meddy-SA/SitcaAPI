@@ -71,7 +71,11 @@ namespace Sitca.DataAccess.Data.Repository
             );
             Modulo = new ModulosRepository(_db);
             Pregunta = new PreguntasRepository(_db);
-            Archivo = new ArchivoRepository(_db);
+            Archivo = new ArchivoRepository(
+                _db,
+                _userManager,
+                _loggerFactory.CreateLogger<ArchivoRepository>()
+            );
 
             ProcesoCertificacion = new CertificacionRepository(
                 _db,
