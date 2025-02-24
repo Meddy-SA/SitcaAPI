@@ -22,6 +22,7 @@ namespace Sitca.Models.ViewModels
 
         public bool Recertificacion { get; set; }
         public bool Activo { get; set; }
+        public string? FechaRevision { get; set; }
     }
 
     [NotMapped]

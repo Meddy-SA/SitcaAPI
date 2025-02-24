@@ -1010,6 +1010,11 @@ namespace Sitca.DataAccess.Data.Repository
                         Generador = x.UserGenerador != null ? MapCommonUser(x.UserGenerador) : null,
                         Resultado = GetResultado(x.Resultados, user.Lenguage, noCertificado),
                         FechaVencimiento = x.FechaVencimiento.ToStringArg(),
+                        FechaRevision = x
+                            .Cuestionarios.Where(e => !e.Prueba)
+                            .Select(e => e.FechaRevisionAuditor)
+                            .SingleOrDefault()
+                            .ToStringArg(),
                         Id = x.Id,
                     })
                     .ToListAsync();

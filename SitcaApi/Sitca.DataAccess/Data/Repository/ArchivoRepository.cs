@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ImageMagick;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
@@ -201,7 +204,6 @@ namespace Sitca.DataAccess.Data.Repository
 
         public async Task ProcessAndSaveImage(IFormFile file, string filePath)
         {
-#if !DEBUG
             // En producción usar System.Drawing por su mejor rendimiento
             try
             {
@@ -238,10 +240,6 @@ namespace Sitca.DataAccess.Data.Repository
                 using var stream = new FileStream(filePath, FileMode.Create);
                 await file.CopyToAsync(stream);
             }
-#else
-            using var stream = new FileStream(filePath, FileMode.Create);
-            await file.CopyToAsync(stream);
-#endif
         }
 
         private async Task<Archivo> SaveFileRecord(UploadRequest request, string fileName)

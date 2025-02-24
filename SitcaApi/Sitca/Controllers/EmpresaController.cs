@@ -466,7 +466,11 @@ namespace Sitca.Controllers
 
             var res = await _unitOfWork.Empresa.Data(Id, appUser);
 
-            if (User.IsInRole("CTC") && res.CertificacionActual != null && res.Estado < toStatus)
+            if (
+                User.IsInRole(Constants.Roles.CTC)
+                && res.CertificacionActual != null
+                && res.Estado < toStatus
+            )
             {
                 //cambiar estado en certificacion
                 var status = new CertificacionStatusVm

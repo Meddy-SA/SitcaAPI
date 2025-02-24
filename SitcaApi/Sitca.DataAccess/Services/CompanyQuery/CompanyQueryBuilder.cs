@@ -77,7 +77,8 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
             .Include(x => x.Resultados.OrderByDescending(r => r.Id).Take(1))
             .ThenInclude(r => r.Distintivo)
             .Include(x => x.AsesorProceso)
-            .Include(x => x.AuditorProceso);
+            .Include(x => x.AuditorProceso)
+            .Include(x => x.Cuestionarios);
 
         // Obtener empresas de certificaciones
         var empresaIds = certifications.Select(x => x.EmpresaId).Distinct();
@@ -94,6 +95,8 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
             .ThenInclude(c => c.AsesorProceso)
             .Include(x => x.Certificaciones.OrderByDescending(c => c.Id).Take(1))
             .ThenInclude(c => c.AuditorProceso)
+            // .Include(x => x.Certificaciones.OrderByDescending(c => c.Id).Take(1))
+            // .ThenInclude(c => c.Cuestionarios)
             .Where(x => empresaIds.Contains(x.Id));
     }
 
@@ -169,6 +172,10 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
                         AuditorName = c.AuditorId != null
                             ? c.AuditorProceso.FirstName + " " + c.AuditorProceso.LastName
                             : null,
+                        FechaRevision = c
+                            .Cuestionarios.Where(e => e.Prueba == false)
+                            .Select(e => e.FechaRevisionAuditor)
+                            .SingleOrDefault(),
                     })
                     .FirstOrDefault(),
                 CertificacionesCount = x.Certificaciones.Count,
@@ -216,6 +223,7 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
                             Id = x.LatestCertificacion.AuditorId,
                             Name = x.LatestCertificacion.AuditorName,
                         },
+                FechaRevision = x.LatestCertificacion?.FechaRevision?.ToString(),
             })
             .ToList();
     }
