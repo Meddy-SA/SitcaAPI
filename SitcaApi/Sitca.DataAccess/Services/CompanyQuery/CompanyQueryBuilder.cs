@@ -95,8 +95,6 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
             .ThenInclude(c => c.AsesorProceso)
             .Include(x => x.Certificaciones.OrderByDescending(c => c.Id).Take(1))
             .ThenInclude(c => c.AuditorProceso)
-            // .Include(x => x.Certificaciones.OrderByDescending(c => c.Id).Take(1))
-            // .ThenInclude(c => c.Cuestionarios)
             .Where(x => empresaIds.Contains(x.Id));
     }
 
@@ -173,7 +171,9 @@ public class CompanyQueryBuilder : ICompanyQueryBuilder
                             ? c.AuditorProceso.FirstName + " " + c.AuditorProceso.LastName
                             : null,
                         FechaRevision = c
-                            .Cuestionarios.Where(e => e.Prueba == false)
+                            .Cuestionarios.Where(e =>
+                                e.Prueba == false && !e.FechaFinalizado.HasValue
+                            )
                             .Select(e => e.FechaRevisionAuditor)
                             .SingleOrDefault(),
                     })

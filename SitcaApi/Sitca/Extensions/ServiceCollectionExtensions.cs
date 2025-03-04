@@ -16,6 +16,7 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Email;
+using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
@@ -180,6 +181,9 @@ public static class ServiceCollectionExtensions
 
         // Servicio de Company
         services.AddScoped<ICompanyQueryBuilder, CompanyQueryBuilder>();
+
+        // Servicios de Manejo de Archivos.
+        services.AddScoped<IFileService, FileService>();
 
         return services;
     }

@@ -290,7 +290,7 @@ namespace Sitca.DataAccess.Data.Repository
                 if (string.IsNullOrEmpty(userGenerador))
                     return Result<int>.Failure("El usuario generador es requerido");
 
-                const int toStatus = 1;
+                const int toStatus = ProcessStatus.ForConsulting;
 
                 // Crear una estrategia de ejecución
                 var strategy = _db.Database.CreateExecutionStrategy();
@@ -1658,6 +1658,132 @@ namespace Sitca.DataAccess.Data.Repository
                 .ToListAsync();
 
             return items;
+        }
+
+        public async Task<Result<int>> NuevaRecertificacion(int empresaId, ApplicationUser user)
+        {
+            try
+            {
+                string finalizado = StatusConstants.GetLocalizedStatus(
+                    ProcessStatus.Completed,
+                    "es"
+                );
+
+                string inicial = StatusConstants.GetLocalizedStatus(
+                    ProcessStatus.ForConsulting,
+                    "es"
+                );
+
+                if (user == null)
+                    throw new ArgumentNullException(nameof(user));
+
+                // Verificar si la empresa existe
+                var empresa = await _db.Empresa.FirstOrDefaultAsync(e => e.Id == empresaId);
+                if (empresa == null)
+                    return Result<int>.Failure($"No se encontró la empresa con ID {empresaId}");
+
+                // Verificar si hay certificaciones activas sin finalizar
+                var certificacionesPendientes = await _db
+                    .ProcesoCertificacion.AsNoTracking()
+                    .Where(p =>
+                        p.EmpresaId == empresaId
+                        && !p.Status.Contains(finalizado)
+                        && p.Enabled != false
+                    )
+                    .AnyAsync();
+
+                if (certificacionesPendientes)
+                {
+                    return Result<int>.Failure(
+                        "No se puede crear una nueva recertificación porque existe un proceso de certificación pendiente. Finalice el proceso actual antes de iniciar una recertificación."
+                    );
+                }
+
+                // Obtener la última certificación finalizada
+                var ultimaCertificacionFinalizada = await _db
+                    .ProcesoCertificacion.AsNoTracking()
+                    .Where(p =>
+                        p.EmpresaId == empresaId
+                        && p.Status.Contains(finalizado)
+                        && p.Enabled != false
+                    )
+                    .OrderByDescending(p => p.Id)
+                    .FirstOrDefaultAsync();
+
+                // Crear una estrategia de ejecución para manejar reintentos
+                var strategy = _db.Database.CreateExecutionStrategy();
+
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _db.Database.BeginTransactionAsync();
+                    try
+                    {
+                        // Crear el nuevo proceso de recertificación
+                        var nuevaCertificacion = new ProcesoCertificacion
+                        {
+                            EmpresaId = empresaId,
+                            FechaInicio = DateTime.UtcNow,
+                            UserGeneraId = user.Id,
+                            Recertificacion = true,
+                            Status = inicial, // Status inicial para recertificación
+                            NumeroExpediente =
+                                ultimaCertificacionFinalizada != null
+                                    ? $"R-{ultimaCertificacionFinalizada.NumeroExpediente}"
+                                    : $"R-{empresaId}-{DateTime.UtcNow:yyyyMMdd}",
+                            TipologiaId = ultimaCertificacionFinalizada?.TipologiaId,
+
+                            // Campos de auditoría
+                            Enabled = true,
+                            CreatedBy = user.Id,
+                            CreatedAt = DateTime.UtcNow,
+                        };
+
+                        // Si hay certificación previa finalizada, copiar algunos datos
+                        if (ultimaCertificacionFinalizada != null)
+                        {
+                            nuevaCertificacion.AsesorId = ultimaCertificacionFinalizada.AsesorId;
+                        }
+
+                        // Agregar la nueva certificación
+                        await _db.ProcesoCertificacion.AddAsync(nuevaCertificacion);
+
+                        // Actualizar el estado de la empresa
+                        empresa.Estado = ProcessStatus.ForConsulting; // Estado "Para Asesorar"
+                        empresa.FechaAutoNotif = null;
+
+                        await _db.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Nueva recertificación creada para empresa {EmpresaId} por usuario {UserId}, ID: {CertificacionId}",
+                            empresaId,
+                            user.Id,
+                            nuevaCertificacion.Id
+                        );
+
+                        return Result<int>.Success(nuevaCertificacion.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(
+                            ex,
+                            "Error al crear nueva recertificación para empresa {EmpresaId}",
+                            empresaId
+                        );
+                        throw;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error no controlado al crear recertificación para empresa {EmpresaId}",
+                    empresaId
+                );
+                return Result<int>.Failure($"Error al crear recertificación: {ex.Message}");
+            }
         }
 
         public async Task<Result<bool>> ConvertirARecertificacionAsync(

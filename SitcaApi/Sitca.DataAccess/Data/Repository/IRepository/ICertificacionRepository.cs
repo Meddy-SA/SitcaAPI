@@ -10,6 +10,7 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
     {
         Task<Result<bool>> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId);
         Task<Result<bool>> ConvertirARecertificacionAsync(ApplicationUser user, EmpresaVm data);
+        Task<Result<int>> NuevaRecertificacion(int empresaId, ApplicationUser user);
         Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> ItemIds);
         Task<RegistroHallazgos> ReporteHallazgos(
             int CuestionarioId,

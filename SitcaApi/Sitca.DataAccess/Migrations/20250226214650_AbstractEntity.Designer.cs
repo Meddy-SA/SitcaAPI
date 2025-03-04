@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sitca.DataAccess.Data;
 
@@ -11,9 +12,11 @@ using Sitca.DataAccess.Data;
 namespace Sitca.DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250226214650_AbstractEntity")]
+    partial class AbstractEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1269,65 +1272,6 @@ namespace Sitca.DataAccess.Migrations
                     b.ToTable("Pregunta");
                 });
 
-            modelBuilder.Entity("Sitca.Models.ProcesoArchivos", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("Enabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<int?>("FileTypesCompany")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("ProcesoCertificacionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Ruta")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.HasIndex("ProcesoCertificacionId");
-
-                    b.ToTable("ProcesoArchivos", (string)null);
-                });
-
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
                     b.Property<int>("Id")
@@ -1342,25 +1286,17 @@ namespace Sitca.DataAccess.Migrations
                     b.Property<string>("AuditorId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int?>("Cantidad")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("EmpresaId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("Enabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                    b.Property<bool?>("Enabled")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("FechaFijadaAuditoria")
                         .HasColumnType("datetime2");
@@ -1383,9 +1319,7 @@ namespace Sitca.DataAccess.Migrations
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("Recertificacion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1399,8 +1333,7 @@ namespace Sitca.DataAccess.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserGeneraId")
                         .IsRequired()
@@ -1411,8 +1344,6 @@ namespace Sitca.DataAccess.Migrations
                     b.HasIndex("AsesorId");
 
                     b.HasIndex("AuditorId");
-
-                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("EmpresaId");
 
@@ -1884,24 +1815,6 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Tipologia");
                 });
 
-            modelBuilder.Entity("Sitca.Models.ProcesoArchivos", b =>
-                {
-                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Sitca.Models.ProcesoCertificacion", "ProcesoCertificacion")
-                        .WithMany("ProcesosArchivos")
-                        .HasForeignKey("ProcesoCertificacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProcesoCertificacion");
-
-                    b.Navigation("UserCreate");
-                });
-
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
                     b.HasOne("Sitca.Models.ApplicationUser", "AsesorProceso")
@@ -1914,15 +1827,10 @@ namespace Sitca.DataAccess.Migrations
                         .HasForeignKey("AuditorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Sitca.Models.Empresa", "Empresa")
                         .WithMany("Certificaciones")
                         .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Sitca.Models.Tipologia", "Tipologia")
@@ -1943,8 +1851,6 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Empresa");
 
                     b.Navigation("Tipologia");
-
-                    b.Navigation("UserCreate");
 
                     b.Navigation("UserGenerador");
                 });
@@ -2073,8 +1979,6 @@ namespace Sitca.DataAccess.Migrations
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
                     b.Navigation("Cuestionarios");
-
-                    b.Navigation("ProcesosArchivos");
 
                     b.Navigation("Resultados");
                 });

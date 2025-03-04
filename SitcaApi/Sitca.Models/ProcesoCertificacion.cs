@@ -1,6 +1,6 @@
 ﻿namespace Sitca.Models;
 
-public class ProcesoCertificacion
+public class ProcesoCertificacion : AuditableEntity
 {
     // Propiedades básicas
     public int Id { get; set; }
@@ -12,6 +12,7 @@ public class ProcesoCertificacion
     public bool Recertificacion { get; set; }
     public string NumeroExpediente { get; set; } = null!;
     public string Status { get; set; } = null!;
+    public int? Cantidad { get; set; } = 0;
 
     // Claves foráneas
     public string? AsesorId { get; set; }
@@ -28,4 +29,5 @@ public class ProcesoCertificacion
     public Tipologia? Tipologia { get; set; }
     public ICollection<ResultadoCertificacion> Resultados { get; set; } = [];
     public ICollection<Cuestionario> Cuestionarios { get; set; } = [];
+    public ICollection<ProcesoArchivos> ProcesosArchivos { get; set; } = [];
 }

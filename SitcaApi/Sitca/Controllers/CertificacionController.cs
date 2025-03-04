@@ -81,6 +81,37 @@ namespace Sitca.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("nueva-recertificacion/{empresaId}")]
+        [ProducesResponseType(typeof(Result<int>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<Result<int>>> NuevaRecertificacion(int empresaId)
+        {
+            try
+            {
+                var appUser = await this.GetCurrentUserAsync(_userManager);
+                if (appUser == null)
+                    return Unauthorized();
+
+                var res = await _unitOfWork.ProcesoCertificacion.NuevaRecertificacion(
+                    empresaId,
+                    appUser
+                );
+
+                return this.HandleResponse(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al procesar nueva recertificación para empresa {empresaId}",
+                    empresaId
+                );
+                return StatusCode(500, Result<int>.Failure("Error interno del servidor"));
+            }
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpGet("ReAbrirCuestionario/{id}")]
         public async Task<ActionResult<Result<bool>>> ReAbrirCuestionario(int id)
@@ -310,14 +341,6 @@ namespace Sitca.Controllers
             }
         }
 
-        [Route("Test")]
-        [HttpGet]
-        public async Task<IActionResult> Test(int id)
-        {
-            var result = await _notificationService.SendNotification(id, null, "es");
-            return Ok();
-        }
-
         [Authorize]
         [HttpPost("ChangeStatus")]
         public async Task<ActionResult> ChangeStatus(CertificacionStatusVm data)
@@ -381,13 +404,17 @@ namespace Sitca.Controllers
 
         [Authorize]
         [HttpGet("GetCuestionario")]
-        public async Task<ActionResult<CuestionarioDetailsVm>> GetCuestionario(int id)
+        public async Task<ActionResult<CuestionarioDetailsVm>> GetCuestionario(int idEmpresa)
         {
             var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
             if (appUser == null)
                 return Unauthorized();
 
-            var result = await _unitOfWork.ProcesoCertificacion.GetCuestionario(id, appUser, role);
+            var result = await _unitOfWork.ProcesoCertificacion.GetCuestionario(
+                idEmpresa,
+                appUser,
+                role
+            );
 
             return this.HandleResponse(result, true);
         }
