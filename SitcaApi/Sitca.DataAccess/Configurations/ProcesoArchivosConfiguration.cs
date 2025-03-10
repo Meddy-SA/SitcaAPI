@@ -14,7 +14,7 @@ public class ProcesoArchivosConfiguration : IEntityTypeConfiguration<ProcesoArch
 
         // Propiedades básicas
         builder.Property(e => e.Nombre).HasMaxLength(100).IsRequired();
-        builder.Property(e => e.Ruta).HasMaxLength(50).IsRequired();
+        builder.Property(e => e.Ruta).HasMaxLength(150).IsRequired();
         builder.Property(e => e.Tipo).HasMaxLength(10).IsRequired();
 
         // Propiedad Enum

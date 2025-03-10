@@ -16,7 +16,7 @@ public interface IFileService
     /// <summary>
     /// Guarda un archivo con optimización según el tipo
     /// </summary>
-    Task<string> SaveFileAsync(
+    Task<(string FilePath, long FileSize)> SaveFileAsync(
         IFormFile file,
         string subfolder = "",
         CancellationToken cancellationToken = default

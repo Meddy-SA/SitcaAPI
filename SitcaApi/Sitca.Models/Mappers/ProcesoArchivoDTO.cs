@@ -16,4 +16,6 @@ public class ProcesoArchivoDTO
     public DateTime FechaCreacion { get; set; }
     public string? CreadoPor { get; set; }
     public string? NombreCreador { get; set; }
+    public bool EsPropio { get; set; }
+    public long? FileSize { get; set; }
 }

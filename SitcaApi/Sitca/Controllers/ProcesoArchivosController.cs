@@ -238,11 +238,11 @@ namespace Sitca.Controllers
 
                 if (archivo == null)
                 {
-                    return NotFound(
-                        Result<bool>.Failure(
-                            "El archivo no existe o no pertenece al proceso especificado"
-                        )
-                    );
+                    string msg =
+                        appUser.Lenguage == "es"
+                            ? "El archivo no existe o no pertenece al proceso especificado"
+                            : "The file does not exist or does not belong to the specified process";
+                    return NotFound(Result<bool>.Failure(msg));
                 }
 
                 var result = await _unitOfWork.ProcesoArchivos.DeleteArchivoAsync(

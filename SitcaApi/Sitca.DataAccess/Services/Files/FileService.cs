@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using GemBox.Document;
@@ -23,11 +25,28 @@ public class FileService : IFileService
     private readonly IConfiguration _config;
     private readonly ILogger<FileService> _logger;
     private readonly IList<string> _allowedExtensions;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _pythonApiUrl;
 
-    public FileService(IConfiguration configuration, ILogger<FileService> logger)
+    public FileService(
+        IConfiguration configuration,
+        ILogger<FileService> logger,
+        IHttpClientFactory httpClientFactory
+    )
     {
         _config = configuration;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
+
+        // Obtener la URL de la API Python desde la configuración
+        _pythonApiUrl = _config["CorsSettings:pythonURL"];
+
+        if (string.IsNullOrEmpty(_pythonApiUrl))
+        {
+            _logger.LogWarning(
+                "La URL de la API Python no está configurada en appsettings (CorsSettings:pythonURL)"
+            );
+        }
 
         // Obtener extensiones permitidas desde configuración o usar valores predeterminados
         _allowedExtensions =
@@ -58,8 +77,8 @@ public class FileService : IFileService
     /// <param name="file">Archivo a guardar</param>
     /// <param name="subfolder">Subcarpeta opcional</param>
     /// <param name="cancellationToken">Token de cancelación</param>
-    /// <returns>Ruta relativa del archivo guardado</returns>
-    public async Task<string> SaveFileAsync(
+    /// <returns>Tupla con la ruta relativa del archivo guardado y su tamaño en bytes</returns>
+    public async Task<(string FilePath, long FileSize)> SaveFileAsync(
         IFormFile file,
         string subfolder = "",
         CancellationToken cancellationToken = default
@@ -107,8 +126,12 @@ public class FileService : IFileService
                 await file.CopyToAsync(stream, cancellationToken);
             }
 
+            // Obtener el tamaño del archivo final
+            var fileInfo = new FileInfo(filePath);
+            var fileSize = fileInfo.Length;
+
             // Devolver ruta relativa para guardar en BD
-            return Path.Combine(subfolder, fileName).Replace("\\", "/");
+            return (Path.Combine(subfolder, fileName).Replace("\\", "/"), fileSize);
         }
         catch (Exception ex)
         {
@@ -126,6 +149,36 @@ public class FileService : IFileService
         using var inputStream = file.OpenReadStream();
         using var image = await Image.LoadAsync(inputStream, cancellationToken);
 
+        image.Mutate(x => x.AutoOrient());
+
+        try
+        {
+            // Intentar procesar la imagen a través de la API Python si está configurada
+            if (!string.IsNullOrEmpty(_pythonApiUrl))
+            {
+                var processedImage = await ProcessImageWithPythonApiAsync(
+                    image,
+                    file.FileName,
+                    cancellationToken
+                );
+                if (processedImage != null)
+                {
+                    // Si se procesó correctamente, reemplazamos la imagen actual
+                    image.Dispose();
+                    await processedImage.SaveAsync(outputPath, cancellationToken);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al procesar la imagen con la API Python. Continúa con el procesamiento local."
+            );
+            // Continuamos con el procesamiento local si falla la API
+        }
+
         // Redimensionar si es demasiado grande
         if (image.Width > 1200 || image.Height > 1200)
         {
@@ -139,10 +192,6 @@ public class FileService : IFileService
                 )
             );
         }
-
-        // Para estar seguros, podemos explícitamente rotar la imagen según EXIF
-        // (aunque ImageSharp normalmente ya lo hace)
-        image.Mutate(x => x.AutoOrient());
 
         // Comprimir y guardar
         var extension = Path.GetExtension(outputPath).ToLowerInvariant();
@@ -174,6 +223,113 @@ public class FileService : IFileService
                 await image.SaveAsync(outputPath, cancellationToken);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Procesa una imagen utilizando la API Python configurada
+    /// </summary>
+    /// <param name="image">Imagen a procesar</param>
+    /// <param name="originalFileName">Nombre del archivo original</param>
+    /// <param name="cancellationToken">Token de cancelación</param>
+    /// <returns>Imagen procesada o null si no se pudo procesar</returns>
+    private async Task<Image> ProcessImageWithPythonApiAsync(
+        Image image,
+        string originalFileName,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrEmpty(_pythonApiUrl))
+        {
+            _logger.LogWarning(
+                "No se puede procesar la imagen con la API Python porque la URL no está configurada"
+            );
+            return null;
+        }
+
+        try
+        {
+            // Crear un cliente HTTP
+            var client = _httpClientFactory.CreateClient("PythonApi");
+
+            // Preparar el contenido multipart
+            using var content = new MultipartFormDataContent();
+
+            // Convertir la imagen actual a un stream para enviarla
+            using var imageStream = new MemoryStream();
+            await image.SaveAsync(imageStream, new JpegEncoder(), cancellationToken);
+            imageStream.Position = 0;
+
+            // Agregar la imagen al contenido
+            var imageContent = new StreamContent(imageStream);
+            imageContent.Headers.ContentType = new MediaTypeHeaderValue(
+                GetContentType(Path.GetExtension(originalFileName))
+            );
+            content.Add(imageContent, "file", Path.GetFileName(originalFileName));
+
+            // Agregar cualquier metadato si es necesario
+            content.Add(new StringContent(""), "metadata");
+
+            // Configurar timeout
+            var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 segundos de timeout
+
+            // Enviar la solicitud POST a la API de procesamiento
+            var response = await client.PostAsync(_pythonApiUrl, content, timeoutCts.Token);
+
+            // Verificar si la solicitud fue exitosa
+            if (response.IsSuccessStatusCode)
+            {
+                // Leer la respuesta como stream
+                var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+                // Intentar cargar la imagen desde la respuesta
+                return await Image.LoadAsync(responseStream, cancellationToken);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError(
+                    "La API Python respondió con código {StatusCode}: {ErrorContent}",
+                    (int)response.StatusCode,
+                    errorContent
+                );
+                return null;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("La operación de procesamiento de imagen fue cancelada");
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning(
+                "El tiempo de espera para procesar la imagen con la API Python expiró"
+            );
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al procesar la imagen con la API Python");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene el tipo de contenido MIME basado en la extensión del archivo
+    /// </summary>
+    private string GetContentType(string extension)
+    {
+        return extension.ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            ".webp" => "image/webp",
+            ".svg" => "image/svg+xml",
+            _ => "application/octet-stream",
+        };
     }
 
     private async Task ProcessAndSaveWordDocumentAsync(
@@ -297,7 +453,7 @@ public class FileService : IFileService
 
     private static readonly Dictionary<FileType, string[]> _fileTypeExtensions = new()
     {
-        [FileType.Image] = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" },
+        [FileType.Image] = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg" },
         [FileType.Word] = new[] { ".doc", ".docx" },
         [FileType.Pdf] = new[] { ".pdf" },
         [FileType.Excel] = new[] { ".xls", ".xlsx" },

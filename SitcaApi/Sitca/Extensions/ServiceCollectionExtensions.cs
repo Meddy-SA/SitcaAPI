@@ -164,6 +164,26 @@ public static class ServiceCollectionExtensions
         services.Configure<Models.DTOs.EmailConfiguration>(configuration.GetSection("EmailSender"));
         services.AddTransient<IEmailSender, EmailSender>();
 
+        // Python API HttpClient
+        services.AddHttpClient(
+            "PythonApi",
+            client =>
+            {
+                // Configuración base del cliente HTTP
+                var pythonApiUrl = configuration["CorsSettings:pythonURL"];
+                if (!string.IsNullOrEmpty(pythonApiUrl))
+                {
+                    var baseUrl = new Uri(pythonApiUrl).GetLeftPart(UriPartial.Authority);
+                    client.BaseAddress = new Uri(baseUrl);
+                }
+
+                client.DefaultRequestHeaders.Accept.Add(
+                    new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json")
+                );
+                client.Timeout = TimeSpan.FromSeconds(30);
+            }
+        );
+
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();
 
@@ -184,6 +204,9 @@ public static class ServiceCollectionExtensions
 
         // Servicios de Manejo de Archivos.
         services.AddScoped<IFileService, FileService>();
+
+        // Servicio Manejo de Iconos.
+        services.AddSingleton<IIconService, IconService>();
 
         return services;
     }

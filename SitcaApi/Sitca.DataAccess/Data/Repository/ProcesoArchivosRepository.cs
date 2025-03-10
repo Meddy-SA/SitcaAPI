@@ -195,7 +195,7 @@ namespace Sitca.DataAccess.Data.Repository
                             : $"Archivo-{DateTime.Now:yyyyMMdd-HHmmss}";
 
                         // Guardar físicamente el archivo usando FileService
-                        var rutaRelativa = await GuardarArchivoFisicoAsync(
+                        (string rutaRelativa, long fileSize) = await GuardarArchivoFisicoAsync(
                             dto.Archivo,
                             dto.ProcesoCertificacionId,
                             cancellationToken
@@ -382,7 +382,7 @@ namespace Sitca.DataAccess.Data.Repository
         /// <summary>
         /// Guarda físicamente un archivo en el sistema de archivos
         /// </summary>
-        private async Task<string> GuardarArchivoFisicoAsync(
+        private async Task<(string FilePath, long FileSize)> GuardarArchivoFisicoAsync(
             IFormFile file,
             int procesoCertificacionId,
             CancellationToken cancellationToken = default

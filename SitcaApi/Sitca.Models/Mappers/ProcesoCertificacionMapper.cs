@@ -10,7 +10,10 @@ public static class ProcesoCertificacionMapper
     /// <summary>
     /// Mapea un ProcesoCertificacion a un ProcesoCertificacionDTO
     /// </summary>
-    public static ProcesoCertificacionDTO? ToDto(this ProcesoCertificacion proceso)
+    public static ProcesoCertificacionDTO? ToDto(
+        this ProcesoCertificacion proceso,
+        string userId = ""
+    )
     {
         if (proceso == null)
             return null;
@@ -119,6 +122,8 @@ public static class ProcesoCertificacionMapper
                             a.UserCreate == null
                                 ? null
                                 : $"{a.UserCreate.FirstName} {a.UserCreate.LastName}".Trim(),
+                        EsPropio = a.CreatedBy == userId,
+                        FileSize = a.FileSize,
                     })
                     .ToList() ?? new List<ProcesoArchivoDTO>(),
 
@@ -272,6 +277,8 @@ public static class ProcesoCertificacionMapper
                 archivo.UserCreate == null
                     ? null
                     : $"{archivo.UserCreate.FirstName} {archivo.UserCreate.LastName}".Trim(),
+            EsPropio = false,
+            FileSize = archivo.FileSize,
         };
     }
 

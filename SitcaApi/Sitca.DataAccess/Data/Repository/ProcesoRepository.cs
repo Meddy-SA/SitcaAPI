@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -29,7 +30,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         _logger = logger;
     }
 
-    public async Task<Result<ProcesoCertificacionDTO>> GetProcesoForIdAsync(int id)
+    public async Task<Result<ProcesoCertificacionDTO>> GetProcesoForIdAsync(int id, string userId)
     {
         try
         {
@@ -42,7 +43,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 .Include(p => p.AsesorProceso)
                 .Include(p => p.AuditorProceso)
                 .Include(p => p.UserGenerador)
-                .Include(p => p.ProcesosArchivos)
+                .Include(p => p.ProcesosArchivos.Where(a => a.Enabled))
                 .ThenInclude(a => a.UserCreate)
                 .FirstOrDefaultAsync(p => p.Id == id && p.Enabled != false);
 
@@ -59,7 +60,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             }
 
             // Mapea el proceso a DTO
-            var procesoDto = proceso.ToDto();
+            var procesoDto = proceso.ToDto(userId);
 
             // Registra el acceso exitoso en los logs
             _logger.LogInformation(

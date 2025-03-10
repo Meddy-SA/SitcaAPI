@@ -11,6 +11,7 @@ public class ProcesoArchivos : AuditableEntity
     public FileCompany? FileTypesCompany { get; set; } = FileCompany.Informativo;
     public int ProcesoCertificacionId { get; set; }
     public ProcesoCertificacion ProcesoCertificacion { get; set; } = null!;
+    public long? FileSize { get; set; }
 
     // Propiedad de transporte (no mapeada)
     public string? Base64Str { get; set; }

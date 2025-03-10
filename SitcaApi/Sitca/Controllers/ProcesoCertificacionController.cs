@@ -52,7 +52,7 @@ public class ProcesoCertificacionController : ControllerBase
             if (appUser == null)
                 return Unauthorized();
 
-            var res = await _unitOfWork.Proceso.GetProcesoForIdAsync(id);
+            var res = await _unitOfWork.Proceso.GetProcesoForIdAsync(id, appUser.Id);
             return this.HandleResponse(res);
         }
         catch (Exception ex)

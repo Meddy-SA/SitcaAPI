@@ -178,7 +178,10 @@ namespace Sitca.DataAccess.Data.Repository
                 string subfolder = DetermineSubfolder(request);
 
                 // Usar FileService para guardar y optimizar el archivo
-                string relativePath = await _fileService.SaveFileAsync(request.File, subfolder);
+                (string relativePath, long fileSize) = await _fileService.SaveFileAsync(
+                    request.File,
+                    subfolder
+                );
 
                 var archivo = await SaveFileRecord(request, relativePath);
                 if (archivo == null)
