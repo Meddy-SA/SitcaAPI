@@ -126,7 +126,20 @@ public static class ProcesoCertificacionMapper
                         FileSize = a.FileSize,
                     })
                     .ToList() ?? new List<ProcesoArchivoDTO>(),
-
+            Cuestionarios =
+                proceso
+                    .Cuestionarios?.Select(a => new CuestionarioBasicoDTO
+                    {
+                        Id = a.Id,
+                        Prueba = a.Prueba,
+                        FechaRevision = a.FechaRevisionAuditor,
+                        FechaInicio = a.FechaInicio,
+                        FechaFinalizacion = a.FechaFinalizado,
+                        FechaEvaluacion = proceso.FechaFijadaAuditoria.HasValue
+                            ? proceso.FechaFijadaAuditoria.Value
+                            : a.FechaVisita,
+                    })
+                    .ToList() ?? new List<CuestionarioBasicoDTO>(),
             CreadoPor = proceso.CreatedBy,
             FechaCreacion = proceso.CreatedAt,
             ActualizadoPor = proceso.UpdatedBy,
@@ -279,6 +292,33 @@ public static class ProcesoCertificacionMapper
                     : $"{archivo.UserCreate.FirstName} {archivo.UserCreate.LastName}".Trim(),
             EsPropio = false,
             FileSize = archivo.FileSize,
+        };
+    }
+
+    /// <summary>
+    /// Mapea un Archivo a un ProcesoArchivoDTO
+    /// </summary>
+    public static ProcesoArchivoDTO? ToDto(this Archivo archivo)
+    {
+        if (archivo == null)
+            return null;
+
+        return new ProcesoArchivoDTO
+        {
+            Id = archivo.Id,
+            Nombre = archivo.Nombre,
+            Ruta = archivo.Ruta,
+            Tipo = archivo.Tipo,
+            TipoArchivo = archivo.FileTypesCompany ?? Enums.FileCompany.Informativo,
+            NombreTipoArchivo = archivo.FileTypesCompany?.ToString() ?? "Informativo",
+            FechaCreacion = archivo.FechaCarga,
+            CreadoPor = archivo.UsuarioCargaId,
+            NombreCreador =
+                archivo.UsuarioCarga == null
+                    ? null
+                    : $"{archivo.UsuarioCarga.FirstName} {archivo.UsuarioCarga.LastName}".Trim(),
+            EsPropio = false,
+            EsEmpresa = true,
         };
     }
 

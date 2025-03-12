@@ -11,7 +11,9 @@ using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.DataAccess.Services.Pdf;
 using Sitca.DataAccess.Services.Token;
+using Sitca.DataAccess.Services.Url;
 using Sitca.DataAccess.Services.ViewToString;
 using Sitca.Models;
 
@@ -30,6 +32,9 @@ public class UnitOfWork : IUnitOfWork
     private readonly IJWTTokenGenerator _jwtToken;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ICuestionarioReaperturaService _cuestionarioService;
+    private readonly IReportService _reportService;
+    private readonly IIconService _iconService;
+    private readonly IUrlService _urlService;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<UnitOfWork> _logger;
     private bool _disposed;
@@ -46,6 +51,9 @@ public class UnitOfWork : IUnitOfWork
         IJWTTokenGenerator jwtToken,
         UserManager<ApplicationUser> userManager,
         ICuestionarioReaperturaService cuestionarioService,
+        IReportService reportService,
+        IIconService iconService,
+        IUrlService urlService,
         ILoggerFactory loggerFactory
     )
     {
@@ -63,6 +71,9 @@ public class UnitOfWork : IUnitOfWork
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _cuestionarioService =
             cuestionarioService ?? throw new ArgumentNullException(nameof(cuestionarioService));
+        _reportService = reportService ?? throw new ArgumentNullException(nameof(reportService));
+        _iconService = iconService ?? throw new ArgumentNullException(nameof(iconService));
+        _urlService = urlService ?? throw new ArgumentNullException(nameof(urlService));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _logger = _loggerFactory.CreateLogger<UnitOfWork>();
 
@@ -102,7 +113,14 @@ public class UnitOfWork : IUnitOfWork
             _cuestionarioService,
             _loggerFactory.CreateLogger<CertificacionRepository>()
         );
-        Reportes = new ReportesRepository(_db);
+        Reportes = new ReportesRepository(
+            _db,
+            _loggerFactory.CreateLogger<ReportesRepository>(),
+            _viewRenderService,
+            _reportService,
+            _iconService,
+            _urlService
+        );
         Users = new UsersRepository(_db, _dapper, _loggerFactory.CreateLogger<UsersRepository>());
         Capacitaciones = new CapacitacionesRepository(_db);
         CompañiasAuditoras = new CompañiasAuditorasRepository(_db);
@@ -128,6 +146,12 @@ public class UnitOfWork : IUnitOfWork
             _config,
             _loggerFactory.CreateLogger<ProcesoArchivosRepository>()
         );
+
+        // Asignar el UnitOfWork después de crear todos los repositorios
+        if (Reportes is ReportesRepository reportesRepo)
+        {
+            reportesRepo.SetUnitOfWork(this);
+        }
     }
 
     // Propiedades Repositorios

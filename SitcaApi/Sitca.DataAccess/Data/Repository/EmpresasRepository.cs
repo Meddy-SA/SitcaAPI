@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.Mappers;
 using Rol = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository;
@@ -123,6 +125,32 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
                 datosEmpresa.Id
             );
             return Result<bool>.Failure($"Error al actualizar la empresa: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<List<ProcesoArchivoDTO>>> GetFilesByCompanyAsync(int empresaId)
+    {
+        try
+        {
+            var archivos = await _db
+                .Archivo.AsNoTracking()
+                .Where(a => a.EmpresaId == empresaId && a.Activo)
+                .Include(a => a.UsuarioCarga)
+                .ToListAsync();
+
+            var archivosDto = archivos.Select(a => a.ToDto()).ToList();
+            return Result<List<ProcesoArchivoDTO>>.Success(archivosDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error no controlado al obtener archivos de la empresa {EmpresaId}",
+                empresaId
+            );
+            return Result<List<ProcesoArchivoDTO>>.Failure(
+                $"Error al obtener archivos de la empresa: {ex.Message}"
+            );
         }
     }
 

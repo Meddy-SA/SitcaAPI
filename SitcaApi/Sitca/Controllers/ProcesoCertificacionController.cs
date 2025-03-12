@@ -10,6 +10,8 @@ using Sitca.DataAccess.Services.Notification;
 using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.ViewModels;
+using Policies = Utilities.Common.AuthorizationPolicies.Proceso;
 
 namespace Sitca.Controllers;
 
@@ -61,6 +63,113 @@ public class ProcesoCertificacionController : ControllerBase
             return StatusCode(
                 500,
                 Result<ProcesoCertificacionDTO>.Failure("Error interno del servidor")
+            );
+        }
+    }
+
+    /// <summary>
+    /// Actualizar el numero de expediente segun el id del proceso de certificación
+    /// </summary>
+    [Authorize(Roles = Policies.UpdateCaseNumber)]
+    [HttpPut("expediente/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ExpedienteDTO>>> UpdateExpediente(
+        int id,
+        [FromBody] ExpedienteDTO expediente
+    )
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
+
+            if (expediente == null)
+                return BadRequest(Result<bool>.Failure("Datos no válidos"));
+
+            expediente.Id = id;
+
+            var result = await _unitOfWork.Proceso.UpdateCaseNumberAsync(expediente, appUser.Id);
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error no controlado al actualizar número de expediente para certificación {CertificacionId}",
+                id
+            );
+            return StatusCode(
+                500,
+                Result<bool>.Failure("Error interno del servidor al procesar la solicitud")
+            );
+        }
+    }
+
+    /// <summary>
+    /// Guarda la calificación de un proceso de certificación
+    /// </summary>
+    [Authorize(Roles = Policies.SaveCalification)]
+    [HttpPost("calificacion")]
+    [ProducesResponseType(typeof(Result<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<bool>>> SaveCalificacion(
+        [FromBody] SaveCalificacionVm data
+    )
+    {
+        try
+        {
+            if (data == null || data.idProceso <= 0)
+                return BadRequest(Result<bool>.Failure("Datos de calificación no válidos"));
+
+            var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
+
+            var result = await _unitOfWork.ProcesoCertificacion.SaveCalificacion(
+                data,
+                appUser,
+                role
+            );
+
+            if (!result.IsSuccess)
+                return this.HandleResponse(result);
+
+            // Enviar notificación solo si la operación fue exitosa
+            try
+            {
+                await _notificationService.SendNotification(data.idProceso, null, appUser.Lenguage);
+            }
+            catch (Exception ex)
+            {
+                // Logueamos el error pero no interrumpimos el flujo ya que la operación principal fue exitosa
+                _logger.LogWarning(
+                    ex,
+                    "Error al enviar la notificación para el proceso {ProcesoId}",
+                    data.idProceso
+                );
+            }
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error no controlado al guardar calificación para el proceso {ProcesoId}",
+                data.idProceso
+            );
+            return StatusCode(
+                500,
+                Result<bool>.Failure(
+                    "Error interno del servidor al procesar la solicitud de calificación"
+                )
             );
         }
     }

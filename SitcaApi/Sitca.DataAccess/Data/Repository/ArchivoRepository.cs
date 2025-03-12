@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Services.Files;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -65,30 +66,67 @@ namespace Sitca.DataAccess.Data.Repository
         }
 
         public async Task<List<Archivo>> GetList(
-            ArchivoFilterVm data,
+            ArchivoFilterVm filter,
             ApplicationUser user,
             string role
         )
         {
-            if (data.type == "pregunta")
+            // Validación de parámetros
+            if (filter == null)
             {
-                return await _db
-                    .Archivo.AsNoTracking()
-                    .Where(s => s.CuestionarioItemId == data.idPregunta && s.Activo)
-                    .ToListAsync();
+                throw new ArgumentNullException(nameof(filter), "El filtro no puede ser nulo");
             }
 
-            if (data.type == "cuestionario")
+            if (user == null)
             {
-                return await _db
-                    .Archivo.AsNoTracking()
-                    .Where(s =>
-                        s.CuestionarioItem.CuestionarioId == data.idCuestionario && s.Activo
-                    )
-                    .ToListAsync();
+                throw new ArgumentNullException(nameof(user), "El usuario no puede ser nulo");
             }
 
-            return null;
+            try
+            {
+                // Usar un switch para mejorar la legibilidad
+                switch (filter.type?.ToLower())
+                {
+                    case "pregunta" when filter.idPregunta > 0:
+                        return await _db
+                            .Archivo.AsNoTracking()
+                            .Where(a => a.CuestionarioItemId == filter.idPregunta && a.Activo)
+                            .ToListAsync();
+
+                    case "cuestionario" when filter.idCuestionario > 0:
+                        return await _db
+                            .Archivo.AsNoTracking()
+                            .Where(a =>
+                                a.CuestionarioItem.CuestionarioId == filter.idCuestionario
+                                && a.Activo
+                            )
+                            .Include(a => a.CuestionarioItem) // Incluir para optimizar la carga relacionada
+                            .ToListAsync();
+
+                    default:
+                        _logger.LogWarning(
+                            "Filtro de archivo no válido: {Type}, IdPregunta: {IdPregunta}, IdCuestionario: {IdCuestionario}",
+                            filter.type,
+                            filter.idPregunta,
+                            filter.idCuestionario
+                        );
+                        return new List<Archivo>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener archivos con filtro: {FilterType}, IdPregunta: {IdPregunta}, IdCuestionario: {IdCuestionario}",
+                    filter.type,
+                    filter.idPregunta,
+                    filter.idCuestionario
+                );
+                throw new DatabaseException(
+                    $"Error al recuperar los archivos con el filtro especificado",
+                    ex
+                );
+            }
         }
 
         public List<EnumValueDto> GetTypeFilesCompany()

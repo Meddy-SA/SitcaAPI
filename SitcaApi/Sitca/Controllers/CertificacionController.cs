@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Extensions;
@@ -194,38 +193,7 @@ namespace Sitca.Controllers
                 await _notificationService.SendNotification(data.idProceso, null, appUser.Lenguage);
             }
             catch (Exception) { }
-            return Ok(res);
-        }
-
-        [Authorize(Roles = Policies.UpdateCaseNumber)]
-        [HttpPost("update-case-number")]
-        public async Task<ActionResult<Result<bool>>> UpdateNumeroExp(CertificacionDetailsVm data)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
-
-                if (data == null)
-                    return BadRequest(Result<bool>.Failure("Datos no válidos"));
-
-                var result = await _unitOfWork.ProcesoCertificacion.UpdateNumeroExpAsync(data);
-
-                return this.HandleResponse(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error no controlado al actualizar número de expediente para certificación {CertificacionId}",
-                    data?.Id
-                );
-                return StatusCode(
-                    500,
-                    Result<bool>.Failure("Error interno del servidor al procesar la solicitud")
-                );
-            }
+            return Ok(res.Value);
         }
 
         [Authorize(Roles = Policies.UpdateAuditor)]
@@ -417,24 +385,6 @@ namespace Sitca.Controllers
             );
 
             return this.HandleResponse(result, true);
-        }
-
-        [Authorize]
-        [Route("GetHistory")]
-        public async Task<IActionResult> GetHistory(int idCuestionario)
-        {
-            var result = await _unitOfWork.ProcesoCertificacion.GetHistory(idCuestionario);
-
-            return Ok(
-                JsonConvert.SerializeObject(
-                    result,
-                    Formatting.None,
-                    new JsonSerializerSettings()
-                    {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-                    }
-                )
-            );
         }
 
         [Authorize]

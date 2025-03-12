@@ -18,4 +18,5 @@ public class ProcesoArchivoDTO
     public string? NombreCreador { get; set; }
     public bool EsPropio { get; set; }
     public long? FileSize { get; set; }
+    public bool EsEmpresa { get; set; } = false;
 }

@@ -21,6 +21,7 @@ using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
 using Sitca.DataAccess.Services.Token;
+using Sitca.DataAccess.Services.Url;
 using Sitca.DataAccess.Services.ViewToString;
 using Sitca.Middlewares;
 using Sitca.Models;
@@ -183,6 +184,9 @@ public static class ServiceCollectionExtensions
                 client.Timeout = TimeSpan.FromSeconds(30);
             }
         );
+
+        // URLs
+        services.AddScoped<IUrlService, UrlService>();
 
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();

@@ -221,4 +221,39 @@ public class CuestionarioController : ControllerBase
             return StatusCode(500, Result<int>.Failure("Error interno del servidor"));
         }
     }
+
+    /// <summary>
+    /// Obtiene el historial de un cuestionario específico
+    /// </summary>
+    [Authorize]
+    [HttpGet("{id}/historial")]
+    [ProducesResponseType(typeof(Result<List<HistorialVm>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<List<HistorialVm>>>> GetHistory(int id)
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized();
+
+            var result = await _unitOfWork.ProcesoCertificacion.GetHistory(id);
+
+            if (result == null)
+                return NotFound();
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al obtener historial de cuestionario: {CuestionarioId}",
+                id
+            );
+            return StatusCode(500, "Error interno del servidor");
+        }
+    }
 }

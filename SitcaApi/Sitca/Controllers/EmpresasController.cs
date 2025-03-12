@@ -28,14 +28,14 @@ public class EmpresasController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly IConfiguration _config;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ILogger<EmpresaController> _logger;
+    private readonly ILogger<EmpresasController> _logger;
 
     public EmpresasController(
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
         IConfiguration config,
         UserManager<ApplicationUser> userManager,
-        ILogger<EmpresaController> logger
+        ILogger<EmpresasController> logger
     )
     {
         _unitOfWork = unitOfWork;
@@ -389,6 +389,48 @@ public class EmpresasController : ControllerBase
         {
             _logger.LogError(ex, "Error al buscar empresas por rol");
             return StatusCode(500, Result<List<EmpresaVm>>.Failure("Error interno del servidor"));
+        }
+    }
+
+    /// <summary>
+    /// Obtiene todos los archivos relacionados a una empresa.
+    /// </summary>
+    [Authorize]
+    [HttpGet("archivos/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<List<ProcesoArchivoDTO>>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<List<ProcesoArchivoDTO>>>> GetFilesForCompany(int id)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(
+                    Result<List<ProcesoArchivoDTO>>.Failure(
+                        "El ID de la empresa debe ser mayor que cero"
+                    )
+                );
+
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized();
+
+            var archivos = await _unitOfWork.Empresas.GetFilesByCompanyAsync(id);
+            return this.HandleResponse(archivos);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Argumento inválido al buscar empresas por rol");
+            return BadRequest(Result<List<ProcesoArchivoDTO>>.Failure(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener archivos de la empresa {EmpresaId}", id);
+            return StatusCode(
+                500,
+                Result<List<ProcesoArchivoDTO>>.Failure("Error interno del servidor")
+            );
         }
     }
 }

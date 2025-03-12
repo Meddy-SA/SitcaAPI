@@ -71,6 +71,12 @@ public class ProcesoCertificacionDTO
     public ICollection<ProcesoArchivoDTO> Archivos { get; set; } = new List<ProcesoArchivoDTO>();
 
     /// <summary>
+    /// Colección de cuestionarios asociados al proceso
+    /// </summary>
+    public ICollection<CuestionarioBasicoDTO> Cuestionarios { get; set; } =
+        new List<CuestionarioBasicoDTO>();
+
+    /// <summary>
     /// Información de auditoría
     /// </summary>
     public string? CreadoPor { get; set; }

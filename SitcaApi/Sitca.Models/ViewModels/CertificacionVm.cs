@@ -164,7 +164,7 @@ namespace Sitca.Models.ViewModels
     [NotMapped]
     public class HistorialVm
     {
-        public string Fecha { get; set; } = null!;
+        public DateTime? Fecha { get; set; }
         public int Cantidad { get; set; }
         public int Archivos { get; set; }
         public int Porcentaje { get; set; }
