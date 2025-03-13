@@ -9,8 +9,11 @@ using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.Models;
+using Sitca.Models.Constants;
 using Sitca.Models.DTOs;
+using Sitca.Models.Enums;
 using Sitca.Models.Mappers;
+using Sitca.Models.ViewModels;
 using Rol = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository;
@@ -34,6 +37,95 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
         _notificationService = notificationService;
         _queryBuilder = queryBuilder;
         _logger = logger;
+    }
+
+    private static bool IsValidLanguage(string lang) =>
+        lang == LanguageCodes.Spanish || lang == LanguageCodes.English;
+
+    /// <summary>
+    /// Obtiene todos los metadatos necesarios para la gestión de empresas
+    /// </summary>
+    /// <param name="language">Código de idioma ("es" para español, "en" para inglés)</param>
+    /// <returns>Objeto que contiene listas de países, tipologías, distintivos y estados</returns>
+    public async Task<Result<MetadatosDTO>> GetMetadataAsync(string language)
+    {
+        try
+        {
+            // Validar y normalizar el código de idioma
+            if (string.IsNullOrWhiteSpace(language))
+            {
+                language = "es"; // Establecer español como idioma por defecto
+            }
+            else
+            {
+                language = language.ToLowerInvariant();
+                if (!IsValidLanguage(language))
+                {
+                    return Result<MetadatosDTO>.Failure($"Código de idioma no válido: {language}");
+                }
+            }
+
+            // Crear el objeto de respuesta
+            var metadata = new MetadatosDTO();
+
+            // Obtener la lista de países activos
+            metadata.Paises = await _db
+                .Pais.AsNoTracking()
+                .Where(p => p.Active)
+                .OrderBy(p => p.Name)
+                .Select(p => new CommonVm
+                {
+                    id = p.Id,
+                    name = p.Name, // Los países no tienen traducción en el modelo
+                    isSelected = false,
+                })
+                .ToListAsync();
+
+            // Obtener la lista de tipologías activas
+            metadata.Tipologias = await _db
+                .Tipologia.AsNoTracking()
+                .Where(t => t.Active)
+                .OrderBy(t => language == "es" ? t.Name : t.NameEnglish)
+                .Select(t => new CommonVm
+                {
+                    id = t.Id,
+                    name = language == "es" ? t.Name : t.NameEnglish,
+                    isSelected = false,
+                })
+                .ToListAsync();
+
+            // Obtener la lista de distintivos activos
+            metadata.Distintivos = await _db
+                .Distintivo.AsNoTracking()
+                .Where(d => d.Activo)
+                .OrderBy(d => d.Importancia)
+                .Select(d => new CommonVm
+                {
+                    id = d.Id,
+                    name = language == "es" ? d.Name : d.NameEnglish,
+                    isSelected = false,
+                })
+                .ToListAsync();
+
+            // Obtener la lista de estados de certificación
+            metadata.Estados = Enum.GetValues<CertificationStatus>()
+                .Select(status => new CommonVm
+                {
+                    id = (int)status,
+                    name = StatusLocalizations.GetDescription(status, language),
+                    isSelected = false,
+                })
+                .ToList();
+
+            return Result<MetadatosDTO>.Success(metadata);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener metadatos para el idioma {Language}", language);
+            return Result<MetadatosDTO>.Failure(
+                $"Error interno al recuperar los metadatos: {ex.Message}"
+            );
+        }
     }
 
     /// <summary>

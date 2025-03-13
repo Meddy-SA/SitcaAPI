@@ -139,6 +139,33 @@ public class EmpresasController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene los metadatos para filtrar por listado de empresas.
+    /// </summary>
+    [Authorize]
+    [HttpGet("metadatos")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<MetadatosDTO>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<MetadatosDTO>>> GetMetadatos()
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized();
+
+            var result = await _unitOfWork.Empresas.GetMetadataAsync(appUser.Lenguage);
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener metadatos de empresas");
+            return StatusCode(500, Result<MetadatosDTO>.Failure("Error interno del servidor"));
+        }
+    }
+
+    /// <summary>
     /// Obtiene información de la empresa del usuario actual
     /// </summary>
     [Authorize(Roles = AuthorizationPolicies.Empresa.View)]
