@@ -173,4 +173,50 @@ public class ProcesoCertificacionController : ControllerBase
             );
         }
     }
+
+    /// <summary>
+    /// Crea un nuevo proceso de recertificación para una empresa
+    /// </summary>
+    [Authorize(Roles = Policies.CreateRecertification)]
+    [HttpPost("recertificacion/{empresaId}")]
+    [ProducesResponseType(typeof(Result<ProcesoCertificacionDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProcesoCertificacionDTO>>> CrearRecertificacion(
+        int empresaId
+    )
+    {
+        try
+        {
+            if (empresaId <= 0)
+                return BadRequest(
+                    Result<ProcesoCertificacionDTO>.Failure("El ID de empresa no es válido")
+                );
+
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(
+                    Result<ProcesoCertificacionDTO>.Failure("Usuario no autorizado")
+                );
+
+            var result = await _unitOfWork.Proceso.CrearRecertificacionAsync(empresaId, appUser.Id);
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error no controlado al crear recertificación para la empresa {EmpresaId}",
+                empresaId
+            );
+            return StatusCode(
+                500,
+                Result<ProcesoCertificacionDTO>.Failure(
+                    "Error interno del servidor al procesar la solicitud"
+                )
+            );
+        }
+    }
 }

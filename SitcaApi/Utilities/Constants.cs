@@ -35,6 +35,19 @@ public static class Constants
         public const int Completed = 8;
     }
 
+    public static class ProcessStatusDecimal
+    {
+        public const decimal Initial = ProcessStatus.Initial;
+        public const decimal ForConsulting = ProcessStatus.ForConsulting;
+        public const decimal ConsultancyUnderway = ProcessStatus.ConsultancyUnderway;
+        public const decimal ConsultancyCompleted = ProcessStatus.ConsultancyCompleted;
+        public const decimal ForAuditing = ProcessStatus.ForAuditing;
+        public const decimal AuditingUnderway = ProcessStatus.AuditingUnderway;
+        public const decimal AuditCompleted = ProcessStatus.AuditCompleted;
+        public const decimal UnderCCTReview = ProcessStatus.UnderCCTReview;
+        public const decimal Completed = ProcessStatus.Completed;
+    }
+
     public static readonly string[] KnowRoles =
     {
         Roles.Asesor,
@@ -45,6 +58,59 @@ public static class Constants
         Roles.Auditor,
         Roles.AsesorAuditor,
         Roles.Consultor,
-        Roles.EmpresaAuditora
+        Roles.EmpresaAuditora,
     };
+
+    public static class ProcessStatusText
+    {
+        // Textos en español
+        public static class Spanish
+        {
+            public const string Initial = "0 - Inicial";
+            public const string ForConsulting = "1 - Para Asesorar";
+            public const string ConsultancyUnderway = "2 - Asesoria en Proceso";
+            public const string ConsultancyCompleted = "3 - Asesoria Finalizada";
+            public const string ForAuditing = "4 - Para Auditar";
+            public const string AuditingUnderway = "5 - Auditoria en Proceso";
+            public const string AuditCompleted = "6 - Auditoria Finalizada";
+            public const string UnderCCTReview = "7 - En revisión de CTC";
+            public const string Completed = "8 - Finalizado";
+
+            // También podemos tener versiones sin el número para búsquedas
+            public const string InitialNoNumber = "Inicial";
+            public const string ForConsultingNoNumber = "Para Asesorar";
+            public const string ConsultancyUnderwayNoNumber = "Asesoria en Proceso";
+            public const string ConsultancyCompletedNoNumber = "Asesoria Finalizada";
+            public const string ForAuditingNoNumber = "Para Auditar";
+            public const string AuditingUnderwayNoNumber = "Auditoria en Proceso";
+            public const string AuditCompletedNoNumber = "Auditoria Finalizada";
+            public const string UnderCCTReviewNoNumber = "En revisión de CTC";
+            public const string CompletedNoNumber = "Finalizado";
+        }
+
+        // Textos en inglés
+        public static class English
+        {
+            public const string Initial = "0 - Start";
+            public const string ForConsulting = "1 - For consulting";
+            public const string ConsultancyUnderway = "2 - Consultancy underway";
+            public const string ConsultancyCompleted = "3 - Consultancy completed";
+            public const string ForAuditing = "4 - For auditing";
+            public const string AuditingUnderway = "5 - Auditing underway";
+            public const string AuditCompleted = "6 - Audit completed";
+            public const string UnderCCTReview = "7 - Under CCT Review";
+            public const string Completed = "8 - Completed";
+
+            // También versiones sin el número
+            public const string InitialNoNumber = "Start";
+            public const string ForConsultingNoNumber = "For consulting";
+            public const string ConsultancyUnderwayNoNumber = "Consultancy underway";
+            public const string ConsultancyCompletedNoNumber = "Consultancy completed";
+            public const string ForAuditingNoNumber = "For auditing";
+            public const string AuditingUnderwayNoNumber = "Auditing underway";
+            public const string AuditCompletedNoNumber = "Audit completed";
+            public const string UnderCCTReviewNoNumber = "Under CCT Review";
+            public const string CompletedNoNumber = "Completed";
+        }
+    }
 }

@@ -29,6 +29,7 @@ public static class AuthorizationPolicies
         public const string UpdateCaseNumber =
             $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
         public const string SaveCalification = $"{Rol.Admin}, {Rol.CTC}";
+        public const string CreateRecertification = $"{Rol.Admin}, {Rol.TecnicoPais}";
     }
 
     public static class Empresa

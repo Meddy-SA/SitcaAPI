@@ -12,6 +12,7 @@ using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
+using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.DataAccess.Services.Token;
 using Sitca.DataAccess.Services.Url;
 using Sitca.DataAccess.Services.ViewToString;
@@ -26,7 +27,8 @@ public class UnitOfWork : IUnitOfWork
     private readonly IEmailSender _emailSender;
     private readonly IFileService _fileService;
     private readonly INotificationService _notificationService;
-    private readonly ICompanyQueryBuilder _queryBuilder;
+    private readonly ICompanyQueryBuilder _queryBuilderCompany;
+    private readonly IProcessQueryBuilder _queryBuilderProcess;
     private readonly IViewRenderService _viewRenderService;
     private readonly IConfiguration _config;
     private readonly IJWTTokenGenerator _jwtToken;
@@ -45,7 +47,8 @@ public class UnitOfWork : IUnitOfWork
         IEmailSender emailSender,
         IFileService fileService,
         INotificationService notificationService,
-        ICompanyQueryBuilder queryBuilder,
+        ICompanyQueryBuilder queryBuilderCompany,
+        IProcessQueryBuilder queryBuilderProcess,
         IViewRenderService viewRenderService,
         IConfiguration config,
         IJWTTokenGenerator jwtToken,
@@ -63,7 +66,10 @@ public class UnitOfWork : IUnitOfWork
         _fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
         _notificationService =
             notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-        _queryBuilder = queryBuilder ?? throw new ArgumentNullException(nameof(queryBuilder));
+        _queryBuilderCompany =
+            queryBuilderCompany ?? throw new ArgumentNullException(nameof(queryBuilderCompany));
+        _queryBuilderProcess =
+            queryBuilderProcess ?? throw new ArgumentNullException(nameof(queryBuilderProcess));
         _viewRenderService =
             viewRenderService ?? throw new ArgumentNullException(nameof(viewRenderService));
         _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -87,7 +93,7 @@ public class UnitOfWork : IUnitOfWork
         Empresa = new EmpresaRepository(
             _db,
             _notificationService,
-            _queryBuilder,
+            _queryBuilderCompany,
             _loggerFactory.CreateLogger<EmpresaRepository>()
         );
         Auth = new AuthRepository(
@@ -131,13 +137,14 @@ public class UnitOfWork : IUnitOfWork
         );
         Proceso = new ProcesoRepository(
             _db,
+            _queryBuilderProcess,
             _config,
             _loggerFactory.CreateLogger<ProcesoRepository>()
         );
         Empresas = new EmpresasRepository(
             _db,
             _notificationService,
-            _queryBuilder,
+            _queryBuilderCompany,
             _loggerFactory.CreateLogger<EmpresasRepository>()
         );
         ProcesoArchivos = new ProcesoArchivosRepository(

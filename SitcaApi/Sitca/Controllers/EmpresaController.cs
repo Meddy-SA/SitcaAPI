@@ -160,47 +160,6 @@ namespace Sitca.Controllers
             }
         }
 
-        [HttpPost("ListForRole")]
-        [Authorize]
-        [ProducesResponseType(typeof(List<EmpresaVm>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<List<EmpresaVm>>> ListForRole(CompanyFilterDTO filter)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized();
-
-                var role = User.FindFirst(ClaimTypes.Role)?.Value;
-                if (string.IsNullOrEmpty(role))
-                    return BadRequest("Role not found in claims");
-
-                var empresas = await _unitOfWork.Empresa.ListForRoleAsync(appUser, role, filter);
-                return this.HandleResponse(empresas, true);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when getting company list");
-                return this.HandleResponse<List<EmpresaVm>>(
-                    null,
-                    false,
-                    StatusCodes.Status400BadRequest
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting company list");
-                return this.HandleResponse<List<EmpresaVm>>(
-                    null,
-                    false,
-                    StatusCodes.Status500InternalServerError
-                );
-            }
-        }
-
         /// <summary>
         /// Obtiene un reporte de empresas según los criterios de filtrado especificados.
         /// </summary>

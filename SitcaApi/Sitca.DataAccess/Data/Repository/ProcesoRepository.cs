@@ -6,26 +6,32 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.Mappers;
+using Sitca.Models.ViewModels;
+using static Utilities.Common.Constants;
 
 namespace Sitca.DataAccess.Data.Repository;
 
 public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepository
 {
     private readonly ApplicationDbContext _db;
+    private readonly IProcessQueryBuilder _queryBuilder;
     private readonly IConfiguration _config;
     private readonly ILogger<ProcesoRepository> _logger;
 
     public ProcesoRepository(
         ApplicationDbContext db,
+        IProcessQueryBuilder queryBuilder,
         IConfiguration configuration,
         ILogger<ProcesoRepository> logger
     )
         : base(db)
     {
         _db = db;
+        _queryBuilder = queryBuilder;
         _config = configuration;
         _logger = logger;
     }
@@ -143,6 +149,140 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             );
             return Result<ExpedienteDTO>.Failure(
                 $"Error al actualizar número de expediente: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<BlockResult<ProcesoCertificacionVm>> GetProcessesBlockAsync(
+        ApplicationUser user,
+        string role,
+        CompanyFilterDTO filter,
+        string language = "es"
+    )
+    {
+        try
+        {
+            // Construir la consulta unificada basada en el rol
+            var query = _queryBuilder.BuildUnifiedQuery(user, role, filter.IsRecetification);
+
+            // Aplicar filtros adicionales
+            query = _queryBuilder.ApplyFilters(query, filter, filter.DistinctiveId);
+
+            // Ejecutar la proyección paginada
+            return await _queryBuilder.BuildAndExecuteBlockProjection(
+                query,
+                language ?? "es",
+                filter.BlockNumber,
+                filter.BlockSize
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error getting process list with filter {@Filter} for role {Role}",
+                filter,
+                role
+            );
+            throw;
+        }
+    }
+
+    public async Task<Result<ProcesoCertificacionDTO>> CrearRecertificacionAsync(
+        int empresaId,
+        string userId
+    )
+    {
+        try
+        {
+            // Verificar si existe algún proceso habilitado en estado 8 (Finalizado)
+            var procesoAnterior = await _db
+                .ProcesoCertificacion.Include(p => p.Empresa)
+                .Include(p => p.Tipologia)
+                .FirstOrDefaultAsync(p =>
+                    p.EmpresaId == empresaId
+                    && p.Status == ProcessStatusText.Spanish.Completed
+                    && p.Enabled
+                );
+
+            if (procesoAnterior == null)
+            {
+                _logger.LogWarning(
+                    "No se encontró proceso finalizado y habilitado para la empresa ID: {EmpresaId}",
+                    empresaId
+                );
+                return Result<ProcesoCertificacionDTO>.Failure(
+                    $"No existe un proceso finalizado para la empresa con ID: {empresaId}"
+                );
+            }
+
+            // Estrategia de ejecución para la transacción
+            var strategy = _db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    // Crear nuevo proceso como recertificación
+                    var nuevoProceso = new ProcesoCertificacion
+                    {
+                        EmpresaId = empresaId,
+                        FechaInicio = DateTime.UtcNow,
+                        Recertificacion = true,
+                        NumeroExpediente = "",
+                        Status = ProcessStatusText.Spanish.Initial,
+                        UserGeneraId = userId,
+                        TipologiaId = procesoAnterior.TipologiaId,
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        Enabled = true,
+                    };
+
+                    _db.ProcesoCertificacion.Add(nuevoProceso);
+                    await _db.SaveChangesAsync();
+
+                    // Actualizar estado de la empresa
+                    await ActualizarEstadoEmpresaAsync(
+                        empresaId,
+                        ProcessStatusText.Spanish.Initial
+                    );
+
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation(
+                        "Recertificación creada exitosamente para empresa {EmpresaId}, nuevo proceso ID: {ProcesoId}",
+                        empresaId,
+                        nuevoProceso.Id
+                    );
+
+                    // Mapear a DTO y devolver
+                    var procesoDto = nuevoProceso.ToDto(userId);
+                    return Result<ProcesoCertificacionDTO>.Success(procesoDto);
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(
+                        ex,
+                        "Error al crear recertificación para empresa {EmpresaId}: {Error}",
+                        empresaId,
+                        ex.Message
+                    );
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error no controlado al crear recertificación para empresa {EmpresaId}: {Error}",
+                empresaId,
+                ex.Message
+            );
+            return Result<ProcesoCertificacionDTO>.Failure(
+                $"Error al crear recertificación: {ex.Message}"
             );
         }
     }

@@ -20,6 +20,7 @@ using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
+using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.DataAccess.Services.Token;
 using Sitca.DataAccess.Services.Url;
 using Sitca.DataAccess.Services.ViewToString;
@@ -205,6 +206,9 @@ public static class ServiceCollectionExtensions
 
         // Servicio de Company
         services.AddScoped<ICompanyQueryBuilder, CompanyQueryBuilder>();
+
+        // Servicio de Procesos
+        services.AddScoped<IProcessQueryBuilder, ProcessQueryBuilder>();
 
         // Servicios de Manejo de Archivos.
         services.AddScoped<IFileService, FileService>();

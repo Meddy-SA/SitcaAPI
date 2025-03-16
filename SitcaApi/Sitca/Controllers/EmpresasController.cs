@@ -48,38 +48,58 @@ public class EmpresasController : ControllerBase
     /// <summary>
     /// Obtiene la lista de empresas (por país si se especifica)
     /// </summary>
-    [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
-    [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<List<EmpresaVm>>))]
+    [Authorize]
+    [HttpPost("procesos")]
+    [ProducesResponseType(
+        StatusCodes.Status200OK,
+        Type = typeof(Result<BlockResult<ProcesoCertificacionVm>>)
+    )]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<List<EmpresaVm>>>> GetAll([FromQuery] int? paisId = null)
+    public async Task<ActionResult<Result<BlockResult<ProcesoCertificacionVm>>>> GetProcessesList(
+        CompanyFilterDTO filter
+    )
     {
         try
         {
-            var appUser = await this.GetCurrentUserAsync(_userManager);
+            var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
             if (appUser == null)
                 return Unauthorized();
 
-            var filter = new CompanyFilterDTO();
+            // Usar el valor predeterminado si es null
+            filter ??= new CompanyFilterDTO();
 
-            // Si no es admin, solo puede ver empresas de su país
-            if (!User.IsInRole("Admin"))
-            {
-                filter.CountryId = appUser.PaisId ?? 0;
-            }
-            else if (paisId.HasValue)
-            {
-                filter.CountryId = paisId.Value;
-            }
+            // Validar y ajustar los parámetros de paginación por bloques
+            if (filter.BlockSize <= 0)
+                filter.BlockSize = 100;
+            if (filter.BlockNumber <= 0)
+                filter.BlockNumber = 1;
 
-            var companies = await _unitOfWork.Empresa.GetCompanyListAsync(filter, appUser.Lenguage);
-            return this.HandleResponse(Result<List<EmpresaVm>>.Success(companies));
+            // Limitar el tamaño máximo de bloque a un valor razonable
+            filter.BlockSize = Math.Min(filter.BlockSize, 500);
+
+            var processes = await _unitOfWork.Proceso.GetProcessesBlockAsync(
+                appUser,
+                role,
+                filter,
+                appUser.Lenguage
+            );
+
+            return this.HandleResponse(
+                Result<BlockResult<ProcesoCertificacionVm>>.Success(processes)
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener lista de empresas");
-            return StatusCode(500, Result<List<EmpresaVm>>.Failure("Error interno del servidor"));
+            _logger.LogError(
+                ex,
+                "Error al obtener lista de procesos de certificación con filtro {@Filter}",
+                filter
+            );
+            return StatusCode(
+                500,
+                Result<List<ProcesoCertificacionVm>>.Failure("Error interno del servidor")
+            );
         }
     }
 
@@ -142,7 +162,7 @@ public class EmpresasController : ControllerBase
     /// Obtiene los metadatos para filtrar por listado de empresas.
     /// </summary>
     [Authorize]
-    [HttpGet("metadatos")]
+    [HttpGet("metadata")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<MetadatosDTO>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
