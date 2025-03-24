@@ -271,7 +271,7 @@ public static class ProcesoCertificacionMapper
     /// <summary>
     /// Mapea un ProcesoArchivos a un ProcesoArchivoDTO
     /// </summary>
-    public static ProcesoArchivoDTO? ToDto(this ProcesoArchivos archivo)
+    public static ProcesoArchivoDTO? ToDto(this ProcesoArchivos archivo, string userId)
     {
         if (archivo == null)
             return null;
@@ -290,7 +290,7 @@ public static class ProcesoCertificacionMapper
                 archivo.UserCreate == null
                     ? null
                     : $"{archivo.UserCreate.FirstName} {archivo.UserCreate.LastName}".Trim(),
-            EsPropio = false,
+            EsPropio = archivo.CreatedBy == userId,
             FileSize = archivo.FileSize,
         };
     }

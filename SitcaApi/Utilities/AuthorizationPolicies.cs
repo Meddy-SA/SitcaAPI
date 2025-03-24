@@ -18,7 +18,6 @@ public static class AuthorizationPolicies
     {
         public const string ConvertirARecetificacion = $"{Rol.Admin}, {Rol.TecnicoPais}";
         public const string Comenzar = $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
-        public const string AsignaAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
         public const string UpdateAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
         public const string GenerarCuestionario =
             $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.Auditor}, {Rol.Asesor}";
@@ -30,6 +29,9 @@ public static class AuthorizationPolicies
             $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
         public const string SaveCalification = $"{Rol.Admin}, {Rol.CTC}";
         public const string CreateRecertification = $"{Rol.Admin}, {Rol.TecnicoPais}";
+        public const string StartedConsulting =
+            $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
+        public const string AssignAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
     }
 
     public static class Empresa

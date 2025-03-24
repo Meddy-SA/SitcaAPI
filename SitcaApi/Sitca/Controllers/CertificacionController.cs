@@ -80,37 +80,6 @@ namespace Sitca.Controllers
             }
         }
 
-        [Authorize]
-        [HttpPost("nueva-recertificacion/{empresaId}")]
-        [ProducesResponseType(typeof(Result<int>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Result<int>>> NuevaRecertificacion(int empresaId)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized();
-
-                var res = await _unitOfWork.ProcesoCertificacion.NuevaRecertificacion(
-                    empresaId,
-                    appUser
-                );
-
-                return this.HandleResponse(res);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error al procesar nueva recertificación para empresa {empresaId}",
-                    empresaId
-                );
-                return StatusCode(500, Result<int>.Failure("Error interno del servidor"));
-            }
-        }
-
         [Authorize(Roles = "Admin")]
         [HttpGet("ReAbrirCuestionario/{id}")]
         public async Task<ActionResult<Result<bool>>> ReAbrirCuestionario(int id)
@@ -258,53 +227,6 @@ namespace Sitca.Controllers
                 return StatusCode(
                     500,
                     Result<bool>.Failure("Error interno del servidor al procesar la solicitud")
-                );
-            }
-        }
-
-        [Authorize(Roles = Policies.Comenzar)]
-        [HttpPost("Comenzar")]
-        public async Task<ActionResult<Result<int>>> Comenzar(CertificacionVm data)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized(Result<int>.Failure("No se encontro el usuario"));
-
-                var result = await _unitOfWork.ProcesoCertificacion.ComenzarProcesoAsync(
-                    data,
-                    appUser.Id
-                );
-                if (!result.IsSuccess)
-                    return BadRequest(result);
-
-                try
-                {
-                    await _notificationService.SendNotification(
-                        result.Value,
-                        null,
-                        appUser.Lenguage
-                    );
-                }
-                catch (Exception ex)
-                {
-                    // Logueamos el error pero no lo propagamos ya que es un proceso secundario
-                    _logger.LogError(
-                        ex,
-                        "Error al enviar notificación para el proceso {ProcesoId}",
-                        result.Value
-                    );
-                }
-
-                return this.HandleResponse(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al comenzar el proceso de certificación");
-                return StatusCode(
-                    500,
-                    new { message = "Error interno del servidor al procesar la solicitud" }
                 );
             }
         }
@@ -472,36 +394,6 @@ namespace Sitca.Controllers
                 return Unauthorized();
 
             var result = await _unitOfWork.ProcesoCertificacion.CanFinalizeCuestionario(id, role);
-            return this.HandleResponse(result);
-        }
-
-        [Authorize(Roles = Policies.AsignaAuditor)]
-        [HttpPost("asignacion-auditor")]
-        public async Task<ActionResult<Result<int>>> AsignaAuditor(AsignaAuditoriaVm data)
-        {
-            var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null)
-                return Unauthorized();
-
-            var result = await _unitOfWork.ProcesoCertificacion.AsignaAuditorAsync(
-                data,
-                appUser.Lenguage
-            );
-            try
-            {
-                // Result.Value ---> Id del Proceso
-                if (result.IsSuccess)
-                    await _notificationService.SendNotification(
-                        result.Value,
-                        null,
-                        appUser.Lenguage
-                    );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al enviar notificacion");
-            }
-
             return this.HandleResponse(result);
         }
     }

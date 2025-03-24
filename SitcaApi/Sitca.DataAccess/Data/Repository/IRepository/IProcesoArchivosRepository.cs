@@ -13,13 +13,14 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
         /// Obtiene todos los archivos de un proceso de certificación
         /// </summary>
         Task<Result<List<ProcesoArchivoDTO>>> GetArchivosByProcesoIdAsync(
-            FiltrarArchivosProcesoDTO filtro
+            FiltrarArchivosProcesoDTO filtro,
+            string userId
         );
 
         /// <summary>
         /// Obtiene un archivo específico por su ID
         /// </summary>
-        Task<Result<ProcesoArchivoDTO>> GetArchivoByIdAsync(int id);
+        Task<Result<ProcesoArchivoDTO>> GetArchivoByIdAsync(int id, string userId);
 
         /// <summary>
         /// Agrega un nuevo archivo a un proceso de certificación

@@ -4,8 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Extensions;
 using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -287,6 +289,159 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         }
     }
 
+    public async Task<Result<ProcessStartedVm>> ComenzarProcesoAsesoriaAsync(
+        ProcessStartedVm process,
+        ApplicationUser userApp
+    )
+    {
+        try
+        {
+            if (process == null)
+                return Result<ProcessStartedVm>.Failure(
+                    "Los datos de certificación son requeridos"
+                );
+
+            const int toStatus = ProcessStatus.ForConsulting;
+
+            // Crear una estrategia de ejecución
+            var strategy = _db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                var processDB = await _db
+                    .ProcesoCertificacion.Include(p => p.Empresa)
+                    .FirstOrDefaultAsync(p => p.Id == process.Id);
+
+                if (processDB == null)
+                    return Result<ProcessStartedVm>.Failure(
+                        $"El proceso con ID {process.Id} no existe"
+                    );
+
+                if (processDB.Empresa == null)
+                    return Result<ProcessStartedVm>.Failure(
+                        $"La Empresa asociada al proceso {process.Id} no existe"
+                    );
+
+                var status = StatusConstants.GetLocalizedStatus(toStatus, "es");
+
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    // Actualizar proceso
+                    processDB.UserGeneraId = userApp.Id;
+                    processDB.UpdatedBy = userApp.Id;
+                    processDB.UpdatedAt = DateTime.UtcNow;
+                    processDB.Status = status;
+                    processDB.AsesorId = process.AdviserId;
+
+                    _db.ProcesoCertificacion.Update(processDB);
+
+                    // Actualizar empresa
+                    processDB.Empresa.Estado = toStatus;
+                    processDB.Empresa.FechaAutoNotif = null;
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    process.GeneratorId = userApp.Id;
+                    process.NewStatus = toStatus;
+                    process.GeneratorName = $"{userApp.FirstName} {userApp.LastName}";
+
+                    return Result<ProcessStartedVm>.Success(process);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al comenzar proceso con ID {ProcesoId}. Detalles: {Details}",
+                process.Id,
+                ex.Message
+            );
+            return Result<ProcessStartedVm>.Failure(
+                $"Error al iniciar el proceso de certificación: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Result<AsignaAuditoriaVm>> AsignarAuditorAsync(
+        AsignaAuditoriaVm process,
+        string user
+    )
+    {
+        try
+        {
+            const int toStatus = ProcessStatus.ForAuditing;
+
+            // Crear una estrategia de ejecución
+            var strategy = _db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                var processDB = await _db
+                    .ProcesoCertificacion.Include(p => p.Empresa)
+                    .FirstOrDefaultAsync(p => p.Id == process.ProcesoId);
+
+                if (processDB == null)
+                    return Result<AsignaAuditoriaVm>.Failure(
+                        $"El proceso con ID {process.ProcesoId} no existe"
+                    );
+
+                if (processDB.Empresa == null)
+                    return Result<AsignaAuditoriaVm>.Failure(
+                        $"La Empresa asociada al proceso {process.ProcesoId} no existe"
+                    );
+
+                var status = StatusConstants.GetLocalizedStatus(toStatus, "es");
+
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    // Actualizar proceso
+                    processDB.AuditorId = process.AuditorId;
+                    processDB.FechaFijadaAuditoria = process.Fecha.ToUniversal();
+                    processDB.FechaSolicitudAuditoria = DateTime.UtcNow;
+
+                    processDB.UpdatedBy = user;
+                    processDB.UpdatedAt = DateTime.UtcNow;
+                    processDB.Status = status;
+
+                    _db.ProcesoCertificacion.Update(processDB);
+
+                    // Actualizar empresa
+                    processDB.Empresa.Estado = toStatus;
+                    processDB.Empresa.FechaAutoNotif = null;
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Result<AsignaAuditoriaVm>.Success(process);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al asignar auditor {AuditorId} a proceso {ProcesoId}",
+                process.AuditorId,
+                process.ProcesoId
+            );
+            return Result<AsignaAuditoriaVm>.Failure("Error al asignar auditor");
+        }
+    }
+
     private async Task ActualizarEstadoEmpresaAsync(int empresaId, string nuevoEstado)
     {
         // Obtener el valor numérico del estado desde la cadena (por ejemplo, "0 - Inicial" -> 0)
@@ -307,6 +462,30 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                     nuevoEstado
                 );
             }
+        }
+    }
+
+    private static DateTime? ToDateUniversal(string fecha)
+    {
+        if (!string.IsNullOrEmpty(fecha))
+        {
+            try
+            {
+                var terminos = fecha.Split('-');
+                return new DateTime(
+                    Int32.Parse(terminos[0]),
+                    Int32.Parse(terminos[1]),
+                    Int32.Parse(terminos[2])
+                );
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+        else
+        {
+            return null;
         }
     }
 }

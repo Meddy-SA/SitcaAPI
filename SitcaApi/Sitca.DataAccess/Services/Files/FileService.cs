@@ -159,6 +159,7 @@ public class FileService : IFileService
                 var processedImage = await ProcessImageWithPythonApiAsync(
                     image,
                     file.FileName,
+                    false,
                     cancellationToken
                 );
                 if (processedImage != null)
@@ -235,21 +236,23 @@ public class FileService : IFileService
     private async Task<Image> ProcessImageWithPythonApiAsync(
         Image image,
         string originalFileName,
+        bool forcedCorrection = false,
         CancellationToken cancellationToken = default
     )
     {
-        if (string.IsNullOrEmpty(_pythonApiUrl))
-        {
-            _logger.LogWarning(
-                "No se puede procesar la imagen con la API Python porque la URL no está configurada"
-            );
-            return null;
-        }
-
         try
         {
             // Crear un cliente HTTP
             var client = _httpClientFactory.CreateClient("PythonApi");
+
+            // Verificar que el cliente tenga una dirección base
+            if (client.BaseAddress == null)
+            {
+                _logger.LogError(
+                    "La URL base de la API Python no está configurada en el cliente HTTP"
+                );
+                return null;
+            }
 
             // Preparar el contenido multipart
             using var content = new MultipartFormDataContent();
@@ -259,28 +262,37 @@ public class FileService : IFileService
             await image.SaveAsync(imageStream, new JpegEncoder(), cancellationToken);
             imageStream.Position = 0;
 
-            // Agregar la imagen al contenido
+            // Agregar la imagen al contenido con el nombre de campo correcto 'file'
             var imageContent = new StreamContent(imageStream);
             imageContent.Headers.ContentType = new MediaTypeHeaderValue(
                 GetContentType(Path.GetExtension(originalFileName))
             );
             content.Add(imageContent, "file", Path.GetFileName(originalFileName));
 
-            // Agregar cualquier metadato si es necesario
-            content.Add(new StringContent(""), "metadata");
+            // Agregar metadatos en formato Form compatible
+            var metadata = $"{{\"force_correction\": {forcedCorrection.ToString().ToLower()}}}";
+            content.Add(new StringContent(metadata), "metadata");
 
             // Configurar timeout
             var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 segundos de timeout
 
             // Enviar la solicitud POST a la API de procesamiento
-            var response = await client.PostAsync(_pythonApiUrl, content, timeoutCts.Token);
+            var requestUri = "process/image";
+            var response = await client.PostAsync(requestUri, content, timeoutCts.Token);
 
             // Verificar si la solicitud fue exitosa
             if (response.IsSuccessStatusCode)
             {
                 // Leer la respuesta como stream
                 var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
+                // Verificar si el stream tiene datos
+                if (responseStream.Length == 0)
+                {
+                    _logger.LogWarning("La API Python devolvió un stream vacío");
+                    return null;
+                }
 
                 // Intentar cargar la imagen desde la respuesta
                 return await Image.LoadAsync(responseStream, cancellationToken);

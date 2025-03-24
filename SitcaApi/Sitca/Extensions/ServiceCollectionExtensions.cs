@@ -175,8 +175,13 @@ public static class ServiceCollectionExtensions
                 var pythonApiUrl = configuration["CorsSettings:pythonURL"];
                 if (!string.IsNullOrEmpty(pythonApiUrl))
                 {
-                    var baseUrl = new Uri(pythonApiUrl).GetLeftPart(UriPartial.Authority);
-                    client.BaseAddress = new Uri(baseUrl);
+                    // Asegurar que la URL incluya la ruta base de la API y termine con /
+                    if (!pythonApiUrl.EndsWith("/"))
+                    {
+                        pythonApiUrl += "/";
+                    }
+
+                    client.BaseAddress = new Uri(pythonApiUrl);
                 }
 
                 client.DefaultRequestHeaders.Accept.Add(

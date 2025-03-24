@@ -1067,7 +1067,7 @@ namespace Sitca.DataAccess.Data.Repository
                 var vencimientoSello = currentCertification.FechaVencimiento.ToDateArg();
                 if (vencimientoSello < dueDate)
                 {
-                    currentCertification.alertaVencimiento = true;
+                    currentCertification.alertaVencimiento = true; //TODO: Hacerlo en el nuevo de procesos.
                 }
             }
 

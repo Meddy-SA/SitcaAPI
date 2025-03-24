@@ -34,7 +34,6 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
             int idEmpresa,
             ApplicationUser appUser
         );
-        Task<Result<int>> AsignaAuditorAsync(AsignaAuditoriaVm data, string language = "es");
         Task<bool> ChangeStatus(CertificacionStatusVm data, int status);
         Task<bool> SaveResultadoSugerido(int idCuestionario, ApplicationUser appUser, string role);
         Task<bool> IsCuestionarioCompleto(CuestionarioDetailsVm data);

@@ -19,4 +19,11 @@ public interface IProcesoRepository : IRepository<ProcesoCertificacion>
     );
 
     Task<Result<ProcesoCertificacionDTO>> CrearRecertificacionAsync(int empresaId, string userId);
+
+    Task<Result<ProcessStartedVm>> ComenzarProcesoAsesoriaAsync(
+        ProcessStartedVm process,
+        ApplicationUser userApp
+    );
+
+    Task<Result<AsignaAuditoriaVm>> AsignarAuditorAsync(AsignaAuditoriaVm process, string user);
 }

@@ -45,7 +45,8 @@ namespace Sitca.DataAccess.Data.Repository
         /// Obtiene todos los archivos de un proceso de certificación
         /// </summary>
         public async Task<Result<List<ProcesoArchivoDTO>>> GetArchivosByProcesoIdAsync(
-            FiltrarArchivosProcesoDTO filtro
+            FiltrarArchivosProcesoDTO filtro,
+            string userId
         )
         {
             try
@@ -96,7 +97,7 @@ namespace Sitca.DataAccess.Data.Repository
                 var archivos = await query.ToListAsync();
 
                 // Mapear a DTOs
-                var archivosDto = archivos.Select(a => a.ToDto()).ToList();
+                var archivosDto = archivos.Select(a => a.ToDto(userId)).ToList();
 
                 return Result<List<ProcesoArchivoDTO>>.Success(archivosDto);
             }
@@ -117,7 +118,7 @@ namespace Sitca.DataAccess.Data.Repository
         /// <summary>
         /// Obtiene un archivo específico por su ID
         /// </summary>
-        public async Task<Result<ProcesoArchivoDTO>> GetArchivoByIdAsync(int id)
+        public async Task<Result<ProcesoArchivoDTO>> GetArchivoByIdAsync(int id, string userId)
         {
             try
             {
@@ -133,7 +134,7 @@ namespace Sitca.DataAccess.Data.Repository
                     );
                 }
 
-                return Result<ProcesoArchivoDTO>.Success(archivo.ToDto());
+                return Result<ProcesoArchivoDTO>.Success(archivo.ToDto(userId));
             }
             catch (Exception ex)
             {

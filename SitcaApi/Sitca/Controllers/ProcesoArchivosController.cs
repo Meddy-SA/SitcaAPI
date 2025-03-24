@@ -59,7 +59,10 @@ namespace Sitca.Controllers
 
                 filtro.ProcesoCertificacionId = procesoId;
 
-                var result = await _unitOfWork.ProcesoArchivos.GetArchivosByProcesoIdAsync(filtro);
+                var result = await _unitOfWork.ProcesoArchivos.GetArchivosByProcesoIdAsync(
+                    filtro,
+                    appUser.Id
+                );
                 return this.HandleResponse(result);
             }
             catch (Exception ex)
@@ -95,7 +98,10 @@ namespace Sitca.Controllers
                 if (appUser == null)
                     return Unauthorized();
 
-                var result = await _unitOfWork.ProcesoArchivos.GetArchivoByIdAsync(archivoId);
+                var result = await _unitOfWork.ProcesoArchivos.GetArchivoByIdAsync(
+                    archivoId,
+                    appUser.Id
+                );
 
                 return this.HandleResponse(result);
             }
@@ -281,7 +287,8 @@ namespace Sitca.Controllers
 
                 // Obtener información del archivo
                 var archivoResult = await _unitOfWork.ProcesoArchivos.GetArchivoByIdAsync(
-                    archivoId
+                    archivoId,
+                    appUser.Id
                 );
 
                 if (!archivoResult.IsSuccess)

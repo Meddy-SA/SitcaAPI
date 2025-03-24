@@ -156,46 +156,6 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        public async Task<Result<int>> AsignaAuditorAsync(
-            AsignaAuditoriaVm data,
-            string language = "es"
-        )
-        {
-            // NOTE: Agregar tipologia
-            try
-            {
-                var proceso = await _db.ProcesoCertificacion.FirstOrDefaultAsync(s =>
-                    s.EmpresaId == data.EmpresaId && s.FechaFinalizacion == null
-                );
-
-                proceso.AuditorId = data.AuditorId;
-                proceso.FechaFijadaAuditoria = data.Fecha.ToDateUniversal();
-                proceso.FechaSolicitudAuditoria = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
-
-                int toStatus = 4;
-
-                var nuevoEstado = new CertificacionStatusVm
-                {
-                    CertificacionId = proceso.Id,
-                    Status = StatusConstants.GetLocalizedStatus(toStatus, language),
-                };
-
-                await ChangeStatus(nuevoEstado, toStatus);
-                return Result<int>.Success(proceso.Id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error al asignar auditor {AuditorId} a empresa {EmpresaId}",
-                    data.AuditorId,
-                    data.EmpresaId
-                );
-                return Result<int>.Failure("Error al asignar auditor");
-            }
-        }
-
         public async Task<Result<CuestionarioDetailsMinVm>> GenerarCuestionarioAsync(
             CuestionarioCreateVm data,
             string userGenerador,

@@ -219,4 +219,129 @@ public class ProcesoCertificacionController : ControllerBase
             );
         }
     }
+
+    /// <summary>
+    /// Cambia el proceso para comenzar el proceso de asesoria
+    /// </summary>
+    [Authorize(Roles = Policies.StartedConsulting)]
+    [HttpPut("started/{procesoId}")]
+    [ProducesResponseType(typeof(Result<ProcessStartedVm>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProcessStartedVm>>> CrearRecertificacion(
+        int procesoId,
+        ProcessStartedVm process
+    )
+    {
+        try
+        {
+            if (procesoId <= 0)
+                return BadRequest(
+                    Result<ProcesoCertificacionDTO>.Failure("El ID del proceso no es válido")
+                );
+
+            process.Id = procesoId;
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(
+                    Result<ProcesoCertificacionDTO>.Failure("Usuario no autorizado")
+                );
+
+            var result = await _unitOfWork.Proceso.ComenzarProcesoAsesoriaAsync(process, appUser);
+
+            // Enviar notificación en un hilo separado sin esperar a que termine
+            _notificationService.SendNotificationProcessAsync(
+                procesoId,
+                appUser.Lenguage,
+                _logger,
+                null,
+                "Proceso de asesoría iniciado"
+            );
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al comenzar el proceso de certificación para el id {ProcesoId}",
+                procesoId
+            );
+            return StatusCode(
+                500,
+                Result<ProcessStartedVm>.Failure(
+                    "Error interno del servidor al procesar la solicitud"
+                )
+            );
+        }
+    }
+
+    /// <summary>
+    /// Asigna un auditor a un proceso de certificación y cambia su estado
+    /// </summary>
+    [Authorize(Roles = Policies.AssignAuditor)]
+    [HttpPut("assign-auditor/{procesoId}")]
+    [ProducesResponseType(typeof(Result<AsignaAuditoriaVm>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<AsignaAuditoriaVm>>> AsignarAuditor(
+        int procesoId,
+        AsignaAuditoriaVm request
+    )
+    {
+        try
+        {
+            // Validaciones básicas
+            if (request.ProcesoId <= 0)
+                return BadRequest(
+                    Result<AsignaAuditoriaVm>.Failure("El ID del proceso no es válido")
+                );
+
+            if (string.IsNullOrEmpty(request.AuditorId))
+                return BadRequest(
+                    Result<AsignaAuditoriaVm>.Failure("El ID del auditor es requerido")
+                );
+
+            if (string.IsNullOrEmpty(request.Fecha))
+                return BadRequest(
+                    Result<AsignaAuditoriaVm>.Failure("La fecha de auditoría es requerida")
+                );
+
+            // Obtener el usuario actual
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(Result<AsignaAuditoriaVm>.Failure("Usuario no autorizado"));
+
+            // Llamar al servicio para asignar auditor
+            var result = await _unitOfWork.Proceso.AsignarAuditorAsync(request, appUser.Id);
+
+            // Enviar notificación en segundo plano sin esperar respuesta
+            _notificationService.SendNotificationProcessAsync(
+                procesoId,
+                appUser.Lenguage,
+                _logger,
+                null,
+                "Auditor asignado"
+            );
+
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al asignar auditor para el proceso {ProcesoId}",
+                request.ProcesoId
+            );
+
+            return StatusCode(
+                500,
+                Result<AsignaAuditoriaVm>.Failure(
+                    "Error interno del servidor al procesar la solicitud de asignación de auditor"
+                )
+            );
+        }
+    }
 }
