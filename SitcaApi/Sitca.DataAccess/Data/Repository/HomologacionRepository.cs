@@ -130,6 +130,8 @@ namespace Sitca.DataAccess.Data.Repository
                         IdTipologia = tipologia.Id,
                     };
                     await _db.Set<TipologiasEmpresa>().AddAsync(tipologiaEmpresa);
+                    await _db.SaveChangesAsync();
+
                     #endregion
 
                     #region ----AGREGA CERTIFICACION----
@@ -154,16 +156,19 @@ namespace Sitca.DataAccess.Data.Repository
                     #endregion
 
                     #region ----AGREGA DISTINTIVO SICCS----
-
+                    var obs = string.IsNullOrEmpty(datos.datosProceso)
+                        ? string.Empty
+                        : datos.datosProceso;
                     var resultado = new ResultadoCertificacion
                     {
                         Aprobado = true,
                         CertificacionId = proceso.Id,
                         DistintivoId = distintivoSiccs.Id,
-                        Observaciones = datos.datosProceso,
+                        Observaciones = obs,
                         NumeroDictamen = string.Empty,
                     };
                     await _db.ResultadoCertificacion.AddAsync(resultado);
+                    await _db.SaveChangesAsync();
                     #endregion
 
                     #region ----CREA HOMOLOGACION----
@@ -173,7 +178,7 @@ namespace Sitca.DataAccess.Data.Repository
                         FechaCreacion = DateTime.UtcNow,
                         DistintivoExterno = datos.selloItc.name,
                         EnProcesoSiccs = false,
-                        DatosProceso = datos.datosProceso,
+                        DatosProceso = obs,
                         FechaVencimiento = datos.fechaVencimiento,
                         FechaOtorgamiento = datos.fechaOtorgamiento,
                         Distintivo =
@@ -259,7 +264,8 @@ namespace Sitca.DataAccess.Data.Repository
         public async Task<List<HomologacionDTO>> List(int country)
         {
             var homologaciones = await _db
-                .Homologacion.Include(s => s.Empresa)
+                .Homologacion.AsNoTracking()
+                .Include(s => s.Empresa)
                 .ThenInclude(s => s.Tipologias)
                 .Where(s => s.Empresa.PaisId == country)
                 .ToListAsync();
