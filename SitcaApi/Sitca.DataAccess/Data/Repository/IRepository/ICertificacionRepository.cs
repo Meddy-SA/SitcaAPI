@@ -10,6 +10,7 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
     {
         Task<Result<bool>> ReAbrirCuestionario(ApplicationUser user, int cuestionarioId);
         Task<Result<bool>> ConvertirARecertificacionAsync(ApplicationUser user, EmpresaVm data);
+        Task<Result<int>> NuevaRecertificacion(int empresaId, ApplicationUser user);
         Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> ItemIds);
         Task<RegistroHallazgos> ReporteHallazgos(
             int CuestionarioId,
@@ -33,15 +34,17 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
             int idEmpresa,
             ApplicationUser appUser
         );
-        Task<Result<int>> AsignaAuditorAsync(AsignaAuditoriaVm data, string language = "es");
         Task<bool> ChangeStatus(CertificacionStatusVm data, int status);
         Task<bool> SaveResultadoSugerido(int idCuestionario, ApplicationUser appUser, string role);
         Task<bool> IsCuestionarioCompleto(CuestionarioDetailsVm data);
         Task<Result<bool>> CambiarAuditorAsync(CambioAuditor data);
-        Task<Result<bool>> UpdateNumeroExpAsync(CertificacionDetailsVm data);
-        Task<List<HistorialVm>> GetHistory(int idCuestionario);
+        Task<Result<List<HistorialVm>>> GetHistory(int idCuestionario);
         Task<List<CommonVm>> GetStatusList(string lang);
-        Task<bool> SaveCalificacion(SaveCalificacionVm data, ApplicationUser appUser, string role);
+        Task<Result<bool>> SaveCalificacion(
+            SaveCalificacionVm data,
+            ApplicationUser appUser,
+            string role
+        );
         Task<List<CommonVm>> GetDistintivos(string lang);
     }
 }

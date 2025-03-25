@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="GemBox.Document" Version="35.0.1775" />
+    <PackageReference Include="GemBox.Pdf" Version="17.0.1589" />
     <PackageReference Include="itext" Version="8.0.5" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="8.0.5" />
     <PackageReference Include="itext.licensing.base" Version="4.1.4" />

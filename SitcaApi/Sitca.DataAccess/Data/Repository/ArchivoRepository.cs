@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Middlewares;
+using Sitca.DataAccess.Services.Files;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.Enums;
@@ -27,19 +29,22 @@ namespace Sitca.DataAccess.Data.Repository
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<ArchivoRepository> _logger;
+        private readonly IFileService _fileService;
 
         private readonly string PROTOCOLO = "Protocolo Adhesión";
 
         public ArchivoRepository(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
-            ILogger<ArchivoRepository> logger
+            ILogger<ArchivoRepository> logger,
+            IFileService fileService
         )
             : base(db)
         {
             _db = db;
             _userManager = userManager;
             _logger = logger;
+            _fileService = fileService;
         }
 
         public async Task<bool> DeleteFile(int data, ApplicationUser user, string role)
@@ -61,30 +66,67 @@ namespace Sitca.DataAccess.Data.Repository
         }
 
         public async Task<List<Archivo>> GetList(
-            ArchivoFilterVm data,
+            ArchivoFilterVm filter,
             ApplicationUser user,
             string role
         )
         {
-            if (data.type == "pregunta")
+            // Validación de parámetros
+            if (filter == null)
             {
-                return await _db
-                    .Archivo.AsNoTracking()
-                    .Where(s => s.CuestionarioItemId == data.idPregunta && s.Activo)
-                    .ToListAsync();
+                throw new ArgumentNullException(nameof(filter), "El filtro no puede ser nulo");
             }
 
-            if (data.type == "cuestionario")
+            if (user == null)
             {
-                return await _db
-                    .Archivo.AsNoTracking()
-                    .Where(s =>
-                        s.CuestionarioItem.CuestionarioId == data.idCuestionario && s.Activo
-                    )
-                    .ToListAsync();
+                throw new ArgumentNullException(nameof(user), "El usuario no puede ser nulo");
             }
 
-            return null;
+            try
+            {
+                // Usar un switch para mejorar la legibilidad
+                switch (filter.type?.ToLower())
+                {
+                    case "pregunta" when filter.idPregunta > 0:
+                        return await _db
+                            .Archivo.AsNoTracking()
+                            .Where(a => a.CuestionarioItemId == filter.idPregunta && a.Activo)
+                            .ToListAsync();
+
+                    case "cuestionario" when filter.idCuestionario > 0:
+                        return await _db
+                            .Archivo.AsNoTracking()
+                            .Where(a =>
+                                a.CuestionarioItem.CuestionarioId == filter.idCuestionario
+                                && a.Activo
+                            )
+                            .Include(a => a.CuestionarioItem) // Incluir para optimizar la carga relacionada
+                            .ToListAsync();
+
+                    default:
+                        _logger.LogWarning(
+                            "Filtro de archivo no válido: {Type}, IdPregunta: {IdPregunta}, IdCuestionario: {IdCuestionario}",
+                            filter.type,
+                            filter.idPregunta,
+                            filter.idCuestionario
+                        );
+                        return new List<Archivo>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener archivos con filtro: {FilterType}, IdPregunta: {IdPregunta}, IdCuestionario: {IdCuestionario}",
+                    filter.type,
+                    filter.idPregunta,
+                    filter.idCuestionario
+                );
+                throw new DatabaseException(
+                    $"Error al recuperar los archivos con el filtro especificado",
+                    ex
+                );
+            }
         }
 
         public List<EnumValueDto> GetTypeFilesCompany()
@@ -170,35 +212,45 @@ namespace Sitca.DataAccess.Data.Repository
         {
             try
             {
-                var (fileName, filePath) = CreateFilePaths(request.File);
+                // Determinar la subcarpeta según el tipo de documento
+                string subfolder = DetermineSubfolder(request);
 
-                if (IsImageFile(request.File.FileName))
-                {
-                    await ProcessAndSaveImage(request.File, filePath);
-                }
-                else
-                {
-                    await SaveFile(request.File, filePath);
-                }
+                // Usar FileService para guardar y optimizar el archivo
+                (string relativePath, long fileSize) = await _fileService.SaveFileAsync(
+                    request.File,
+                    subfolder
+                );
 
-                var archivo = await SaveFileRecord(request, fileName);
+                var archivo = await SaveFileRecord(request, relativePath);
                 if (archivo == null)
                     return Result<FileUploadResponse>.Failure(
                         "Error al guardar el registro del archivo"
                     );
 
                 return Result<FileUploadResponse>.Success(
-                    new FileUploadResponse
-                    {
-                        DbPath = Path.Combine("Resources", "files", fileName),
-                        FileId = archivo.Id,
-                    }
+                    new FileUploadResponse { DbPath = relativePath, FileId = archivo.Id }
                 );
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error procesando el archivo");
                 return Result<FileUploadResponse>.Failure("Error al procesar el archivo");
+            }
+        }
+
+        private string DetermineSubfolder(UploadRequest request)
+        {
+            if (request.IsCompanyFile)
+            {
+                return $"empresa/{request.EmpresaId}";
+            }
+            else if (request.DocumentType == "pregunta")
+            {
+                return $"cuestionario/preguntas/{request.idPregunta}";
+            }
+            else
+            {
+                return "general";
             }
         }
 
@@ -242,7 +294,7 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        private async Task<Archivo> SaveFileRecord(UploadRequest request, string fileName)
+        private async Task<Archivo> SaveFileRecord(UploadRequest request, string relativePath)
         {
             var strategy = _db.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(async () =>
@@ -258,7 +310,7 @@ namespace Sitca.DataAccess.Data.Repository
                         {
                             Activo = true,
                             FechaCarga = DateTime.UtcNow,
-                            Ruta = fileName,
+                            Ruta = relativePath,
                             Tipo = Path.GetExtension(request.File.FileName),
                             UsuarioCargaId = request.User.Id,
                             Nombre = request.FileName,
@@ -345,17 +397,6 @@ namespace Sitca.DataAccess.Data.Repository
             });
         }
 
-        private static (string fileName, string filePath) CreateFilePaths(IFormFile file)
-        {
-            var fileName = $"{DateTime.UtcNow.Ticks}{Path.GetExtension(file.FileName)}";
-            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources", "files");
-
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-
-            return (fileName, Path.Combine(folderPath, fileName));
-        }
-
         private static async Task SaveFile(IFormFile file, string path)
         {
             using var stream = new FileStream(path, FileMode.Create);
@@ -368,6 +409,7 @@ namespace Sitca.DataAccess.Data.Repository
             return new[] { ".jpg", ".jpeg", ".png", ".gif" }.Contains(extension);
         }
 
+        // Método de ayuda para obtener el tipo de archivo
         private static FileCompany GetFileType(string typeFile)
         {
             if (string.IsNullOrEmpty(typeFile) || !int.TryParse(typeFile, out int parsedValue))
@@ -376,6 +418,7 @@ namespace Sitca.DataAccess.Data.Repository
             return FileCompanyExtensions.GetFileType(parsedValue);
         }
 
+        // Método de ayuda para obtener el ID de empresa
         private static int GetEmpresaId(string idEmp, ApplicationUser user, IList<string> roles)
         {
             if (roles.Contains(Roles.Empresa))

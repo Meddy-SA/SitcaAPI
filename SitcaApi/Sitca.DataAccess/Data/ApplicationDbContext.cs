@@ -63,6 +63,7 @@ namespace Sitca.DataAccess.Data
         // P
         public DbSet<Pais> Pais { get; set; }
         public DbSet<Pregunta> Pregunta { get; set; }
+        public DbSet<ProcesoArchivos> ProcesoArchivos { get; set; }
         public DbSet<ProcesoCertificacion> ProcesoCertificacion { get; set; }
 
         // R
@@ -84,6 +85,7 @@ namespace Sitca.DataAccess.Data
             builder.ApplyConfiguration(new ArchivoConfiguration());
             builder.ApplyConfiguration(new CapacitacionesConfiguration());
             builder.ApplyConfiguration(new CompAuditorasConfiguration());
+            builder.ApplyConfiguration(new ProcesoArchivosConfiguration());
             builder.ApplyConfiguration(new ProcesoCertificacionConfiguration());
 
             // Configurar tablas de Identity

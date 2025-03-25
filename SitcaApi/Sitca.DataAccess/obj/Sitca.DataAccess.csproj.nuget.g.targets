@@ -7,5 +7,6 @@
     <Import Project="$(NuGetPackageRoot)microsoft.entityframeworkcore.sqlserver.nettopologysuite/8.0.8/build/net8.0/Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.entityframeworkcore.sqlserver.nettopologysuite/8.0.8/build/net8.0/Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.aspnetcore.mvc.razor.runtimecompilation/8.0.8/buildTransitive/net8.0/Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.aspnetcore.mvc.razor.runtimecompilation/8.0.8/buildTransitive/net8.0/Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation.targets')" />
     <Import Project="$(NuGetPackageRoot)magick.net-q16-anycpu/13.6.0/build/netstandard20/Magick.NET-Q16-AnyCPU.targets" Condition="Exists('$(NuGetPackageRoot)magick.net-q16-anycpu/13.6.0/build/netstandard20/Magick.NET-Q16-AnyCPU.targets')" />
+    <Import Project="$(NuGetPackageRoot)gembox.pdf/17.0.1593/buildTransitive/netstandard2.0/GemBox.Pdf.targets" Condition="Exists('$(NuGetPackageRoot)gembox.pdf/17.0.1593/buildTransitive/netstandard2.0/GemBox.Pdf.targets')" />
   </ImportGroup>
 </Project>

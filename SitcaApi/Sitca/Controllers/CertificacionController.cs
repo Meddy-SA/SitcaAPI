@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Extensions;
@@ -163,38 +162,7 @@ namespace Sitca.Controllers
                 await _notificationService.SendNotification(data.idProceso, null, appUser.Lenguage);
             }
             catch (Exception) { }
-            return Ok(res);
-        }
-
-        [Authorize(Roles = Policies.UpdateCaseNumber)]
-        [HttpPost("update-case-number")]
-        public async Task<ActionResult<Result<bool>>> UpdateNumeroExp(CertificacionDetailsVm data)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized(Result<bool>.Failure("Usuario no autorizado"));
-
-                if (data == null)
-                    return BadRequest(Result<bool>.Failure("Datos no válidos"));
-
-                var result = await _unitOfWork.ProcesoCertificacion.UpdateNumeroExpAsync(data);
-
-                return this.HandleResponse(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error no controlado al actualizar número de expediente para certificación {CertificacionId}",
-                    data?.Id
-                );
-                return StatusCode(
-                    500,
-                    Result<bool>.Failure("Error interno del servidor al procesar la solicitud")
-                );
-            }
+            return Ok(res.Value);
         }
 
         [Authorize(Roles = Policies.UpdateAuditor)]
@@ -263,61 +231,6 @@ namespace Sitca.Controllers
             }
         }
 
-        [Authorize(Roles = Policies.Comenzar)]
-        [HttpPost("Comenzar")]
-        public async Task<ActionResult<Result<int>>> Comenzar(CertificacionVm data)
-        {
-            try
-            {
-                var appUser = await this.GetCurrentUserAsync(_userManager);
-                if (appUser == null)
-                    return Unauthorized(Result<int>.Failure("No se encontro el usuario"));
-
-                var result = await _unitOfWork.ProcesoCertificacion.ComenzarProcesoAsync(
-                    data,
-                    appUser.Id
-                );
-                if (!result.IsSuccess)
-                    return BadRequest(result);
-
-                try
-                {
-                    await _notificationService.SendNotification(
-                        result.Value,
-                        null,
-                        appUser.Lenguage
-                    );
-                }
-                catch (Exception ex)
-                {
-                    // Logueamos el error pero no lo propagamos ya que es un proceso secundario
-                    _logger.LogError(
-                        ex,
-                        "Error al enviar notificación para el proceso {ProcesoId}",
-                        result.Value
-                    );
-                }
-
-                return this.HandleResponse(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al comenzar el proceso de certificación");
-                return StatusCode(
-                    500,
-                    new { message = "Error interno del servidor al procesar la solicitud" }
-                );
-            }
-        }
-
-        [Route("Test")]
-        [HttpGet]
-        public async Task<IActionResult> Test(int id)
-        {
-            var result = await _notificationService.SendNotification(id, null, "es");
-            return Ok();
-        }
-
         [Authorize]
         [HttpPost("ChangeStatus")]
         public async Task<ActionResult> ChangeStatus(CertificacionStatusVm data)
@@ -381,33 +294,19 @@ namespace Sitca.Controllers
 
         [Authorize]
         [HttpGet("GetCuestionario")]
-        public async Task<ActionResult<CuestionarioDetailsVm>> GetCuestionario(int id)
+        public async Task<ActionResult<CuestionarioDetailsVm>> GetCuestionario(int idEmpresa)
         {
             var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
             if (appUser == null)
                 return Unauthorized();
 
-            var result = await _unitOfWork.ProcesoCertificacion.GetCuestionario(id, appUser, role);
+            var result = await _unitOfWork.ProcesoCertificacion.GetCuestionario(
+                idEmpresa,
+                appUser,
+                role
+            );
 
             return this.HandleResponse(result, true);
-        }
-
-        [Authorize]
-        [Route("GetHistory")]
-        public async Task<IActionResult> GetHistory(int idCuestionario)
-        {
-            var result = await _unitOfWork.ProcesoCertificacion.GetHistory(idCuestionario);
-
-            return Ok(
-                JsonConvert.SerializeObject(
-                    result,
-                    Formatting.None,
-                    new JsonSerializerSettings()
-                    {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-                    }
-                )
-            );
         }
 
         [Authorize]
@@ -495,36 +394,6 @@ namespace Sitca.Controllers
                 return Unauthorized();
 
             var result = await _unitOfWork.ProcesoCertificacion.CanFinalizeCuestionario(id, role);
-            return this.HandleResponse(result);
-        }
-
-        [Authorize(Roles = Policies.AsignaAuditor)]
-        [HttpPost("asignacion-auditor")]
-        public async Task<ActionResult<Result<int>>> AsignaAuditor(AsignaAuditoriaVm data)
-        {
-            var appUser = await this.GetCurrentUserAsync(_userManager);
-            if (appUser == null)
-                return Unauthorized();
-
-            var result = await _unitOfWork.ProcesoCertificacion.AsignaAuditorAsync(
-                data,
-                appUser.Lenguage
-            );
-            try
-            {
-                // Result.Value ---> Id del Proceso
-                if (result.IsSuccess)
-                    await _notificationService.SendNotification(
-                        result.Value,
-                        null,
-                        appUser.Lenguage
-                    );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al enviar notificacion");
-            }
-
             return this.HandleResponse(result);
         }
     }

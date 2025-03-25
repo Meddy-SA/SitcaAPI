@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.Models;
 using Sitca.Models.Constants;
@@ -42,154 +43,116 @@ namespace Sitca.DataAccess.Data.Repository
             _logger = logger;
         }
 
-        public async Task<Result<bool>> UpdateNumeroExpAsync(CertificacionDetailsVm data)
-        {
-            if (data == null)
-                return Result<bool>.Failure("Los datos de certificación son requeridos");
-
-            if (string.IsNullOrWhiteSpace(data.Expediente))
-                return Result<bool>.Failure("El número de expediente es requerido");
-
-            var strategy = _db.Database.CreateExecutionStrategy();
-
-            try
-            {
-                return await strategy.ExecuteAsync(async () =>
-                {
-                    using var transaction = await _db.Database.BeginTransactionAsync();
-                    try
-                    {
-                        var certificacion = await _db.ProcesoCertificacion.FirstOrDefaultAsync(c =>
-                            c.Id == data.Id
-                        );
-
-                        if (certificacion == null)
-                            return Result<bool>.Failure(
-                                $"No se encontró la certificación con ID {data.Id}"
-                            );
-
-                        certificacion.NumeroExpediente = data.Expediente;
-                        await _db.SaveChangesAsync();
-                        await transaction.CommitAsync();
-
-                        _logger.LogInformation(
-                            "Número de expediente actualizado para certificación {CertificacionId}: {NumeroExpediente}",
-                            data.Id,
-                            data.Expediente
-                        );
-
-                        return Result<bool>.Success(true);
-                    }
-                    catch (Exception)
-                    {
-                        await transaction.RollbackAsync();
-                        throw;
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error al actualizar número de expediente para certificación {CertificacionId}. Error: {Error}",
-                    data.Id,
-                    ex.Message
-                );
-                return Result<bool>.Failure(
-                    $"Error al actualizar número de expediente: {ex.Message}"
-                );
-            }
-        }
-
-        public async Task<bool> SaveCalificacion(
+        public async Task<Result<bool>> SaveCalificacion(
             SaveCalificacionVm data,
             ApplicationUser appUser,
             string role
         )
         {
-            //agregar tipologia
             try
             {
+                // Validaciones iniciales
+                if (data == null)
+                    return Result<bool>.Failure("Los datos de calificación no pueden ser nulos");
+
+                if (data.idProceso <= 0)
+                    return Result<bool>.Failure("El ID del proceso no es válido");
+
+                // Obtener certificación con empresa en una sola consulta
                 var certificacion = await _db
                     .ProcesoCertificacion.Include(s => s.Empresa)
                     .FirstOrDefaultAsync(x => x.Id == data.idProceso);
+
+                if (certificacion == null)
+                    return Result<bool>.Failure(
+                        $"No se encontró el proceso de certificación con ID {data.idProceso}"
+                    );
+
                 var empresa = certificacion.Empresa;
-                certificacion.FechaFinalizacion = DateTime.UtcNow;
+                if (empresa == null)
+                    return Result<bool>.Failure(
+                        $"No se encontró la empresa asociada al proceso {data.idProceso}"
+                    );
 
-                if (data.aprobado)
+                // Iniciar transacción para garantizar atomicidad
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
                 {
-                    certificacion.FechaVencimiento = DateTime.UtcNow.AddYears(2);
-                    empresa.ResultadoVencimiento = certificacion.FechaVencimiento;
-                    var distintivo = await _db.Distintivo.FindAsync(data.distintivoId);
-                    empresa.ResultadoActual =
-                        appUser.Lenguage == "es" ? distintivo.Name : distintivo.NameEnglish;
+                    // Actualizar fechas de certificación
+                    certificacion.FechaFinalizacion = DateTime.UtcNow;
+
+                    if (data.aprobado)
+                    {
+                        // Obtener el distintivo en la misma transacción
+                        var distintivo = await _db.Distintivo.FindAsync(data.distintivoId);
+                        if (distintivo == null)
+                            return Result<bool>.Failure(
+                                $"No se encontró el distintivo con ID {data.distintivoId}"
+                            );
+
+                        // Actualizar fechas y resultados
+                        certificacion.FechaVencimiento = DateTime.UtcNow.AddYears(2);
+                        empresa.ResultadoVencimiento = certificacion.FechaVencimiento;
+                        empresa.ResultadoActual =
+                            appUser.Lenguage == "es" ? distintivo.Name : distintivo.NameEnglish;
+                    }
+
+                    // Crear y agregar el resultado de certificación
+                    var resultado = new ResultadoCertificacion
+                    {
+                        Aprobado = data.aprobado,
+                        DistintivoId = data.aprobado ? data.distintivoId : null,
+                        CertificacionId = data.idProceso,
+                        NumeroDictamen = data.Dictamen,
+                        Observaciones = data.Observaciones,
+                    };
+
+                    await _db.ResultadoCertificacion.AddAsync(resultado);
+
+                    // Cambiar el estado del proceso
+                    const int nuevoEstadoId = ProcessStatus.Completed; // Considerar usar un enum para los estados
+                    var nuevoEstado = new CertificacionStatusVm
+                    {
+                        CertificacionId = data.idProceso,
+                        Status = StatusConstants.GetLocalizedStatus(
+                            nuevoEstadoId,
+                            appUser.Lenguage ?? "es"
+                        ),
+                    };
+
+                    await ChangeStatus(nuevoEstado, nuevoEstadoId);
+
+                    // Guardar todos los cambios
+                    await _db.SaveChangesAsync();
+
+                    // Confirmar la transacción
+                    await transaction.CommitAsync();
+
+                    return Result<bool>.Success(true);
                 }
-
-                var resultado = new ResultadoCertificacion
+                catch (Exception ex)
                 {
-                    Aprobado = data.aprobado,
-                    DistintivoId = data.aprobado ? data.distintivoId : (int?)null,
-                    CertificacionId = data.idProceso,
-                    NumeroDictamen = data.Dictamen,
-                    Observaciones = data.Observaciones,
-                };
-                _db.ResultadoCertificacion.Add(resultado);
+                    // Revertir la transacción en caso de error
+                    await transaction.RollbackAsync();
 
-                int toStatus = 8;
-                var newStatus = new CertificacionStatusVm
-                {
-                    CertificacionId = data.idProceso,
-                    Status = StatusConstants.GetLocalizedStatus(toStatus, "es"),
-                };
-                await ChangeStatus(newStatus, toStatus);
+                    // Loguear el error específico para debugging
+                    _logger.LogError(
+                        ex,
+                        "Error al guardar la calificación para el proceso {ProcesoId}",
+                        data.idProceso
+                    );
 
-                await _db.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public async Task<Result<int>> AsignaAuditorAsync(
-            AsignaAuditoriaVm data,
-            string language = "es"
-        )
-        {
-            // NOTE: Agregar tipologia
-            try
-            {
-                var proceso = await _db.ProcesoCertificacion.FirstOrDefaultAsync(s =>
-                    s.EmpresaId == data.EmpresaId && s.FechaFinalizacion == null
-                );
-
-                proceso.AuditorId = data.AuditorId;
-                proceso.FechaFijadaAuditoria = data.Fecha.ToDateUniversal();
-                proceso.FechaSolicitudAuditoria = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
-
-                int toStatus = 4;
-
-                var nuevoEstado = new CertificacionStatusVm
-                {
-                    CertificacionId = proceso.Id,
-                    Status = StatusConstants.GetLocalizedStatus(toStatus, language),
-                };
-
-                await ChangeStatus(nuevoEstado, toStatus);
-                return Result<int>.Success(proceso.Id);
+                    return Result<bool>.Failure($"Error al guardar la calificación: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Error al asignar auditor {AuditorId} a empresa {EmpresaId}",
-                    data.AuditorId,
-                    data.EmpresaId
+                    "Error no controlado al acceder a la base de datos para el proceso {ProcesoId}",
+                    data.idProceso
                 );
-                return Result<int>.Failure("Error al asignar auditor");
+                return Result<bool>.Failure("Error interno al procesar los datos de calificación");
             }
         }
 
@@ -290,7 +253,7 @@ namespace Sitca.DataAccess.Data.Repository
                 if (string.IsNullOrEmpty(userGenerador))
                     return Result<int>.Failure("El usuario generador es requerido");
 
-                const int toStatus = 1;
+                const int toStatus = ProcessStatus.ForConsulting;
 
                 // Crear una estrategia de ejecución
                 var strategy = _db.Database.CreateExecutionStrategy();
@@ -1139,41 +1102,88 @@ namespace Sitca.DataAccess.Data.Repository
             return true;
         }
 
-        public async Task<List<HistorialVm>> GetHistory(int idCuestionario)
+        public async Task<Result<List<HistorialVm>>> GetHistory(int idCuestionario)
         {
-            var cuestionario = await _db
-                .Cuestionario.Include("Items")
-                .FirstOrDefaultAsync(s => s.Id == idCuestionario);
-
-            var resultados = new List<HistorialVm>();
-
-            var archivos = await _db
-                .Archivo.Where(s => s.CuestionarioItem.CuestionarioId == idCuestionario && s.Activo)
-                .ToListAsync();
-
-            var TotalPreguntas = _db.Pregunta.Count(s =>
-                (s.TipologiaId == cuestionario.TipologiaId || s.TipologiaId == null)
-                && (!s.Nomenclatura.StartsWith("mb-"))
-            );
-            var TotalPorcentaje = 0;
-            foreach (var item in cuestionario.Items.GroupBy(s => s.FechaActualizado))
+            try
             {
-                var archivosCount = archivos.Count(s => s.FechaCarga.Date == item.Key);
-                var currentPorcentaje = item.Count() * 100 / TotalPreguntas;
-                TotalPorcentaje += currentPorcentaje;
-                var fila = new HistorialVm
+                // Validar que el cuestionario exista
+                var cuestionario = await _db
+                    .Cuestionario.AsNoTracking()
+                    .Include(c => c.Items)
+                    .FirstOrDefaultAsync(c => c.Id == idCuestionario);
+
+                if (cuestionario == null)
+                    return Result<List<HistorialVm>>.Failure(
+                        $"No se encontró el cuestionario con ID: {idCuestionario}"
+                    );
+
+                // Obtener total de preguntas para esta tipología
+                var totalPreguntas = await _db
+                    .Pregunta.AsNoTracking()
+                    .CountAsync(p =>
+                        (p.TipologiaId == cuestionario.TipologiaId || p.TipologiaId == null)
+                        && !p.Nomenclatura.StartsWith("mb-")
+                    );
+
+                // Obtener archivos asociados de manera optimizada
+                var archivos = await _db
+                    .Archivo.AsNoTracking()
+                    .Where(a => a.CuestionarioItem.CuestionarioId == idCuestionario && a.Activo)
+                    .Select(a => new { a.FechaCarga, a.CuestionarioItemId })
+                    .ToListAsync();
+
+                // Agrupar por fecha y calcular porcentajes
+                var resultados = new List<HistorialVm>();
+                var totalPorcentaje = 0;
+
+                // Ordenar por fecha para asegurar la secuencia correcta
+                var itemsAgrupados = cuestionario
+                    .Items.GroupBy(i => i.FechaActualizado)
+                    .OrderBy(g => g.Key)
+                    .ToList(); // Materializar la consulta
+
+                if (!itemsAgrupados.Any())
+                    return Result<List<HistorialVm>>.Success(new List<HistorialVm>());
+
+                foreach (var grupo in itemsAgrupados)
                 {
-                    Fecha = item.Key.ToStringArg(),
-                    Cantidad = item.Count(),
-                    Archivos = archivosCount,
-                    Porcentaje = currentPorcentaje,
-                    PorcentajeAcumulado = TotalPorcentaje,
-                };
+                    var fecha = grupo.Key;
+                    var cantidadItems = grupo.Count();
+                    var cantidadArchivos = archivos.Count(a => a.FechaCarga.Date == fecha);
 
-                resultados.Add(fila);
+                    // Calcular porcentaje para este día (usando decimal para mayor precisión)
+                    decimal porcentajeDiario =
+                        totalPreguntas > 0
+                            ? Math.Round((decimal)cantidadItems * 100 / totalPreguntas, 2)
+                            : 0;
+
+                    totalPorcentaje += (int)porcentajeDiario;
+
+                    resultados.Add(
+                        new HistorialVm
+                        {
+                            Fecha = fecha,
+                            Cantidad = cantidadItems,
+                            Archivos = cantidadArchivos,
+                            Porcentaje = (int)porcentajeDiario,
+                            PorcentajeAcumulado = totalPorcentaje,
+                        }
+                    );
+                }
+
+                return Result<List<HistorialVm>>.Success(resultados);
             }
-
-            return resultados;
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener historial del cuestionario: {CuestionarioId}",
+                    idCuestionario
+                );
+                return Result<List<HistorialVm>>.Failure(
+                    $"Error al procesar el historial: {ex.Message}"
+                );
+            }
         }
 
         public async Task<int> SavePregunta(
@@ -1645,19 +1655,163 @@ namespace Sitca.DataAccess.Data.Repository
             return result;
         }
 
-        public async Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> ItemIds)
+        public async Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> itemIds)
         {
-            var items = await _db
-                .CuestionarioItemObservaciones.AsNoTracking()
-                .Where(s => ItemIds.Contains(s.CuestionarioItemId))
-                .Select(x => new ObservacionesDTO
-                {
-                    Observaciones = x.Observaciones,
-                    IdRespuesta = x.CuestionarioItemId,
-                })
-                .ToListAsync();
+            // Protección contra parámetro nulo o vacío
+            if (itemIds == null || !itemIds.Any())
+            {
+                return new List<ObservacionesDTO>();
+            }
+            // Convertir a array para mejor rendimiento en consultas
+            var ids = itemIds.ToArray();
 
-            return items;
+            try
+            {
+                return await _db
+                    .CuestionarioItemObservaciones.AsNoTracking()
+                    .Where(s => ids.Contains(s.CuestionarioItemId))
+                    .Select(x => new ObservacionesDTO
+                    {
+                        Observaciones = x.Observaciones,
+                        IdRespuesta = x.CuestionarioItemId,
+                    })
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al obtener observaciones para los items: {ItemIds}",
+                    string.Join(", ", ids)
+                );
+                throw new DatabaseException("Error al recuperar las observaciones", ex);
+            }
+        }
+
+        public async Task<Result<int>> NuevaRecertificacion(int empresaId, ApplicationUser user)
+        {
+            try
+            {
+                string finalizado = StatusConstants.GetLocalizedStatus(
+                    ProcessStatus.Completed,
+                    "es"
+                );
+
+                string inicial = StatusConstants.GetLocalizedStatus(
+                    ProcessStatus.ForConsulting,
+                    "es"
+                );
+
+                if (user == null)
+                    throw new ArgumentNullException(nameof(user));
+
+                // Verificar si la empresa existe
+                var empresa = await _db.Empresa.FirstOrDefaultAsync(e => e.Id == empresaId);
+                if (empresa == null)
+                    return Result<int>.Failure($"No se encontró la empresa con ID {empresaId}");
+
+                // Verificar si hay certificaciones activas sin finalizar
+                var certificacionesPendientes = await _db
+                    .ProcesoCertificacion.AsNoTracking()
+                    .Where(p =>
+                        p.EmpresaId == empresaId
+                        && !p.Status.Contains(finalizado)
+                        && p.Enabled != false
+                    )
+                    .AnyAsync();
+
+                if (certificacionesPendientes)
+                {
+                    return Result<int>.Failure(
+                        "No se puede crear una nueva recertificación porque existe un proceso de certificación pendiente. Finalice el proceso actual antes de iniciar una recertificación."
+                    );
+                }
+
+                // Obtener la última certificación finalizada
+                var ultimaCertificacionFinalizada = await _db
+                    .ProcesoCertificacion.AsNoTracking()
+                    .Where(p =>
+                        p.EmpresaId == empresaId
+                        && p.Status.Contains(finalizado)
+                        && p.Enabled != false
+                    )
+                    .OrderByDescending(p => p.Id)
+                    .FirstOrDefaultAsync();
+
+                // Crear una estrategia de ejecución para manejar reintentos
+                var strategy = _db.Database.CreateExecutionStrategy();
+
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    using var transaction = await _db.Database.BeginTransactionAsync();
+                    try
+                    {
+                        // Crear el nuevo proceso de recertificación
+                        var nuevaCertificacion = new ProcesoCertificacion
+                        {
+                            EmpresaId = empresaId,
+                            FechaInicio = DateTime.UtcNow,
+                            UserGeneraId = user.Id,
+                            Recertificacion = true,
+                            Status = inicial, // Status inicial para recertificación
+                            NumeroExpediente =
+                                ultimaCertificacionFinalizada != null
+                                    ? $"R-{ultimaCertificacionFinalizada.NumeroExpediente}"
+                                    : $"R-{empresaId}-{DateTime.UtcNow:yyyyMMdd}",
+                            TipologiaId = ultimaCertificacionFinalizada?.TipologiaId,
+
+                            // Campos de auditoría
+                            Enabled = true,
+                            CreatedBy = user.Id,
+                            CreatedAt = DateTime.UtcNow,
+                        };
+
+                        // Si hay certificación previa finalizada, copiar algunos datos
+                        if (ultimaCertificacionFinalizada != null)
+                        {
+                            nuevaCertificacion.AsesorId = ultimaCertificacionFinalizada.AsesorId;
+                        }
+
+                        // Agregar la nueva certificación
+                        await _db.ProcesoCertificacion.AddAsync(nuevaCertificacion);
+
+                        // Actualizar el estado de la empresa
+                        empresa.Estado = ProcessStatus.ForConsulting; // Estado "Para Asesorar"
+                        empresa.FechaAutoNotif = null;
+
+                        await _db.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Nueva recertificación creada para empresa {EmpresaId} por usuario {UserId}, ID: {CertificacionId}",
+                            empresaId,
+                            user.Id,
+                            nuevaCertificacion.Id
+                        );
+
+                        return Result<int>.Success(nuevaCertificacion.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(
+                            ex,
+                            "Error al crear nueva recertificación para empresa {EmpresaId}",
+                            empresaId
+                        );
+                        throw;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error no controlado al crear recertificación para empresa {EmpresaId}",
+                    empresaId
+                );
+                return Result<int>.Failure($"Error al crear recertificación: {ex.Message}");
+            }
         }
 
         public async Task<Result<bool>> ConvertirARecertificacionAsync(

@@ -16,10 +16,13 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
 using Sitca.DataAccess.Services.Email;
+using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.Pdf;
+using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.DataAccess.Services.Token;
+using Sitca.DataAccess.Services.Url;
 using Sitca.DataAccess.Services.ViewToString;
 using Sitca.Middlewares;
 using Sitca.Models;
@@ -163,6 +166,34 @@ public static class ServiceCollectionExtensions
         services.Configure<Models.DTOs.EmailConfiguration>(configuration.GetSection("EmailSender"));
         services.AddTransient<IEmailSender, EmailSender>();
 
+        // Python API HttpClient
+        services.AddHttpClient(
+            "PythonApi",
+            client =>
+            {
+                // Configuración base del cliente HTTP
+                var pythonApiUrl = configuration["CorsSettings:pythonURL"];
+                if (!string.IsNullOrEmpty(pythonApiUrl))
+                {
+                    // Asegurar que la URL incluya la ruta base de la API y termine con /
+                    if (!pythonApiUrl.EndsWith("/"))
+                    {
+                        pythonApiUrl += "/";
+                    }
+
+                    client.BaseAddress = new Uri(pythonApiUrl);
+                }
+
+                client.DefaultRequestHeaders.Accept.Add(
+                    new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json")
+                );
+                client.Timeout = TimeSpan.FromSeconds(30);
+            }
+        );
+
+        // URLs
+        services.AddScoped<IUrlService, UrlService>();
+
         // Notifications
         services.AddScoped<INotificationService, NotificationService>();
 
@@ -180,6 +211,15 @@ public static class ServiceCollectionExtensions
 
         // Servicio de Company
         services.AddScoped<ICompanyQueryBuilder, CompanyQueryBuilder>();
+
+        // Servicio de Procesos
+        services.AddScoped<IProcessQueryBuilder, ProcessQueryBuilder>();
+
+        // Servicios de Manejo de Archivos.
+        services.AddScoped<IFileService, FileService>();
+
+        // Servicio Manejo de Iconos.
+        services.AddSingleton<IIconService, IconService>();
 
         return services;
     }

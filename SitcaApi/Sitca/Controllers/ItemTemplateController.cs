@@ -1,7 +1,7 @@
-﻿using Sitca.DataAccess.Data.Repository.IRepository;
-using Sitca.Models;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using Sitca.DataAccess.Data.Repository.IRepository;
+using Sitca.Models;
 
 namespace Sitca.Controllers
 {
@@ -25,11 +25,9 @@ namespace Sitca.Controllers
             return Json(await _unitOfWork.ItemTemplate.GetAll());
         }
 
-
         [HttpGet]
         public async Task<IActionResult> AsyncGetAll()
         {
-
             return Json(new { data = await _unitOfWork.ItemTemplate.GetAllAsync() });
         }
 
@@ -43,7 +41,7 @@ namespace Sitca.Controllers
                 return Json(new { success = false, message = "Error" });
             }
             _unitOfWork.ItemTemplate.Remove(objFromDb);
-            _unitOfWork.Save();
+            _unitOfWork.SaveChanges();
             return Json(new { success = true, message = "delete success" });
         }
 
@@ -53,10 +51,9 @@ namespace Sitca.Controllers
             if (ModelState.IsValid)
             {
                 await _unitOfWork.ItemTemplate.Add(itemTemplate);
-                _unitOfWork.Save();
+                _unitOfWork.SaveChanges();
             }
             return null;
         }
-
     }
 }
