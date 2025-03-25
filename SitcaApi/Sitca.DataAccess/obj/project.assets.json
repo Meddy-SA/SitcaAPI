@@ -12237,19 +12237,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/leonardoillanez/.nuget/packages/": {}
+    "/Users/enzo/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "projectName": "Sitca.DataAccess",
-      "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
-      "packagesPath": "/Users/leonardoillanez/.nuget/packages/",
-      "outputPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/obj/",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "packagesPath": "/Users/enzo/.nuget/packages/",
+      "outputPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/leonardoillanez/.nuget/NuGet/NuGet.Config"
+        "/Users/enzo/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -12262,11 +12262,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
-              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
+            "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+              "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
             },
-            "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
-              "projectPath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj"
+            "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
+              "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj"
             }
           }
         }
@@ -12280,7 +12280,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0": {
@@ -12370,12 +12371,22 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.14, 8.0.14]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.14, 8.0.14]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.201/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.202/PortableRuntimeIdentifierGraph.json"
       }
     }
   },
@@ -12384,7 +12395,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Sitca.DataAccess depends on GemBox.Document (>= 35.0.1775) but GemBox.Document 35.0.1775 was not found. An approximate best match of GemBox.Document 35.0.1784 was resolved.",
+      "message": "Sitca.DataAccess depends on GemBox.Document (>= 35.0.1775) but GemBox.Document 35.0.1775 was not found. GemBox.Document 35.0.1784 was resolved instead.",
       "libraryId": "GemBox.Document",
       "targetGraphs": [
         "net8.0"
@@ -12394,7 +12405,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Sitca.DataAccess depends on GemBox.Pdf (>= 17.0.1589) but GemBox.Pdf 17.0.1589 was not found. An approximate best match of GemBox.Pdf 17.0.1593 was resolved.",
+      "message": "Sitca.DataAccess depends on GemBox.Pdf (>= 17.0.1589) but GemBox.Pdf 17.0.1589 was not found. GemBox.Pdf 17.0.1593 was resolved instead.",
       "libraryId": "GemBox.Pdf",
       "targetGraphs": [
         "net8.0"
