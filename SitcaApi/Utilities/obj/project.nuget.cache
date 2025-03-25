@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "7rCSaRLZ4Jtxbep+nhnMyYnGOfRSeGhZIinmZYskLrU917xACRblpm4I/ScA0vxhli3lCwoikfl29KQcnNsCEg==",
+  "dgSpecHash": "gOik4ASz4SE=",
   "success": true,
-  "projectFilePath": "/Users/leonardoillanez/Projects/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+  "expectedPackageFiles": [
+    "/Users/enzo/.nuget/packages/microsoft.netcore.app.ref/8.0.14/microsoft.netcore.app.ref.8.0.14.nupkg.sha512",
+    "/Users/enzo/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.14/microsoft.aspnetcore.app.ref.8.0.14.nupkg.sha512"
+  ],
   "logs": []
 }

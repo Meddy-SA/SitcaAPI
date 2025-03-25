@@ -152,7 +152,7 @@ namespace Sitca.Controllers
         }
 
 
-        [Authorize(Roles = "TecnicoPais")]
+        [Authorize(Roles = "TecnicoPais, Admin")]
         [HttpPost, DisableRequestSizeLimit]
         public async Task<IActionResult> Upload()
         {
