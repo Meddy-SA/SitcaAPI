@@ -474,8 +474,6 @@ namespace Sitca.DataAccess.Data.Repository
                 .Resultados.OrderByDescending(x => x.Id)
                 .FirstOrDefault();
 
-            var isRecertificacion = resultado.ProcesoCertificacion.Recertificacion;
-
             // Validar resultado y aprobación
             if (resultado == null || !resultado.Aprobado)
                 return lang == "es" ? StatusText.NotCertified.Es : StatusText.NotCertified.En;

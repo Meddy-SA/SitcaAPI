@@ -18,14 +18,6 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
     private readonly ApplicationDbContext _db;
     private readonly ILogger<ProcessQueryBuilder> _logger;
 
-    private readonly ICollection<string> rolesAllow =
-    [
-        Roles.Admin,
-        Roles.TecnicoPais,
-        Roles.Consultor,
-        Roles.EmpresaAuditora,
-    ];
-
     public ProcessQueryBuilder(ApplicationDbContext db, ILogger<ProcessQueryBuilder> logger)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
@@ -85,23 +77,14 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
         if (user == null)
             throw new ArgumentNullException(nameof(user));
 
-        // Para roles Admin o roles que necesitan acceso general
-        if (rolesAllow.Contains(role))
+        // Para roles Admin
+        if (role == Roles.Admin)
         {
             return BuildBaseQuery(isRecertification);
         }
 
         // Para roles específicos (Asesor, Auditor, CTC, etc.)
-        if (
-            new[]
-            {
-                Roles.Asesor,
-                Roles.Auditor,
-                Roles.CTC,
-                Roles.Empresa,
-                Roles.TecnicoPais,
-            }.Contains(role)
-        )
+        if (role != Roles.Admin)
         {
             return BuildRoleBasedQuery(user, role, isRecertification);
         }
