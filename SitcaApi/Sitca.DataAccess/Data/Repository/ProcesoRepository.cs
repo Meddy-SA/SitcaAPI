@@ -204,6 +204,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 .FirstOrDefaultAsync(p =>
                     p.EmpresaId == empresaId
                     && p.Status == ProcessStatusText.Spanish.Completed
+                    && p.Recertificacion
                     && p.Enabled
                 );
 
@@ -451,7 +452,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         if (empresa != null)
         {
             // Solo actualizar si el nuevo estado es mayor que el actual
-            if (!empresa.Estado.HasValue || estadoNumerico > empresa.Estado.Value)
+            if (!empresa.Estado.HasValue)
             {
                 empresa.Estado = estadoNumerico;
                 await _db.SaveChangesAsync();
