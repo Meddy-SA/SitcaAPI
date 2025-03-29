@@ -2,15 +2,18 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.Enums;
 using Sitca.Models.Mappers;
 using Sitca.Models.ViewModels;
 using static Utilities.Common.Constants;
@@ -23,12 +26,14 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
     private readonly IProcessQueryBuilder _queryBuilder;
     private readonly IConfiguration _config;
     private readonly ILogger<ProcesoRepository> _logger;
+    private readonly IFileService _fileService;
 
     public ProcesoRepository(
         ApplicationDbContext db,
         IProcessQueryBuilder queryBuilder,
         IConfiguration configuration,
-        ILogger<ProcesoRepository> logger
+        ILogger<ProcesoRepository> logger,
+        IFileService fileService
     )
         : base(db)
     {
@@ -36,6 +41,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         _queryBuilder = queryBuilder;
         _config = configuration;
         _logger = logger;
+        _fileService = fileService;
     }
 
     public async Task<Result<ProcesoCertificacionDTO>> GetProcesoForIdAsync(int id, string userId)
@@ -250,7 +256,23 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                         ProcessStatusText.Spanish.Initial
                     );
 
+                    // // Copiar los archivos del proceso anterior al nuevo proceso
+                    // await CopiarArchivosProcesoAnteriorAsync(
+                    //     procesoAnterior.Id,
+                    //     nuevoProceso.Id,
+                    //     userId
+                    // );
+
                     await transaction.CommitAsync();
+
+                    // IMPORTANTE: Cargar el proceso recién creado con todas sus relaciones
+                    var procesoCompleto = await _db
+                        .ProcesoCertificacion.AsNoTracking()
+                        .Include(p => p.Empresa)
+                        .ThenInclude(e => e.Pais)
+                        .Include(p => p.Tipologia)
+                        .Include(p => p.UserGenerador)
+                        .FirstOrDefaultAsync(p => p.Id == nuevoProceso.Id);
 
                     _logger.LogInformation(
                         "Recertificación creada exitosamente para empresa {EmpresaId}, nuevo proceso ID: {ProcesoId}",
@@ -259,19 +281,24 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                     );
 
                     // Mapear a DTO y devolver
-                    var procesoDto = nuevoProceso.ToDto(userId);
+                    var procesoDto = procesoCompleto.ToDto(userId);
                     return Result<ProcesoCertificacionDTO>.Success(procesoDto);
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync();
+                    if (transaction.GetDbTransaction().Connection != null)
+                    {
+                        await transaction.RollbackAsync();
+                    }
                     _logger.LogError(
                         ex,
                         "Error al crear recertificación para empresa {EmpresaId}: {Error}",
                         empresaId,
                         ex.Message
                     );
-                    throw;
+                    return Result<ProcesoCertificacionDTO>.Failure(
+                        $"Error al crear recertificación (1): {ex.Message}"
+                    );
                 }
             });
         }
@@ -284,7 +311,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 ex.Message
             );
             return Result<ProcesoCertificacionDTO>.Failure(
-                $"Error al crear recertificación: {ex.Message}"
+                $"Error al crear recertificación (2): {ex.Message}"
             );
         }
     }
@@ -450,8 +477,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         var empresa = await _db.Empresa.FindAsync(empresaId);
         if (empresa != null)
         {
-            // Solo actualizar si el nuevo estado es mayor que el actual
-            if (!empresa.Estado.HasValue || estadoNumerico > empresa.Estado.Value)
+            if (!empresa.Estado.HasValue)
             {
                 empresa.Estado = estadoNumerico;
                 await _db.SaveChangesAsync();
@@ -487,5 +513,97 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         {
             return null;
         }
+    }
+
+    private async Task CopiarArchivosProcesoAnteriorAsync(
+        int procesoAnteriorId,
+        int nuevoProcesoId,
+        string userId
+    )
+    {
+        // Obtener los archivos del proceso anterior que NO sean de tipo Informativo
+        var archivosAnteriores = await _db
+            .ProcesoArchivos.Where(p =>
+                p.ProcesoCertificacionId == procesoAnteriorId
+                && p.Enabled
+                && p.FileTypesCompany != FileCompany.Informativo
+            )
+            .ToListAsync();
+
+        if (!archivosAnteriores.Any())
+        {
+            _logger.LogInformation(
+                "No se encontraron archivos elegibles para copiar del proceso anterior ID {ProcesoAnteriorId}",
+                procesoAnteriorId
+            );
+            return;
+        }
+
+        // Resolver servicio de archivos
+        var basePath = _fileService.GetFullPath();
+
+        foreach (var archivoAnterior in archivosAnteriores)
+        {
+            try
+            {
+                // Usar el servicio para copiar el archivo
+                var targetSubfolder = $"proceso_{nuevoProcesoId}";
+                var (nuevaRuta, fileSize) = _fileService.CopyFileAsync(
+                    archivoAnterior.Ruta,
+                    targetSubfolder
+                );
+
+                // Crear el registro en la base de datos para el archivo copiado
+                var nuevoArchivo = new ProcesoArchivos
+                {
+                    Nombre = archivoAnterior.Nombre,
+                    Ruta = nuevaRuta,
+                    Tipo = archivoAnterior.Tipo,
+                    FileTypesCompany = archivoAnterior.FileTypesCompany,
+                    ProcesoCertificacionId = nuevoProcesoId,
+                    FileSize = fileSize,
+                    // Mantener el usuario anterior en CreatedBy si no es nulo
+                    CreatedBy = !string.IsNullOrEmpty(archivoAnterior.CreatedBy)
+                        ? archivoAnterior.CreatedBy
+                        : userId,
+                    CreatedAt =
+                        archivoAnterior.CreatedAt != default
+                            ? archivoAnterior.CreatedAt
+                            : DateTime.UtcNow,
+                    // Asignar el nuevo usuario como quien actualizó el registro
+                    UpdatedBy = userId,
+                    UpdatedAt = DateTime.UtcNow,
+                    Enabled = true,
+                };
+
+                _db.ProcesoArchivos.Add(nuevoArchivo);
+
+                _logger.LogInformation(
+                    "Archivo copiado exitosamente: {NombreArchivo} para el proceso ID {NuevoProcesoId}",
+                    archivoAnterior.Nombre,
+                    nuevoProcesoId
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al copiar el archivo {NombreArchivo} del proceso {ProcesoAnteriorId} al proceso {NuevoProcesoId}",
+                    archivoAnterior.Nombre,
+                    procesoAnteriorId,
+                    nuevoProcesoId
+                );
+                // Continuamos con el siguiente archivo en caso de error
+            }
+        }
+
+        // Guardar todos los nuevos registros en la base de datos
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Se completó la copia de archivos del proceso {ProcesoAnteriorId} al proceso {NuevoProcesoId}",
+            procesoAnteriorId,
+            nuevoProcesoId
+        );
     }
 }

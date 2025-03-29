@@ -71,6 +71,86 @@ public class FileService : IFileService
             };
     }
 
+    public (string FilePath, long FileSize) CopyFileAsync(
+        string sourceRelativePath,
+        string targetSubfolder,
+        string newFileName = null
+    )
+    {
+        // Obtener la ruta base
+        var basePath = GetFullPath();
+
+        // Construir la ruta completa al archivo físico original
+        var sourceFullPath = Path.Combine(basePath, sourceRelativePath);
+
+        // Verificar que el archivo exista
+        if (!File.Exists(sourceFullPath))
+        {
+            _logger.LogWarning(
+                "El archivo físico no existe en la ruta: {RutaArchivo}",
+                sourceFullPath
+            );
+            throw new FileNotFoundException(
+                $"El archivo no existe en la ruta: {sourceFullPath}",
+                sourceFullPath
+            );
+        }
+
+        // Determinar el nombre del archivo destino
+        string fileName;
+        if (string.IsNullOrWhiteSpace(newFileName))
+        {
+            // Generar un nuevo GUID si no se proporciona un nombre
+            fileName = $"{Guid.NewGuid()}{Path.GetExtension(sourceRelativePath)}";
+        }
+        else
+        {
+            // Usar el nombre proporcionado, asegurando que tenga la extensión correcta
+            fileName = Path.HasExtension(newFileName)
+                ? newFileName
+                : $"{newFileName}{Path.GetExtension(sourceRelativePath)}";
+        }
+
+        // Construir la ruta relativa destino
+        var targetRelativePath = Path.Combine(targetSubfolder, fileName).Replace("\\", "/");
+        var targetFullPath = Path.Combine(basePath, targetRelativePath);
+
+        // Asegurar que el directorio destino exista
+        var targetDirectory = Path.GetDirectoryName(targetFullPath);
+        if (!Directory.Exists(targetDirectory))
+        {
+            Directory.CreateDirectory(targetDirectory);
+        }
+
+        try
+        {
+            // Copiar el archivo físico
+            File.Copy(sourceFullPath, targetFullPath, overwrite: true);
+
+            // Obtener el tamaño del archivo copiado
+            var fileInfo = new FileInfo(targetFullPath);
+
+            _logger.LogInformation(
+                "Archivo copiado exitosamente de {SourcePath} a {TargetPath}",
+                sourceRelativePath,
+                targetRelativePath
+            );
+
+            // Devolver la ruta relativa y el tamaño del archivo
+            return (targetRelativePath, fileInfo.Length);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al copiar el archivo de {SourcePath} a {TargetPath}",
+                sourceRelativePath,
+                targetRelativePath
+            );
+            throw new ApplicationException("Error al copiar el archivo", ex);
+        }
+    }
+
     /// <summary>
     /// Guarda un archivo con optimización según el tipo
     /// </summary>

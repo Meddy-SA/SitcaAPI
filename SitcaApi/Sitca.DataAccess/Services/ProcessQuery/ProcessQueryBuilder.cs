@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -17,14 +16,6 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<ProcessQueryBuilder> _logger;
-
-    private readonly ICollection<string> rolesAllow =
-    [
-        Roles.Admin,
-        Roles.TecnicoPais,
-        Roles.Consultor,
-        Roles.EmpresaAuditora,
-    ];
 
     public ProcessQueryBuilder(ApplicationDbContext db, ILogger<ProcessQueryBuilder> logger)
     {
@@ -69,9 +60,8 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
         {
             Roles.Asesor => query.Where(p => p.AsesorId == user.Id),
             Roles.Auditor => query.Where(p => p.AuditorId == user.Id),
-            Roles.CTC or Roles.Consultor or Roles.EmpresaAuditora => query.Where(p =>
-                p.Empresa.PaisId == user.PaisId
-            ),
+            Roles.CTC or Roles.Consultor or Roles.EmpresaAuditora or Roles.TecnicoPais =>
+                query.Where(p => p.Empresa.PaisId == user.PaisId),
             Roles.Empresa => query.Where(p => p.EmpresaId == user.EmpresaId),
             _ => throw new ArgumentException($"Role {role} not supported", nameof(role)),
         };
@@ -86,14 +76,14 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
         if (user == null)
             throw new ArgumentNullException(nameof(user));
 
-        // Para roles Admin o roles que necesitan acceso general
-        if (rolesAllow.Contains(role))
+        // Para roles Admin
+        if (role == Roles.Admin)
         {
             return BuildBaseQuery(isRecertification);
         }
 
         // Para roles específicos (Asesor, Auditor, CTC, etc.)
-        if (new[] { Roles.Asesor, Roles.Auditor, Roles.CTC, Roles.Empresa }.Contains(role))
+        if (role != Roles.Admin)
         {
             return BuildRoleBasedQuery(user, role, isRecertification);
         }
@@ -115,7 +105,10 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
             query = query.Where(p => p.Empresa.PaisId == filter.CountryId);
 
         if (filter.StatusId.HasValue && filter.StatusId.Value != -1)
-            query = query.Where(p => p.Empresa.Estado == filter.StatusId);
+        {
+            string statusPrefix = filter.StatusId.Value.ToString() + " - ";
+            query = query.Where(p => p.Status.StartsWith(statusPrefix));
+        }
 
         if (filter.TypologyId > 0)
             query = query.Where(p =>
