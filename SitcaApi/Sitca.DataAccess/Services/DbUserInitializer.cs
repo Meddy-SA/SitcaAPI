@@ -20,7 +20,7 @@ public class DbUserInitializer(
     private readonly ILogger<DbUserInitializer> _logger = logger;
 
     private const string DefaultPassword = "Password123!";
-    private const int AsesorCompanyId = 47;
+    private const int AsesorCompanyId = 48;
 
     public async Task<Result<bool>> InitializeUsersAsync()
     {
@@ -35,7 +35,7 @@ public class DbUserInitializer(
                 (CreateUserModel("asesor", "Asesor", "Test", AsesorCompanyId), "Asesor"),
                 (CreateUserModel("auditor", "Auditor", "Test"), "Auditor"),
                 (CreateUserModel("consultor", "Consultor", "Test"), "Consultor"),
-                (CreateUserModel("empresa_auditora", "Empresa", "Auditora", 42), "EmpresaAuditora")
+                (CreateUserModel("empresa_auditora", "Empresa", "Auditora", 42), "EmpresaAuditora"),
             };
 
             foreach (var (user, role) in users)
@@ -134,7 +134,7 @@ public class DbUserInitializer(
                 if (role == "Asesor" && existingUser.CompAuditoraId != AsesorCompanyId)
                 {
                     var appUser = (ApplicationUser)existingUser;
-                    appUser.CompAuditoraId = AsesorCompanyId;
+                    appUser.CompAuditoraId = 30;
                     await _userManager.UpdateAsync(appUser);
                     _logger.LogInformation(
                         "Actualizado CompAuditoraId para usuario {Email}",
@@ -144,7 +144,7 @@ public class DbUserInitializer(
                 if (role == "Empresa" && existingUser.EmpresaId == null)
                 {
                     var appUser = (ApplicationUser)existingUser;
-                    appUser.CompAuditoraId = 140;
+                    appUser.CompAuditoraId = 30;
                     await _userManager.UpdateAsync(appUser);
                 }
                 return true;

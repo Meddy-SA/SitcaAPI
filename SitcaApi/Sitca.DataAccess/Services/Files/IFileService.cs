@@ -21,4 +21,10 @@ public interface IFileService
         string subfolder = "",
         CancellationToken cancellationToken = default
     );
+
+    (string FilePath, long FileSize) CopyFileAsync(
+        string sourceRelativePath,
+        string targetSubfolder,
+        string newFileName = null
+    );
 }

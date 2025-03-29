@@ -139,7 +139,8 @@ public class UnitOfWork : IUnitOfWork
             _db,
             _queryBuilderProcess,
             _config,
-            _loggerFactory.CreateLogger<ProcesoRepository>()
+            _loggerFactory.CreateLogger<ProcesoRepository>(),
+            _fileService
         );
         Empresas = new EmpresasRepository(
             _db,
