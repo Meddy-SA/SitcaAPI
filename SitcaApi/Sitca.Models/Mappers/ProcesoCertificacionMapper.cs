@@ -18,13 +18,15 @@ public static class ProcesoCertificacionMapper
         if (proceso == null)
             return null;
 
+        // Paso 1: Obtener el statusId desde el string Status
         byte statusId = 0;
         if (!string.IsNullOrWhiteSpace(proceso.Status))
         {
             _ = byte.TryParse(proceso.Status.Split('-')[0].Trim(), out statusId);
         }
 
-        return new ProcesoCertificacionDTO
+        // Paso 2: Crear el DTO con los datos básicos
+        var procesoDto = new ProcesoCertificacionDTO
         {
             Id = proceso.Id,
             NumeroExpediente = proceso.NumeroExpediente,
@@ -37,114 +39,151 @@ public static class ProcesoCertificacionMapper
             FechaVencimiento = proceso.FechaVencimiento,
             Recertificacion = proceso.Recertificacion,
             Cantidad = proceso.Cantidad,
+        };
 
-            Tipologia =
-                proceso.Tipologia == null
-                    ? null
+        // Paso 3: Agregar datos de Tipología
+        if (proceso.Tipologia != null)
+        {
+            // Si proceso.Tipologia existe, usamos esos datos
+            procesoDto.Tipologia = new TipologiaDTO
+            {
+                Id = proceso.Tipologia.Id,
+                Nombre = proceso.Tipologia.Name,
+                NombreIngles = proceso.Tipologia.NameEnglish,
+            };
+        }
+        else
+        {
+            // Si proceso.Tipologia es null, intentamos obtener la tipología desde la empresa
+            var primeraTipologia = proceso.Empresa.Tipologias?.FirstOrDefault()?.Tipologia;
+
+            procesoDto.Tipologia =
+                primeraTipologia == null
+                    ? null // Si no hay tipologías en la empresa, asignamos null
                     : new TipologiaDTO
                     {
-                        Id = proceso.Tipologia.Id,
-                        Nombre = proceso.Tipologia.Name,
-                        NombreIngles = proceso.Tipologia.NameEnglish,
-                    },
+                        Id = primeraTipologia.Id,
+                        Nombre = primeraTipologia.Name,
+                        NombreIngles = primeraTipologia.NameEnglish,
+                    };
+        }
 
-            Empresa = new EmpresaBasicaDTO
-            {
-                Id = proceso.Empresa.Id,
-                Nombre = proceso.Empresa.Nombre,
-                NombreRepresentante = proceso.Empresa.NombreRepresentante,
-                CargoRepresentante = proceso.Empresa.CargoRepresentante,
-                IdNacional = proceso.Empresa.IdNacional,
-                Email = proceso.Empresa.Email,
-                Telefono = proceso.Empresa.Telefono,
-                Direccion = proceso.Empresa.Direccion,
-                WebSite = proceso.Empresa.WebSite,
-                Ciudad = proceso.Empresa.Ciudad,
-                ResultadoActual = proceso.Empresa.ResultadoActual,
-                ResultadoVencimiento = proceso.Empresa.ResultadoVencimiento,
-                Estado = proceso.Empresa.Estado,
-                EsHomologacion = proceso.Empresa.EsHomologacion,
-                Activo = proceso.Empresa.Active,
-                Pais = new PaisDTO
-                {
-                    Id = proceso.Empresa.Pais.Id,
-                    Nombre = proceso.Empresa.Pais.Name,
-                },
-            },
-
-            Asesor =
-                proceso.AsesorProceso == null
-                    ? null
-                    : new UsuarioBasicoDTO
-                    {
-                        Id = proceso.AsesorProceso.Id,
-                        NombreCompleto =
-                            $"{proceso.AsesorProceso.FirstName} {proceso.AsesorProceso.LastName}".Trim(),
-                        Email = proceso.AsesorProceso.Email!,
-                        Codigo = proceso.AsesorProceso.Codigo,
-                    },
-
-            Auditor =
-                proceso.AuditorProceso == null
-                    ? null
-                    : new UsuarioBasicoDTO
-                    {
-                        Id = proceso.AuditorProceso.Id,
-                        NombreCompleto =
-                            $"{proceso.AuditorProceso.FirstName} {proceso.AuditorProceso.LastName}".Trim(),
-                        Email = proceso.AuditorProceso.Email!,
-                        Codigo = proceso.AuditorProceso.Codigo,
-                    },
-
-            UserGenerador = new UsuarioBasicoDTO
-            {
-                Id = proceso.UserGenerador.Id,
-                NombreCompleto =
-                    $"{proceso.UserGenerador.FirstName} {proceso.UserGenerador.LastName}".Trim(),
-                Email = proceso.UserGenerador.Email!,
-                Codigo = proceso.UserGenerador.Codigo,
-            },
-
-            Archivos =
-                proceso
-                    .ProcesosArchivos?.Select(a => new ProcesoArchivoDTO
-                    {
-                        Id = a.Id,
-                        Nombre = a.Nombre,
-                        Ruta = a.Ruta,
-                        Tipo = a.Tipo,
-                        TipoArchivo = a.FileTypesCompany,
-                        NombreTipoArchivo = a.FileTypesCompany.ToString(),
-                        FechaCreacion = a.CreatedAt ?? DateTime.UtcNow,
-
-                        CreadoPor = a.CreatedBy,
-                        NombreCreador =
-                            a.UserCreate == null
-                                ? null
-                                : $"{a.UserCreate.FirstName} {a.UserCreate.LastName}".Trim(),
-                        EsPropio = a.CreatedBy == userId,
-                        FileSize = a.FileSize,
-                    })
-                    .ToList() ?? new List<ProcesoArchivoDTO>(),
-            Cuestionarios =
-                proceso
-                    .Cuestionarios?.Select(a => new CuestionarioBasicoDTO
-                    {
-                        Id = a.Id,
-                        Prueba = a.Prueba,
-                        FechaRevision = a.FechaRevisionAuditor,
-                        FechaInicio = a.FechaInicio,
-                        FechaFinalizacion = a.FechaFinalizado,
-                        FechaEvaluacion = proceso.FechaFijadaAuditoria.HasValue
-                            ? proceso.FechaFijadaAuditoria.Value
-                            : a.FechaVisita,
-                    })
-                    .ToList() ?? new List<CuestionarioBasicoDTO>(),
-            CreadoPor = proceso.CreatedBy,
-            FechaCreacion = proceso.CreatedAt,
-            ActualizadoPor = proceso.UpdatedBy,
-            FechaActualizacion = proceso.UpdatedAt,
+        // Paso 4: Crear y agregar datos de Empresa
+        var empresaDto = new EmpresaBasicaDTO
+        {
+            Id = proceso.Empresa.Id,
+            Nombre = proceso.Empresa.Nombre,
+            NombreRepresentante = proceso.Empresa.NombreRepresentante,
+            CargoRepresentante = proceso.Empresa.CargoRepresentante,
+            IdNacional = proceso.Empresa.IdNacional,
+            Email = proceso.Empresa.Email,
+            Telefono = proceso.Empresa.Telefono,
+            Direccion = proceso.Empresa.Direccion,
+            WebSite = proceso.Empresa.WebSite,
+            Ciudad = proceso.Empresa.Ciudad,
+            ResultadoActual = proceso.Empresa.ResultadoActual,
+            ResultadoVencimiento = proceso.Empresa.ResultadoVencimiento,
+            Estado = proceso.Empresa.Estado,
+            EsHomologacion = proceso.Empresa.EsHomologacion,
+            Activo = proceso.Empresa.Active,
         };
+
+        // Paso 5: Crear y agregar datos de País a la Empresa
+        empresaDto.Pais = new PaisDTO
+        {
+            Id = proceso.Empresa.Pais.Id,
+            Nombre = proceso.Empresa.Pais.Name,
+        };
+
+        // Asignar la empresa al DTO
+        procesoDto.Empresa = empresaDto;
+
+        // Paso 6: Crear y agregar datos del Asesor
+        procesoDto.Asesor =
+            proceso.AsesorProceso == null
+                ? null
+                : new UsuarioBasicoDTO
+                {
+                    Id = proceso.AsesorProceso.Id,
+                    NombreCompleto =
+                        $"{proceso.AsesorProceso.FirstName} {proceso.AsesorProceso.LastName}".Trim(),
+                    Email = proceso.AsesorProceso.Email!,
+                    Codigo = proceso.AsesorProceso.Codigo,
+                };
+
+        // Paso 7: Crear y agregar datos del Auditor
+        procesoDto.Auditor =
+            proceso.AuditorProceso == null
+                ? null
+                : new UsuarioBasicoDTO
+                {
+                    Id = proceso.AuditorProceso.Id,
+                    NombreCompleto =
+                        $"{proceso.AuditorProceso.FirstName} {proceso.AuditorProceso.LastName}".Trim(),
+                    Email = proceso.AuditorProceso.Email!,
+                    Codigo = proceso.AuditorProceso.Codigo,
+                };
+
+        // Paso 8: Crear y agregar datos del Usuario Generador
+        procesoDto.UserGenerador = new UsuarioBasicoDTO
+        {
+            Id = proceso.UserGenerador.Id,
+            NombreCompleto =
+                $"{proceso.UserGenerador.FirstName} {proceso.UserGenerador.LastName}".Trim(),
+            Email = proceso.UserGenerador.Email!,
+            Codigo = proceso.UserGenerador.Codigo,
+        };
+
+        // Paso 9: Crear y agregar lista de Archivos
+        var archivos =
+            proceso
+                .ProcesosArchivos?.Select(a => new ProcesoArchivoDTO
+                {
+                    Id = a.Id,
+                    Nombre = a.Nombre,
+                    Ruta = a.Ruta,
+                    Tipo = a.Tipo,
+                    TipoArchivo = a.FileTypesCompany,
+                    NombreTipoArchivo = a.FileTypesCompany.ToString(),
+                    FechaCreacion = a.CreatedAt ?? DateTime.UtcNow,
+                    CreadoPor = a.CreatedBy,
+                    NombreCreador =
+                        a.UserCreate == null
+                            ? null
+                            : $"{a.UserCreate.FirstName} {a.UserCreate.LastName}".Trim(),
+                    EsPropio = a.CreatedBy == userId,
+                    FileSize = a.FileSize,
+                })
+                .ToList() ?? new List<ProcesoArchivoDTO>();
+
+        procesoDto.Archivos = archivos;
+
+        // Paso 10: Crear y agregar lista de Cuestionarios
+        var cuestionarios =
+            proceso
+                .Cuestionarios?.Select(a => new CuestionarioBasicoDTO
+                {
+                    Id = a.Id,
+                    Prueba = a.Prueba,
+                    FechaRevision = a.FechaRevisionAuditor,
+                    FechaInicio = a.FechaInicio,
+                    FechaFinalizacion = a.FechaFinalizado,
+                    FechaEvaluacion = proceso.FechaFijadaAuditoria.HasValue
+                        ? proceso.FechaFijadaAuditoria.Value
+                        : a.FechaVisita,
+                })
+                .ToList() ?? new List<CuestionarioBasicoDTO>();
+
+        procesoDto.Cuestionarios = cuestionarios;
+
+        // Paso 11: Agregar datos de auditoría
+        procesoDto.CreadoPor = proceso.CreatedBy;
+        procesoDto.FechaCreacion = proceso.CreatedAt;
+        procesoDto.ActualizadoPor = proceso.UpdatedBy;
+        procesoDto.FechaActualizacion = proceso.UpdatedAt;
+
+        // Retornar el DTO construido
+        return procesoDto;
     }
 
     /// <summary>

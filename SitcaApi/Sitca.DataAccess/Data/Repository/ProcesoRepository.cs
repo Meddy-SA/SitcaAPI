@@ -210,6 +210,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 .FirstOrDefaultAsync(p =>
                     p.EmpresaId == empresaId
                     && p.Status == ProcessStatusText.Spanish.Completed
+                    && p.Recertificacion
                     && p.Enabled
                 );
 
