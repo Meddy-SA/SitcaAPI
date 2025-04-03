@@ -103,6 +103,80 @@ public class EmpresasController : ControllerBase
         }
     }
 
+    [Authorize]
+    [HttpPost("procesos/listado")]
+    [ProducesResponseType(
+        StatusCodes.Status200OK,
+        Type = typeof(Result<BlockResult<ProcesoCertificacionVm>>)
+    )]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<
+        ActionResult<Result<BlockResult<ProcesoCertificacionVm>>>
+    > GetProcessesCompanies(FilterCompanyDTO filtro)
+    {
+        try
+        {
+            // 1. Validar usuario actual
+            var currentUser = await this.GetCurrentUserAsync(_userManager);
+            if (currentUser == null)
+            {
+                return Unauthorized(
+                    Result<BlockResult<ProcesoCertificacionVm>>.Failure("Usuario no autorizado")
+                );
+            }
+
+            // 2. Validar y preparar el filtro
+            filtro ??= new FilterCompanyDTO { Lang = currentUser.Lenguage };
+
+            // 3. Aplicar restricciones según rol
+            if (!User.IsInRole(Constants.Roles.Admin))
+            {
+                filtro = filtro.WithCountry(currentUser.PaisId ?? 0);
+            }
+
+            // 4. Validar filtro
+            if (!filtro.IsValid())
+            {
+                return BadRequest(
+                    Result<BlockResult<ProcesoCertificacionVm>>.Failure(
+                        "Criterios de filtrado inválidos"
+                    )
+                );
+            }
+
+            // 5. Asegurar que el idioma está configurado
+            if (string.IsNullOrWhiteSpace(filtro.Lang))
+            {
+                filtro = filtro.WithLanguage(currentUser.Lenguage);
+            }
+
+            // 6. Validar y ajustar los parámetros de paginación por bloques
+            filtro = filtro.WithBlockSize(
+                filtro.BlockSize <= 0 ? 100 : Math.Min(filtro.BlockSize, 500)
+            );
+            filtro = filtro.WithBlockNumber(filtro.BlockNumber <= 0 ? 1 : filtro.BlockNumber);
+
+            var processes = await _unitOfWork.Empresas.GetProcesosCompaniesBlockAsync(filtro);
+
+            return this.HandleResponse(
+                Result<BlockResult<ProcesoCertificacionVm>>.Success(processes)
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al obtener lista de procesos de certificación con filtro {@Filter}",
+                filtro
+            );
+            return StatusCode(
+                500,
+                Result<List<ProcesoCertificacionVm>>.Failure("Error interno del servidor")
+            );
+        }
+    }
+
     // <summary>
     /// Obtiene una empresa específica por su ID
     /// </summary>

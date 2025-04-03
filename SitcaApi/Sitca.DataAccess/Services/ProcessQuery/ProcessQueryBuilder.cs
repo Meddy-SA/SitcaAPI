@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using static Utilities.Common.Constants;
+using Localization = Utilities.Common.LocalizationUtilities;
 using Roles = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Services.ProcessQuery;
@@ -21,6 +23,25 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public async Task<ProcesoCertificacion> BuildBaseQueryById(int id)
+    {
+        return await _db
+            .ProcesoCertificacion.AsNoTracking()
+            .Where(p => p.Id == id)
+            .AsSplitQuery()
+            .Include(p => p.Empresa)
+            .ThenInclude(e => e.Pais)
+            .Include(p => p.Empresa)
+            .ThenInclude(e => e.Tipologias)
+            .ThenInclude(t => t.Tipologia)
+            .Include(p => p.Resultados)
+            .ThenInclude(r => r.Distintivo)
+            .Include(p => p.AsesorProceso)
+            .Include(p => p.AuditorProceso)
+            .Include(p => p.UserGenerador)
+            .FirstOrDefaultAsync();
     }
 
     public IQueryable<ProcesoCertificacion> BuildBaseQuery(bool isRecertificacion)
@@ -161,15 +182,20 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
             PaisId = p.Empresa.PaisId,
             PaisNombre = p.Empresa.Pais.Name,
 
-            // Tipologías
-            Tipologias = p
-                .Empresa.Tipologias.Select(t => new
-                {
-                    Id = t.IdTipologia,
-                    Spanish = t.Tipologia.Name,
-                    English = t.Tipologia.NameEnglish,
-                })
-                .ToList(),
+            // Tipologías - Versión mejorada
+            // Primero comprobamos si existe una tipología directa en el proceso
+            TieneTipologiaDirecta = p.Tipologia != null,
+            // Si existe, guardamos sus datos
+            TipologiaDirectaId = p.Tipologia != null ? p.Tipologia.Id : 0,
+            TipologiaDirectaNombre = p.Tipologia != null
+                ? (language == "es" ? p.Tipologia.Name : p.Tipologia.NameEnglish)
+                : null,
+            // También guardamos las tipologías de la empresa (siempre)
+            TipologiasEmpresa = p.Empresa.Tipologias.Select(t => new
+            {
+                Id = t.IdTipologia,
+                Nombre = language == "es" ? t.Tipologia.Name : t.Tipologia.NameEnglish,
+            }),
 
             // Fecha de revisión
             FechaRevision = p
@@ -192,12 +218,15 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
                 .Resultados.Select(r => new
                 {
                     r.DistintivoId,
-                    DistintivoNombre = r.Distintivo.Name,
+                    DistintivoNombre = Localization.GetDistintivoTranslation(
+                        r.Distintivo.Name,
+                        language
+                    ),
                 })
                 .FirstOrDefault(),
         });
 
-        // 1.1 Cuento la cantidad de procesos
+        // 1.1 Contamos la cantidad de procesos por estado
         var totalPendiente = await projection.CountAsync(p =>
             p.EstadoEmpresa == ProcessStatusDecimal.Initial
             || p.EstadoEmpresa == ProcessStatusDecimal.ForConsulting
@@ -217,37 +246,55 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
 
         // 3. Mapear los resultados a nuestro modelo de vista
         var items = blockData
-            .Items.Select(p => new ProcesoCertificacionVm
+            .Items.Select(p =>
             {
-                Id = p.Id,
-                EmpresaId = p.EmpresaId,
-                NombreEmpresa = p.NombreEmpresa,
-                NumeroExpediente = p.NumeroExpediente,
-                Pais = p.PaisNombre,
-                PaisDto = new PaisDTO { Id = p.PaisId ?? 0, Nombre = p.PaisNombre },
-                Responsable = p.NombreRepresentante,
-                Status = p.Status,
-                StatusId = StatusConverter.ConvertStatusTextToInt(p.Status),
-                FechaInicio = p.FechaInicio,
-                FechaFinalizacion = p.FechaFinalizacion,
-                Recertificacion = p.Recertificacion,
-                Distintivo = p.UltimoResultado?.DistintivoNombre,
-                DistintivoId = p.UltimoResultado?.DistintivoId,
-                FechaVencimiento = p.FechaVencimiento?.ToString("yyyy-MM-dd"),
-                Tipologias = p
-                    .Tipologias.Select(t => language == "es" ? t.Spanish : t.English)
-                    .ToList(),
-                TipologiasIds = p.Tipologias.Select(t => t.Id).ToList(),
-                Asesor =
-                    p.AsesorId == null
-                        ? null
-                        : new Personnal { Id = p.AsesorId, Name = p.AsesorNombre },
-                Auditor =
-                    p.AuditorId == null
-                        ? null
-                        : new Personnal { Id = p.AuditorId, Name = p.AuditorNombre },
-                FechaRevision = p.FechaRevision?.ToString("yyyy-MM-dd"),
-                Activo = p.Activo,
+                // Procesamos las tipologías según la lógica del negocio
+                var tipologiasNombres = new List<string>();
+                var tipologiasIds = new List<int>();
+
+                // Si hay una tipología directa en el proceso, la usamos
+                if (p.TieneTipologiaDirecta)
+                {
+                    tipologiasNombres.Add(p.TipologiaDirectaNombre);
+                    tipologiasIds.Add(p.TipologiaDirectaId);
+                }
+                // Si no hay tipología directa, usamos las de la empresa
+                else if (p.TipologiasEmpresa.Any())
+                {
+                    tipologiasNombres.AddRange(p.TipologiasEmpresa.Select(t => t.Nombre));
+                    tipologiasIds.AddRange(p.TipologiasEmpresa.Select(t => t.Id));
+                }
+
+                return new ProcesoCertificacionVm
+                {
+                    Id = p.Id,
+                    EmpresaId = p.EmpresaId,
+                    NombreEmpresa = p.NombreEmpresa,
+                    NumeroExpediente = p.NumeroExpediente,
+                    Pais = p.PaisNombre,
+                    PaisDto = new PaisDTO { Id = p.PaisId ?? 0, Nombre = p.PaisNombre },
+                    Responsable = p.NombreRepresentante,
+                    Status = p.Status,
+                    StatusId = StatusConverter.ConvertStatusTextToInt(p.Status),
+                    FechaInicio = p.FechaInicio,
+                    FechaFinalizacion = p.FechaFinalizacion,
+                    Recertificacion = p.Recertificacion,
+                    Distintivo = p.UltimoResultado?.DistintivoNombre,
+                    DistintivoId = p.UltimoResultado?.DistintivoId,
+                    FechaVencimiento = p.FechaVencimiento?.ToString("yyyy-MM-dd"),
+                    Tipologias = tipologiasNombres,
+                    TipologiasIds = tipologiasIds,
+                    Asesor =
+                        p.AsesorId == null
+                            ? null
+                            : new Personnal { Id = p.AsesorId, Name = p.AsesorNombre },
+                    Auditor =
+                        p.AuditorId == null
+                            ? null
+                            : new Personnal { Id = p.AuditorId, Name = p.AuditorNombre },
+                    FechaRevision = p.FechaRevision?.ToString("yyyy-MM-dd"),
+                    Activo = p.Activo,
+                };
             })
             .ToList();
 

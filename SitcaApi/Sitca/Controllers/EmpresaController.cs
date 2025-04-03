@@ -160,61 +160,6 @@ namespace Sitca.Controllers
             }
         }
 
-        /// <summary>
-        /// Obtiene un reporte de empresas según los criterios de filtrado especificados.
-        /// </summary>
-        /// <param name="filtro">Criterios de filtrado para el reporte.</param>
-        /// <returns>Lista filtrada de empresas según los criterios especificados.</returns>
-        /// <response code="200">Retorna la lista de empresas filtrada.</response>
-        /// <response code="401">Usuario no autorizado.</response>
-        /// <response code="500">Error interno del servidor al procesar la solicitud.</response>
-        [Authorize(Roles = AuthorizationPolicies.Empresa.ListCompany)]
-        [HttpPost("ListReporte")]
-        [ProducesResponseType(typeof(Result<List<EmpresaVm>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(Result<string>), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Result<List<EmpresaVm>>>> ListReporte(
-            FilterCompanyDTO filtro
-        )
-        {
-            try
-            {
-                // 1. Validar usuario actual
-                var currentUser = await this.GetCurrentUserAsync(_userManager);
-                if (currentUser == null)
-                {
-                    return Unauthorized(Result<List<EmpresaVm>>.Failure("Usuario no autorizado"));
-                }
-
-                // 2. Aplicar restricciones según rol
-                if (!User.IsInRole(Constants.Roles.Admin))
-                {
-                    filtro = filtro.WithCountry(currentUser.PaisId ?? 0);
-                }
-
-                // 3. Validar filtro
-                if (!filtro.IsValid())
-                {
-                    return BadRequest(
-                        Result<List<EmpresaVm>>.Failure("Criterios de filtrado inválidos")
-                    );
-                }
-
-                // 4. Obtener y retornar resultados
-                var empresas = await _unitOfWork.Empresa.GetListReporteAsync(filtro);
-
-                return this.HandleResponse(Result<List<EmpresaVm>>.Success(empresas));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting company list with filter {@Filter}", filtro);
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    $"Error interno al generar el reporte: {ex}"
-                );
-            }
-        }
-
         [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
         [HttpPost]
         [Route("GetListRenovacionReporte")]

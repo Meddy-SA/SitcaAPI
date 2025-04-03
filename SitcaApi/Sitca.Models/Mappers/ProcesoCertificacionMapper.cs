@@ -385,4 +385,59 @@ public static class ProcesoCertificacionMapper
             Enabled = true,
         };
     }
+
+    /// <summary>
+    /// Crea un ProcesoArchivos a partir de un Archivo
+    /// </summary>
+    public static ProcesoArchivos ConvertirDesdeArchivo(
+        this Archivo archivo,
+        int procesoCertificacionId,
+        string userId
+    )
+    {
+        if (archivo == null)
+            throw new ArgumentNullException(nameof(archivo));
+
+        return new ProcesoArchivos
+        {
+            ProcesoCertificacionId = procesoCertificacionId,
+            Nombre = archivo.Nombre,
+            Ruta = archivo.Ruta,
+            Tipo = archivo.Tipo,
+            FileTypesCompany = archivo.FileTypesCompany ?? Enums.FileCompany.Informativo,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId,
+            // Mantener información original cuando sea posible
+            UpdatedAt = null,
+            UpdatedBy = null,
+            Enabled = true,
+        };
+    }
+
+    /// <summary>
+    /// Crea un ProcesoArchivos a partir de un Archivo preservando metadatos originales
+    /// </summary>
+    public static ProcesoArchivos ConvertirDesdeArchivoPreservandoMetadata(
+        this Archivo archivo,
+        int procesoCertificacionId,
+        string userId
+    )
+    {
+        if (archivo == null)
+            throw new ArgumentNullException(nameof(archivo));
+
+        return new ProcesoArchivos
+        {
+            ProcesoCertificacionId = procesoCertificacionId,
+            Nombre = archivo.Nombre,
+            Ruta = archivo.Ruta,
+            Tipo = archivo.Tipo,
+            FileTypesCompany = archivo.FileTypesCompany ?? Enums.FileCompany.Informativo,
+            CreatedAt = archivo.FechaCarga,
+            CreatedBy = archivo.UsuarioCargaId ?? userId,
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = userId,
+            Enabled = true,
+        };
+    }
 }

@@ -8,6 +8,7 @@ namespace Sitca.DataAccess.Services.ProcessQuery;
 
 public interface IProcessQueryBuilder
 {
+    Task<ProcesoCertificacion> BuildBaseQueryById(int id);
     IQueryable<ProcesoCertificacion> BuildBaseQuery(bool isRecertification);
     IQueryable<ProcesoCertificacion> BuildRoleBasedQuery(
         ApplicationUser user,

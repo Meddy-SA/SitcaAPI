@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.DataAccess.Extensions;
+using Sitca.DataAccess.Helpers;
 using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.Models;
@@ -198,28 +200,31 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
 
     public async Task<Result<ProcesoCertificacionDTO>> CrearRecertificacionAsync(
         int empresaId,
-        string userId
+        ApplicationUser appUser
     )
     {
+        _logger.LogInformation(
+            "Iniciando proceso de recertificación para empresa ID: {EmpresaId}",
+            empresaId
+        );
+
         try
         {
-            // Verificar si existe algún proceso habilitado en estado 8 (Finalizado)
-            var procesoAnterior = await _db
-                .ProcesoCertificacion.Include(p => p.Empresa)
-                .Include(p => p.Tipologia)
-                .FirstOrDefaultAsync(p =>
-                    p.EmpresaId == empresaId
-                    && p.Status == ProcessStatusText.Spanish.Completed
-                    && p.Recertificacion
-                    && p.Enabled
-                );
+            // Verificar que no exista un proceso activo para esta empresa
+            var validacionResult = await ValidarEmpresaSinProcesosActivosAsync(
+                empresaId,
+                appUser.Lenguage
+            );
+            if (!validacionResult.IsSuccess)
+            {
+                return Result<ProcesoCertificacionDTO>.Failure(validacionResult.Error);
+            }
+
+            // Verificar si existe algún proceso habilitado en estado Completed
+            var procesoAnterior = await ObtenerProcesoAnteriorValidoAsync(empresaId);
 
             if (procesoAnterior == null)
             {
-                _logger.LogWarning(
-                    "No se encontró proceso finalizado y habilitado para la empresa ID: {EmpresaId}",
-                    empresaId
-                );
                 return Result<ProcesoCertificacionDTO>.Failure(
                     $"No existe un proceso finalizado para la empresa con ID: {empresaId}"
                 );
@@ -234,19 +239,10 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 try
                 {
                     // Crear nuevo proceso como recertificación
-                    var nuevoProceso = new ProcesoCertificacion
-                    {
-                        EmpresaId = empresaId,
-                        FechaInicio = DateTime.UtcNow,
-                        Recertificacion = true,
-                        NumeroExpediente = "",
-                        Status = ProcessStatusText.Spanish.Initial,
-                        UserGeneraId = userId,
-                        TipologiaId = procesoAnterior.TipologiaId,
-                        CreatedBy = userId,
-                        CreatedAt = DateTime.UtcNow,
-                        Enabled = true,
-                    };
+                    var nuevoProceso = CrearNuevoProcesoDeRecertificacion(
+                        procesoAnterior,
+                        appUser.Id
+                    );
 
                     _db.ProcesoCertificacion.Add(nuevoProceso);
                     await _db.SaveChangesAsync();
@@ -254,26 +250,21 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                     // Actualizar estado de la empresa
                     await ActualizarEstadoEmpresaAsync(
                         empresaId,
-                        ProcessStatusText.Spanish.Initial
+                        ProcessStatusText.Spanish.ConsultancyCompleted
                     );
 
-                    // // Copiar los archivos del proceso anterior al nuevo proceso
-                    // await CopiarArchivosProcesoAnteriorAsync(
-                    //     procesoAnterior.Id,
-                    //     nuevoProceso.Id,
-                    //     userId
-                    // );
+                    // Copiar los archivos del proceso anterior al nuevo proceso
+                    await CopiarArchivosProcesoAnteriorAsync(
+                        procesoAnterior.Id,
+                        nuevoProceso.Id,
+                        appUser.Id,
+                        procesoAnterior.EmpresaId
+                    );
 
                     await transaction.CommitAsync();
 
-                    // IMPORTANTE: Cargar el proceso recién creado con todas sus relaciones
-                    var procesoCompleto = await _db
-                        .ProcesoCertificacion.AsNoTracking()
-                        .Include(p => p.Empresa)
-                        .ThenInclude(e => e.Pais)
-                        .Include(p => p.Tipologia)
-                        .Include(p => p.UserGenerador)
-                        .FirstOrDefaultAsync(p => p.Id == nuevoProceso.Id);
+                    // Cargar el proceso recién creado con todas sus relaciones
+                    var procesoCompleto = await _queryBuilder.BuildBaseQueryById(nuevoProceso.Id);
 
                     _logger.LogInformation(
                         "Recertificación creada exitosamente para empresa {EmpresaId}, nuevo proceso ID: {ProcesoId}",
@@ -282,15 +273,12 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                     );
 
                     // Mapear a DTO y devolver
-                    var procesoDto = procesoCompleto.ToDto(userId);
+                    var procesoDto = procesoCompleto.ToDto(appUser.Id);
                     return Result<ProcesoCertificacionDTO>.Success(procesoDto);
                 }
                 catch (Exception ex)
                 {
-                    if (transaction.GetDbTransaction().Connection != null)
-                    {
-                        await transaction.RollbackAsync();
-                    }
+                    await SafeRollbackAsync(transaction);
                     _logger.LogError(
                         ex,
                         "Error al crear recertificación para empresa {EmpresaId}: {Error}",
@@ -298,7 +286,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                         ex.Message
                     );
                     return Result<ProcesoCertificacionDTO>.Failure(
-                        $"Error al crear recertificación (1): {ex.Message}"
+                        $"Error al crear recertificación: {ex.Message}"
                     );
                 }
             });
@@ -312,8 +300,74 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                 ex.Message
             );
             return Result<ProcesoCertificacionDTO>.Failure(
-                $"Error al crear recertificación (2): {ex.Message}"
+                $"Error inesperado al crear recertificación: {ex.Message}"
             );
+        }
+    }
+
+    private ProcesoCertificacion CrearNuevoProcesoDeRecertificacion(
+        ProcesoCertificacion procesoAnterior,
+        string userId
+    )
+    {
+        return new ProcesoCertificacion
+        {
+            EmpresaId = procesoAnterior.EmpresaId,
+            FechaInicio = DateTime.UtcNow,
+            Recertificacion = true,
+            NumeroExpediente = "",
+            Status = ProcessStatusText.Spanish.ConsultancyCompleted,
+            AsesorId = procesoAnterior.AsesorId,
+            UserGeneraId = userId,
+            TipologiaId = procesoAnterior.TipologiaId,
+            CreatedBy = userId,
+            CreatedAt = DateTime.UtcNow,
+            Enabled = true,
+        };
+    }
+
+    private async Task<ProcesoCertificacion> ObtenerProcesoAnteriorValidoAsync(int empresaId)
+    {
+        return await _db
+            .ProcesoCertificacion.Include(p => p.Empresa)
+            .Include(p => p.Tipologia)
+            .FirstOrDefaultAsync(p =>
+                p.EmpresaId == empresaId
+                && p.Status == ProcessStatusText.Spanish.Completed
+                && p.Recertificacion
+                && p.Enabled
+            );
+    }
+
+    private async Task<Result<bool>> ValidarEmpresaSinProcesosActivosAsync(
+        int empresaId,
+        string language
+    )
+    {
+        var existeProcesoActivo = await _db.ProcesoCertificacion.AnyAsync(p =>
+            p.EmpresaId == empresaId && p.Enabled && p.Status != ProcessStatusText.Spanish.Completed
+        );
+
+        if (existeProcesoActivo)
+        {
+            _logger.LogWarning(
+                "No se puede crear recertificación. La empresa {EmpresaId} ya tiene un proceso activo.",
+                empresaId
+            );
+            // Genero mensaje con el helpers para traducirlo segun el idioma
+            return Result<bool>.Failure(
+                ErrorMessages.ProcesoCertification.ActiveProcessExists(language, empresaId)
+            );
+        }
+
+        return Result<bool>.Success(true);
+    }
+
+    private async Task SafeRollbackAsync(IDbContextTransaction transaction)
+    {
+        if (transaction.GetDbTransaction().Connection != null)
+        {
+            await transaction.RollbackAsync();
         }
     }
 
@@ -478,17 +532,14 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         var empresa = await _db.Empresa.FindAsync(empresaId);
         if (empresa != null)
         {
-            if (!empresa.Estado.HasValue)
-            {
-                empresa.Estado = estadoNumerico;
-                await _db.SaveChangesAsync();
+            empresa.Estado = estadoNumerico;
+            await _db.SaveChangesAsync();
 
-                _logger.LogInformation(
-                    "Estado de empresa {EmpresaId} actualizado a {NuevoEstado}",
-                    empresaId,
-                    nuevoEstado
-                );
-            }
+            _logger.LogInformation(
+                "Estado de empresa {EmpresaId} actualizado a {NuevoEstado}",
+                empresaId,
+                nuevoEstado
+            );
         }
     }
 
@@ -519,29 +570,43 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
     private async Task CopiarArchivosProcesoAnteriorAsync(
         int procesoAnteriorId,
         int nuevoProcesoId,
-        string userId
+        string userId,
+        int empresaId
     )
     {
-        // Obtener los archivos del proceso anterior que NO sean de tipo Informativo
         var archivosAnteriores = await _db
             .ProcesoArchivos.Where(p =>
                 p.ProcesoCertificacionId == procesoAnteriorId
                 && p.Enabled
-                && p.FileTypesCompany != FileCompany.Informativo
+                && p.FileTypesCompany == FileCompany.Adhesion
             )
             .ToListAsync();
 
         if (!archivosAnteriores.Any())
         {
-            _logger.LogInformation(
-                "No se encontraron archivos elegibles para copiar del proceso anterior ID {ProcesoAnteriorId}",
-                procesoAnteriorId
-            );
-            return;
+            var archivoEmpresa = await _db
+                .Archivo.Where(p =>
+                    p.EmpresaId == empresaId
+                    && p.Activo
+                    && p.FileTypesCompany == FileCompany.Adhesion
+                )
+                .FirstOrDefaultAsync();
+            if (archivoEmpresa == null)
+            {
+                _logger.LogInformation(
+                    "No se encontraron archivos elegibles para copiar del proceso anterior ID {ProcesoAnteriorId}",
+                    procesoAnteriorId
+                );
+                return;
+            }
+            archivosAnteriores = [archivoEmpresa.ConvertirDesdeArchivo(nuevoProcesoId, userId)];
         }
 
         // Resolver servicio de archivos
         var basePath = _fileService.GetFullPath();
+
+        // Lista para almacenar las entidades de archivos a insertar
+        var nuevosArchivos = new List<ProcesoArchivos>();
 
         foreach (var archivoAnterior in archivosAnteriores)
         {
@@ -577,7 +642,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
                     Enabled = true,
                 };
 
-                _db.ProcesoArchivos.Add(nuevoArchivo);
+                nuevosArchivos.Add(nuevoArchivo);
 
                 _logger.LogInformation(
                     "Archivo copiado exitosamente: {NombreArchivo} para el proceso ID {NuevoProcesoId}",
@@ -598,13 +663,25 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             }
         }
 
-        // Guardar todos los nuevos registros en la base de datos
-        await _db.SaveChangesAsync();
+        // Agregar todos los archivos a la base de datos de una vez
+        if (nuevosArchivos.Any())
+        {
+            await _db.ProcesoArchivos.AddRangeAsync(nuevosArchivos);
+            await _db.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "Se completó la copia de archivos del proceso {ProcesoAnteriorId} al proceso {NuevoProcesoId}",
-            procesoAnteriorId,
-            nuevoProcesoId
-        );
+            _logger.LogInformation(
+                "Se agregaron {CantidadArchivos} archivos al proceso {NuevoProcesoId}",
+                nuevosArchivos.Count,
+                nuevoProcesoId
+            );
+        }
+        else
+        {
+            _logger.LogWarning(
+                "No se pudo copiar ningún archivo del proceso {ProcesoAnteriorId} al proceso {NuevoProcesoId}",
+                procesoAnteriorId,
+                nuevoProcesoId
+            );
+        }
     }
 }

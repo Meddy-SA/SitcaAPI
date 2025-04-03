@@ -6,14 +6,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
+using Sitca.DataAccess.Middlewares;
 using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.DataAccess.Services.ProcessQuery;
 using Sitca.Models;
 using Sitca.Models.Constants;
 using Sitca.Models.DTOs;
 using Sitca.Models.Enums;
 using Sitca.Models.Mappers;
 using Sitca.Models.ViewModels;
+using static Utilities.Common.Constants;
+using Localization = Utilities.Common.LocalizationUtilities;
 using Rol = Utilities.Common.Constants.Roles;
 
 namespace Sitca.DataAccess.Data.Repository;
@@ -244,6 +248,300 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
                 $"Error al obtener archivos de la empresa: {ex.Message}"
             );
         }
+    }
+
+    /// <summary>
+    /// Obtiene un bloque de procesos de certificación filtrado según los criterios especificados.
+    /// </summary>
+    /// <param name="filtro">Objeto que contiene los criterios de filtrado.</param>
+    /// <param name="blockNumber">Número del bloque a recuperar.</param>
+    /// <param name="blockSize">Tamaño del bloque.</param>
+    /// <returns>Bloque de procesos de certificación que cumplen con los criterios de filtrado.</returns>
+    /// <exception cref="ArgumentNullException">Se lanza cuando el filtro es null.</exception>
+    /// <exception cref="DatabaseException">Se lanza cuando ocurre un error en la base de datos.</exception>
+    public async Task<BlockResult<ProcesoCertificacionVm>> GetProcesosCompaniesBlockAsync(
+        FilterCompanyDTO filtro
+    )
+    {
+        try
+        {
+            // 1. Validar parámetros
+            ArgumentNullException.ThrowIfNull(filtro, nameof(filtro));
+
+            // 2. Construir la consulta base de procesos de certificación
+            var query = _db.ProcesoCertificacion.AsNoTracking();
+
+            // 3. Aplicar filtros según la empresa asociada
+            query = ApplyEmpresaFilters(query, filtro);
+
+            // 4. Aplicar filtros específicos de proceso si es necesario
+            // Por ejemplo: query = ApplyProcesoFilters(query, otrosFiltros);
+
+            // 5. Aplicar proyección y ejecutar la consulta con paginación por bloques
+            return await BuildAndExecuteBlockProjection(
+                query,
+                filtro.Lang ?? "es",
+                filtro.BlockNumber,
+                filtro.BlockSize
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error obteniendo bloque de procesos con filtro {@Filter}, blockNumber: {BlockNumber}, blockSize: {BlockSize}",
+                filtro,
+                filtro.BlockNumber,
+                filtro.BlockSize
+            );
+
+            throw new DatabaseException(
+                "Error al obtener el bloque de procesos de certificación",
+                ex
+            );
+        }
+    }
+
+    /// <summary>
+    /// Aplica filtros relacionados con la empresa a la consulta de procesos de certificación.
+    /// </summary>
+    /// <param name="query">Consulta base a la que aplicar los filtros.</param>
+    /// <param name="filtro">Criterios de filtrado.</param>
+    /// <returns>Consulta con los filtros aplicados.</returns>
+    private IQueryable<ProcesoCertificacion> ApplyEmpresaFilters(
+        IQueryable<ProcesoCertificacion> query,
+        FilterCompanyDTO filtro
+    )
+    {
+        // Convertir el filtro de homologación
+        var homologacion = filtro.Homologacion switch
+        {
+            "-1" => true,
+            "1" => false,
+            _ => null as bool?,
+        };
+
+        // Aplicar filtros relacionados con la empresa
+        if (filtro.Country > 0)
+        {
+            query = query.Where(p => p.Empresa.PaisId == filtro.Country);
+        }
+
+        if (filtro.Estado != -1)
+        {
+            string statusPrefix = filtro.Estado.Value.ToString() + " - ";
+            query = query.Where(p => p.Status.StartsWith(statusPrefix));
+        }
+
+        if (homologacion.HasValue)
+        {
+            query = query.Where(p => p.Empresa.EsHomologacion == homologacion.Value);
+        }
+
+        if (filtro.Tipologia > 0)
+        {
+            query = query.Where(p =>
+                p.Empresa.Tipologias.Any(t => t.IdTipologia == filtro.Tipologia)
+                || p.TipologiaId == filtro.Tipologia
+            );
+        }
+
+        if (filtro.Activo.HasValue)
+        {
+            query = query.Where(p => p.Empresa.Active == filtro.Activo.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Name))
+        {
+            query = query.Where(p => p.Empresa.Nombre.ToLower().Contains(filtro.Name.ToLower()));
+        }
+
+        return query;
+    }
+
+    /// <summary>
+    /// Construye y ejecuta la proyección por bloques para obtener procesos de certificación paginados.
+    /// </summary>
+    /// <param name="query">Consulta base a la que aplicar la proyección.</param>
+    /// <param name="language">Idioma para la localización de los resultados.</param>
+    /// <param name="blockNumber">Número del bloque a recuperar.</param>
+    /// <param name="blockSize">Tamaño del bloque.</param>
+    /// <returns>Resultado por bloques con los procesos proyectados.</returns>
+    private async Task<BlockResult<ProcesoCertificacionVm>> BuildAndExecuteBlockProjection(
+        IQueryable<ProcesoCertificacion> query,
+        string language,
+        int blockNumber,
+        int blockSize
+    )
+    {
+        // 0. Ordenar la consulta original antes de cualquier operación
+        query = query.OrderBy(p => p.Id);
+
+        // 1. Incluir todas las relaciones necesarias
+        query = query
+            .AsSplitQuery()
+            .Include(p => p.Empresa)
+            .ThenInclude(e => e.Pais)
+            .Include(p => p.Empresa)
+            .ThenInclude(e => e.Tipologias)
+            .ThenInclude(t => t.Tipologia)
+            .Include(p => p.Resultados.Where(r => r.Id == p.Id))
+            .ThenInclude(r => r.Distintivo)
+            .Include(p => p.AsesorProceso)
+            .Include(p => p.AuditorProceso);
+
+        // 2. Preparar la proyección pero sin ejecutarla aún
+        var projection = query.Select(p => new
+        {
+            // Datos del proceso
+            p.Id,
+            p.EmpresaId,
+            p.NumeroExpediente,
+            p.FechaInicio,
+            p.FechaFinalizacion,
+            p.FechaVencimiento,
+            p.Recertificacion,
+            p.Status,
+
+            // Datos de empresa
+            NombreEmpresa = p.Empresa.Nombre,
+            NombreRepresentante = p.Empresa.NombreRepresentante,
+            EstadoEmpresa = p.Empresa.Estado,
+            Activo = p.Empresa.Active,
+
+            // País
+            PaisId = p.Empresa.PaisId,
+            PaisNombre = p.Empresa.Pais.Name,
+
+            // Tipologías - Versión mejorada
+            // Primero comprobamos si existe una tipología directa en el proceso
+            TieneTipologiaDirecta = p.Tipologia != null,
+            // Si existe, guardamos sus datos
+            TipologiaDirectaId = p.Tipologia != null ? p.Tipologia.Id : 0,
+            TipologiaDirectaNombre = p.Tipologia != null
+                ? (language == "es" ? p.Tipologia.Name : p.Tipologia.NameEnglish)
+                : null,
+            // También guardamos las tipologías de la empresa
+            TipologiasEmpresa = p.Empresa.Tipologias.Select(t => new
+            {
+                Id = t.IdTipologia,
+                Nombre = language == "es" ? t.Tipologia.Name : t.Tipologia.NameEnglish,
+            }),
+
+            // Fecha de revisión
+            FechaRevision = p
+                .Cuestionarios.Where(e => e.Prueba == false && !e.FechaFinalizado.HasValue)
+                .Select(e => e.FechaRevisionAuditor)
+                .FirstOrDefault(),
+
+            // Asesor y Auditor
+            AsesorId = p.AsesorId,
+            AsesorNombre = p.AsesorId != null
+                ? p.AsesorProceso.FirstName + " " + p.AsesorProceso.LastName
+                : null,
+            AuditorId = p.AuditorId,
+            AuditorNombre = p.AuditorId != null
+                ? p.AuditorProceso.FirstName + " " + p.AuditorProceso.LastName
+                : null,
+
+            // Distintivo
+            UltimoResultado = p
+                .Resultados.Select(r => new
+                {
+                    r.DistintivoId,
+                    DistintivoNombre = Localization.GetDistintivoTranslation(
+                        r.Distintivo.Name,
+                        language
+                    ),
+                })
+                .FirstOrDefault(),
+        });
+
+        // 3. Contar la cantidad de procesos por estado
+        var totalPendiente = await projection.CountAsync(p =>
+            p.EstadoEmpresa == ProcessStatusDecimal.Initial
+            || p.EstadoEmpresa == ProcessStatusDecimal.ForConsulting
+        );
+
+        var totalProcesos = await projection.CountAsync(p =>
+            p.EstadoEmpresa > ProcessStatusDecimal.ForConsulting
+            && p.EstadoEmpresa < ProcessStatusDecimal.Completed
+        );
+
+        var totalFinalizados = await projection.CountAsync(p =>
+            p.EstadoEmpresa == ProcessStatusDecimal.Completed
+        );
+
+        // 4. Aplicar paginación por bloques a la proyección
+        var blockData = await projection.ToBlockResultAsync(blockNumber, blockSize);
+
+        // 5. Mapear los resultados a nuestro modelo de vista
+        var items = blockData
+            .Items.Select(p =>
+            {
+                // Procesamos las tipologías según la lógica del negocio
+                var tipologiasNombres = new List<string>();
+                var tipologiasIds = new List<int>();
+
+                // Si hay una tipología directa en el proceso, la usamos
+                if (p.TieneTipologiaDirecta)
+                {
+                    tipologiasNombres.Add(p.TipologiaDirectaNombre);
+                    tipologiasIds.Add(p.TipologiaDirectaId);
+                }
+                // Si no hay tipología directa, usamos las de la empresa
+                else if (p.TipologiasEmpresa.Any())
+                {
+                    tipologiasNombres.AddRange(p.TipologiasEmpresa.Select(t => t.Nombre));
+                    tipologiasIds.AddRange(p.TipologiasEmpresa.Select(t => t.Id));
+                }
+
+                return new ProcesoCertificacionVm
+                {
+                    Id = p.Id,
+                    EmpresaId = p.EmpresaId,
+                    NombreEmpresa = p.NombreEmpresa,
+                    NumeroExpediente = p.NumeroExpediente,
+                    Pais = p.PaisNombre,
+                    PaisDto = new PaisDTO { Id = p.PaisId ?? 0, Nombre = p.PaisNombre },
+                    Responsable = p.NombreRepresentante,
+                    Status = p.Status,
+                    StatusId = StatusConverter.ConvertStatusTextToInt(p.Status),
+                    FechaInicio = p.FechaInicio,
+                    FechaFinalizacion = p.FechaFinalizacion,
+                    Recertificacion = p.Recertificacion,
+                    Distintivo = p.UltimoResultado?.DistintivoNombre,
+                    DistintivoId = p.UltimoResultado?.DistintivoId,
+                    FechaVencimiento = p.FechaVencimiento?.ToString("yyyy-MM-dd"),
+                    Tipologias = tipologiasNombres,
+                    TipologiasIds = tipologiasIds,
+                    Asesor =
+                        p.AsesorId == null
+                            ? null
+                            : new Personnal { Id = p.AsesorId, Name = p.AsesorNombre },
+                    Auditor =
+                        p.AuditorId == null
+                            ? null
+                            : new Personnal { Id = p.AuditorId, Name = p.AuditorNombre },
+                    FechaRevision = p.FechaRevision?.ToString("yyyy-MM-dd"),
+                    Activo = p.Activo,
+                };
+            })
+            .ToList();
+
+        // 6. Crear el resultado por bloques con los items mapeados
+        return new BlockResult<ProcesoCertificacionVm>
+        {
+            Items = items,
+            TotalCount = blockData.TotalCount,
+            BlockSize = blockData.BlockSize,
+            CurrentBlock = blockData.CurrentBlock,
+            TotalBlocks = blockData.TotalBlocks,
+            HasMoreItems = blockData.HasMoreItems,
+            TotalPending = totalPendiente,
+            TotalInProcess = totalProcesos,
+            TotalCompleted = totalFinalizados,
+        };
     }
 
     /// <summary>
