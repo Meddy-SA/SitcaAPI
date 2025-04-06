@@ -18,7 +18,10 @@ public interface IProcesoRepository : IRepository<ProcesoCertificacion>
         string language = "es"
     );
 
-    Task<Result<ProcesoCertificacionDTO>> CrearRecertificacionAsync(int empresaId, string userId);
+    Task<Result<ProcesoCertificacionDTO>> CrearRecertificacionAsync(
+        int empresaId,
+        ApplicationUser userApp
+    );
 
     Task<Result<ProcessStartedVm>> ComenzarProcesoAsesoriaAsync(
         ProcessStartedVm process,

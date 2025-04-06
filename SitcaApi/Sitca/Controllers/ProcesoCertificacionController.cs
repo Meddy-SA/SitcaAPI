@@ -200,7 +200,7 @@ public class ProcesoCertificacionController : ControllerBase
                     Result<ProcesoCertificacionDTO>.Failure("Usuario no autorizado")
                 );
 
-            var result = await _unitOfWork.Proceso.CrearRecertificacionAsync(empresaId, appUser.Id);
+            var result = await _unitOfWork.Proceso.CrearRecertificacionAsync(empresaId, appUser);
 
             return this.HandleResponse(result);
         }
@@ -229,7 +229,7 @@ public class ProcesoCertificacionController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<ProcessStartedVm>>> CrearRecertificacion(
+    public async Task<ActionResult<Result<ProcessStartedVm>>> StartedRecertificacion(
         int procesoId,
         ProcessStartedVm process
     )

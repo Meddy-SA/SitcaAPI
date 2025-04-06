@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.ViewModels;
 
 namespace Sitca.DataAccess.Data.Repository.IRepository;
 
@@ -16,4 +17,8 @@ public interface IEmpresasRepository : IRepository<Empresa>
     );
 
     Task<Result<List<ProcesoArchivoDTO>>> GetFilesByCompanyAsync(int empresaId);
+
+    Task<BlockResult<ProcesoCertificacionVm>> GetProcesosCompaniesBlockAsync(
+        FilterCompanyDTO filtro
+    );
 }

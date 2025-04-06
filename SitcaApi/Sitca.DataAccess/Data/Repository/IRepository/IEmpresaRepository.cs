@@ -18,10 +18,6 @@ public interface IEmpresaRepository : IRepository<Empresa>
 
     Task<List<EmpresaVm>> GetCompanyListAsync(CompanyFilterDTO filter, string language);
 
-    Task<List<EmpresaVm>> GetListReporteAsync(FilterCompanyDTO filtro);
-
-    List<EmpresaVm> GetListReporte(FiltroEmpresaReporteVm data); // WARN: Borrar si funciona GetListReporteAsync
-
     Task<List<EmpresasCalificadas>> EvaluadasEnCtc(int idPais, string language);
 
     List<EmpresaVm> GetListXVencerReporte(FiltroEmpresaReporteVm data);

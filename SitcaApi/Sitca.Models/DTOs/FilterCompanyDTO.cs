@@ -20,7 +20,9 @@ public record FilterCompanyDTO(
     string? Certificacion = null,
     string? Homologacion = null,
     string? Lang = "es",
-    bool? Activo = null
+    bool? Activo = null,
+    int BlockSize = 100,
+    int BlockNumber = 1
 )
 {
     // Factory method para crear una instancia por defecto
@@ -28,6 +30,12 @@ public record FilterCompanyDTO(
 
     // Método para crear una copia con país específico
     public FilterCompanyDTO WithCountry(int? newCountry) => this with { Country = newCountry };
+
+    public FilterCompanyDTO WithBlockSize(int size) => this with { BlockSize = size };
+
+    public FilterCompanyDTO WithBlockNumber(int number) => this with { BlockNumber = number };
+
+    public FilterCompanyDTO WithLanguage(string lang) => this with { Lang = lang };
 
     // Validar el filtro
     public bool IsValid()
