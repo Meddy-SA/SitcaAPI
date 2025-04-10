@@ -502,6 +502,7 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
 
                     await _db.SaveChangesAsync();
                     await transaction.CommitAsync();
+                    process.NewStatus = toStatus;
 
                     return Result<AsignaAuditoriaVm>.Success(process);
                 }

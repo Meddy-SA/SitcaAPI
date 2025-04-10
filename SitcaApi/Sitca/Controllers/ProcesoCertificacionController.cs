@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
@@ -23,18 +24,21 @@ public class ProcesoCertificacionController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<ProcesoCertificacionController> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public ProcesoCertificacionController(
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
         UserManager<ApplicationUser> userManager,
-        ILogger<ProcesoCertificacionController> logger
+        ILogger<ProcesoCertificacionController> logger,
+        IServiceScopeFactory serviceScopeFactory
     )
     {
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
         _userManager = userManager;
         _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     /// <summary>
@@ -255,7 +259,8 @@ public class ProcesoCertificacionController : ControllerBase
                 procesoId,
                 appUser.Lenguage,
                 _logger,
-                null,
+                _serviceScopeFactory,
+                result.Value.NewStatus,
                 "Proceso de asesoría iniciado"
             );
 
@@ -322,7 +327,8 @@ public class ProcesoCertificacionController : ControllerBase
                 procesoId,
                 appUser.Lenguage,
                 _logger,
-                null,
+                _serviceScopeFactory,
+                result.Value.NewStatus,
                 "Auditor asignado"
             );
 

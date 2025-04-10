@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Services.Notification;
 
@@ -25,6 +26,7 @@ public static class NotificationExtensions
         int procesoId,
         string language,
         ILogger logger,
+        IServiceScopeFactory serviceScopeFactory,
         int? status = null,
         string additionalInfo = null
     )
@@ -34,7 +36,16 @@ public static class NotificationExtensions
         {
             try
             {
-                await notificationService.SendNotification(procesoId, status, language);
+                // Crear un nuevo scope para garantizar que los servicios tengan el ciclo de vida correcto
+                using (var scope = serviceScopeFactory.CreateScope())
+                {
+                    // Obtener una nueva instancia del servicio de notificaciones del scope
+                    var scopedNotificationService =
+                        scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+                    // Usar esta instancia para enviar la notificación
+                    await scopedNotificationService.SendNotification(procesoId, status, language);
+                }
             }
             catch (Exception ex)
             {
