@@ -98,6 +98,68 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         }
     }
 
+    public async Task<Result<ProcesoCertificacionDTO>> GetUltimoProcesoByEmpresaIdAsync(
+        int empresaId,
+        string userId
+    )
+    {
+        try
+        {
+            // Buscar el último proceso de certificación habilitado para esta empresa
+            // ordenado por fecha de creación descendente
+            var proceso = await _db
+                .ProcesoCertificacion.AsNoTracking()
+                .Include(p => p.Empresa)
+                .ThenInclude(e => e.Pais)
+                .Include(p => p.Tipologia)
+                .Include(p => p.AsesorProceso)
+                .Include(p => p.AuditorProceso)
+                .Include(p => p.UserGenerador)
+                .Include(p => p.ProcesosArchivos.Where(a => a.Enabled))
+                .ThenInclude(a => a.UserCreate)
+                .Include(p => p.Cuestionarios)
+                .Where(p => p.EmpresaId == empresaId && p.Enabled)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (proceso == null)
+            {
+                _logger.LogWarning(
+                    "No se encontró ningún proceso de certificación para la empresa con ID: {EmpresaId}",
+                    empresaId
+                );
+                return Result<ProcesoCertificacionDTO>.Failure(
+                    $"No se encontró ningún proceso de certificación para la empresa con ID: {empresaId}"
+                );
+            }
+
+            // Mapea el proceso a DTO
+            var procesoDto = proceso.ToDto(userId);
+
+            // Registra el acceso exitoso en los logs
+            _logger.LogInformation(
+                "Último proceso de certificación obtenido exitosamente para empresa ID: {EmpresaId}, proceso ID: {ProcesoId}",
+                empresaId,
+                proceso.Id
+            );
+
+            // Devuelve el resultado exitoso
+            return Result<ProcesoCertificacionDTO>.Success(procesoDto);
+        }
+        catch (Exception ex)
+        {
+            // Registra cualquier error que ocurra
+            _logger.LogError(
+                ex,
+                "Error al obtener el último proceso de certificación para la empresa: {EmpresaId}",
+                empresaId
+            );
+            return Result<ProcesoCertificacionDTO>.Failure(
+                $"Error al obtener el último proceso de certificación: {ex.Message}"
+            );
+        }
+    }
+
     public async Task<Result<ExpedienteDTO>> UpdateCaseNumberAsync(
         ExpedienteDTO expediente,
         string userId
@@ -302,6 +364,94 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             return Result<ProcesoCertificacionDTO>.Failure(
                 $"Error inesperado al crear recertificación: {ex.Message}"
             );
+        }
+    }
+
+    public async Task<Result<bool>> ValidarProcesoEmpresaAsync(int procesoId, int empresaId)
+    {
+        try
+        {
+            var perteneceAEmpresa = await _db.ProcesoCertificacion.AnyAsync(p =>
+                p.Id == procesoId && p.EmpresaId == empresaId && p.Enabled
+            );
+
+            if (!perteneceAEmpresa)
+            {
+                _logger.LogWarning(
+                    "El proceso {ProcesoId} no pertenece a la empresa {EmpresaId} o no existe",
+                    procesoId,
+                    empresaId
+                );
+                return Result<bool>.Failure("No tienes permiso para acceder a este proceso");
+            }
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al validar si el proceso {ProcesoId} pertenece a la empresa {EmpresaId}",
+                procesoId,
+                empresaId
+            );
+            return Result<bool>.Failure($"Error al validar permisos: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<bool>> SolicitarAuditoriaAsync(int procesoId, string userId)
+    {
+        try
+        {
+            // Crea una estrategia de ejecución para garantizar transacciones resilientes
+            var strategy = _db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    var procesoCertificacion = await _db
+                        .ProcesoCertificacion.Include(p => p.Empresa)
+                        .FirstOrDefaultAsync(p => p.Id == procesoId && p.Enabled);
+
+                    if (procesoCertificacion == null)
+                    {
+                        return Result<bool>.Failure(
+                            $"No se encontró el proceso de certificación con ID {procesoId}"
+                        );
+                    }
+
+                    // Actualizar proceso
+                    procesoCertificacion.FechaSolicitudAuditoria = DateTime.UtcNow;
+                    procesoCertificacion.UpdatedAt = DateTime.UtcNow;
+                    procesoCertificacion.UpdatedBy = userId;
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation(
+                        "Solicitud de auditoría realizada exitosamente para el proceso {ProcesoId}",
+                        procesoId
+                    );
+
+                    return Result<bool>.Success(true);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al solicitar auditoría para el proceso {ProcesoId}",
+                procesoId
+            );
+            return Result<bool>.Failure($"Error al solicitar auditoría: {ex.Message}");
         }
     }
 

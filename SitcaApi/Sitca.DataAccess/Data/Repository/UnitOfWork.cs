@@ -103,6 +103,7 @@ public class UnitOfWork : IUnitOfWork
             _config,
             _viewRenderService,
             Empresa,
+            _db,
             _loggerFactory.CreateLogger<AuthRepository>()
         );
         Modulo = new ModulosRepository(_db);

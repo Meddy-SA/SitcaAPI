@@ -22,6 +22,7 @@ namespace Sitca.Models
         public string Profesion { get; set; } = null!;
         public string Nacionalidad { get; set; } = null!;
         public int? CompAuditoraId { get; set; }
+        public string Discriminator { get; set; } = "ApplicationUser";
 
         [JsonIgnore]
         public virtual CompAuditoras? CompAuditora { get; set; } = null!;
