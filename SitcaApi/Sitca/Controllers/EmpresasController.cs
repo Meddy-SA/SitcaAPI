@@ -360,26 +360,6 @@ public class EmpresasController : ControllerBase
 
             var res = await _unitOfWork.Empresas.ActualizarDatosEmpresaAsync(datos, appUser, role);
 
-            try
-            {
-                if (res.IsSuccess && role == Constants.Roles.Empresa)
-                {
-                    await _notificationService.SendNotificacionSpecial(
-                        datos.Id,
-                        NotificationTypes.NuevaEmpresa,
-                        appUser.Lenguage
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error al enviar notificación actualizando datos de la empresa {EmpresaId}",
-                    id
-                );
-            }
-
             return this.HandleResponse(res);
         }
         catch (Exception ex)

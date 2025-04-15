@@ -488,28 +488,39 @@ public class FileService : IFileService
 
         try
         {
-            GemBox.Pdf.ComponentInfo.SetLicense("FREE-LIMITED-KEY");
-
-            // Cargar el PDF con GemBox.Pdf
-            var document = PdfDocument.Load(tempPath);
-
-            // Guardar PDF optimizado
-            document.Save(outputPath);
-
-            // Eliminar archivo temporal
-            if (File.Exists(tempPath))
+            // Intentar determinar el número de páginas antes de procesarlo completamente
+            using (var document = PdfDocument.Load(tempPath))
             {
-                File.Delete(tempPath);
+                if (document.Pages.Count > 2)
+                {
+                    _logger.LogWarning(
+                        "PDF con más de 2 páginas detectado, usando archivo original sin optimización"
+                    );
+                    // Simplemente copiar el archivo original
+                    File.Copy(tempPath, outputPath, true);
+                }
+                else
+                {
+                    // Guardar PDF optimizado (solo para PDFs de 2 páginas o menos)
+                    document.Save(outputPath);
+                }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al procesar PDF");
-
             // Si falla, usar el archivo original
             if (File.Exists(tempPath))
             {
                 File.Move(tempPath, outputPath, true);
+            }
+        }
+        finally
+        {
+            // Eliminar archivo temporal
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
             }
         }
     }
