@@ -156,6 +156,11 @@ public class UnitOfWork : IUnitOfWork
             _loggerFactory.CreateLogger<ProcesoArchivosRepository>()
         );
 
+        EmpresaReport = new EmpresaReportRepository(
+            _db,
+            _loggerFactory.CreateLogger<EmpresaReportRepository>()
+        );
+
         // Asignar el UnitOfWork después de crear todos los repositorios
         if (Reportes is ReportesRepository reportesRepo)
         {
@@ -180,6 +185,7 @@ public class UnitOfWork : IUnitOfWork
     public IProcesoRepository Proceso { get; private set; }
     public IEmpresasRepository Empresas { get; private set; }
     public IProcesoArchivosRepository ProcesoArchivos { get; private set; }
+    public IEmpresaReportRepository EmpresaReport { get; private set; }
 
     // Implementación de IUnitOfWork
     public int SaveChanges() => _db.SaveChanges();
