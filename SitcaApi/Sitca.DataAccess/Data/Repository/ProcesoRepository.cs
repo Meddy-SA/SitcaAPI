@@ -79,6 +79,15 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             // Mapea el proceso a DTO
             var procesoDto = proceso.ToDto(userId);
 
+            // Obtenemos información adicional sobre los procesos de la empresa
+            var (totalProcesos, ultimoProcesoId) = await GetProcesoInfoEmpresaAsync(
+                proceso.EmpresaId
+            );
+
+            // Asignamos esta información al DTO
+            procesoDto.TotalProcesos = totalProcesos;
+            procesoDto.EsUltimoProceso = ultimoProcesoId == id;
+
             // Registra el acceso exitoso en los logs
             _logger.LogInformation(
                 "Proceso de certificación obtenido exitosamente: {ProcesoId}",
@@ -95,6 +104,50 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             return Result<ProcesoCertificacionDTO>.Failure(
                 $"Error al obtener el proceso de certificación: {ex.Message}"
             );
+        }
+    }
+
+    /// <summary>
+    /// Obtiene información sobre los procesos de certificación de una empresa
+    /// </summary>
+    /// <param name="empresaId">ID de la empresa</param>
+    /// <returns>Tupla con total de procesos y el ID del proceso más reciente</returns>
+    private async Task<(int TotalProcesos, int UltimoProcesoId)> GetProcesoInfoEmpresaAsync(
+        int empresaId
+    )
+    {
+        try
+        {
+            var infoQuery = await _db
+                .ProcesoCertificacion.AsNoTracking()
+                .Where(p => p.EmpresaId == empresaId && p.Enabled)
+                .GroupBy(p => 1) // Agrupamos por una constante para poder usar agregaciones
+                .Select(g => new
+                {
+                    TotalProcesos = g.Count(),
+                    UltimoProcesoId = g.OrderByDescending(p => p.FechaInicio)
+                        .Select(p => p.Id)
+                        .FirstOrDefault(),
+                })
+                .FirstOrDefaultAsync();
+
+            // Si no hay resultados, devolvemos valores por defecto
+            if (infoQuery == null)
+            {
+                return (0, 0);
+            }
+
+            return (infoQuery.TotalProcesos, infoQuery.UltimoProcesoId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al obtener información de procesos para empresa {EmpresaId}",
+                empresaId
+            );
+            // En caso de error, devolvemos valores predeterminados
+            return (0, 0);
         }
     }
 
@@ -484,7 +537,6 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
             .FirstOrDefaultAsync(p =>
                 p.EmpresaId == empresaId
                 && p.Status == ProcessStatusText.Spanish.Completed
-                && p.Recertificacion
                 && p.Enabled
             );
     }
