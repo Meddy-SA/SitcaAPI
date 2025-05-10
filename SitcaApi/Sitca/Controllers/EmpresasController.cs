@@ -260,15 +260,15 @@ public class EmpresasController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene información de la empresa del usuario actual
+    /// Obtiene el último proceso de certificación de la empresa del usuario actual
     /// </summary>
     [Authorize(Roles = AuthorizationPolicies.Empresa.View)]
-    [HttpGet("mi-empresa")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<EmpresaUpdateVm>))]
+    [HttpGet("mi-empresa/ultimo-proceso")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<ProcesoCertificacionDTO>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<EmpresaUpdateVm>>> GetMiEmpresa()
+    public async Task<ActionResult<Result<ProcesoCertificacionDTO>>> GetUltimoProceso()
     {
         try
         {
@@ -281,12 +281,19 @@ public class EmpresasController : ControllerBase
                     Result<EmpresaUpdateVm>.Failure("Usuario no asociado a ninguna empresa")
                 );
 
-            var empresa = await _unitOfWork.Empresa.Data(appUser.EmpresaId.Value, appUser);
-            return this.HandleResponse(Result<EmpresaUpdateVm>.Success(empresa));
+            var resultado = await _unitOfWork.Proceso.GetUltimoProcesoByEmpresaIdAsync(
+                appUser.EmpresaId.Value,
+                appUser.Id
+            );
+
+            if (!resultado.IsSuccess)
+                return NotFound(Result<ProcesoCertificacionDTO>.Failure(resultado.Error));
+
+            return this.HandleResponse(resultado);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener mi empresa");
+            _logger.LogError(ex, "Error al obtener último proceso de la empresa del usuario");
             return StatusCode(500, Result<EmpresaUpdateVm>.Failure("Error interno del servidor"));
         }
     }
@@ -352,26 +359,6 @@ public class EmpresasController : ControllerBase
             }
 
             var res = await _unitOfWork.Empresas.ActualizarDatosEmpresaAsync(datos, appUser, role);
-
-            try
-            {
-                if (role == Constants.Roles.Empresa)
-                {
-                    await _notificationService.SendNotificacionSpecial(
-                        datos.Id,
-                        NotificationTypes.NuevaEmpresa,
-                        appUser.Lenguage
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error al enviar notificación actualizando datos de la empresa {EmpresaId}",
-                    id
-                );
-            }
 
             return this.HandleResponse(res);
         }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
@@ -11,6 +12,7 @@ using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
+using Utilities.Common;
 using Policies = Utilities.Common.AuthorizationPolicies.Proceso;
 
 namespace Sitca.Controllers;
@@ -23,18 +25,21 @@ public class ProcesoCertificacionController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<ProcesoCertificacionController> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public ProcesoCertificacionController(
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
         UserManager<ApplicationUser> userManager,
-        ILogger<ProcesoCertificacionController> logger
+        ILogger<ProcesoCertificacionController> logger,
+        IServiceScopeFactory serviceScopeFactory
     )
     {
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
         _userManager = userManager;
         _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
     }
 
     /// <summary>
@@ -255,7 +260,8 @@ public class ProcesoCertificacionController : ControllerBase
                 procesoId,
                 appUser.Lenguage,
                 _logger,
-                null,
+                _serviceScopeFactory,
+                result.Value.NewStatus,
                 "Proceso de asesoría iniciado"
             );
 
@@ -274,6 +280,47 @@ public class ProcesoCertificacionController : ControllerBase
                     "Error interno del servidor al procesar la solicitud"
                 )
             );
+        }
+    }
+
+    [Authorize]
+    [HttpPost("solicitar-auditoria/{procesoId}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<bool>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<bool>>> SolicitaAuditoria(int procesoId)
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized();
+
+            // Verificar que el usuario tenga permiso para este proceso
+            // Si el usuario es de tipo Empresa, solo puede solicitar auditoría para su propia empresa
+            if (User.IsInRole(Constants.Roles.Empresa) && appUser.EmpresaId.HasValue)
+            {
+                // Verificar que el proceso pertenezca a la empresa del usuario
+                var procesoEmpresa = await _unitOfWork.Proceso.ValidarProcesoEmpresaAsync(
+                    procesoId,
+                    appUser.EmpresaId.Value
+                );
+                if (!procesoEmpresa.IsSuccess)
+                    return Forbid();
+            }
+
+            var res = await _unitOfWork.Proceso.SolicitarAuditoriaAsync(procesoId, appUser.Id);
+            return this.HandleResponse(res);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al solicitar auditoría para proceso {ProcesoId}",
+                procesoId
+            );
+            return StatusCode(500, Result<bool>.Failure("Error interno del servidor"));
         }
     }
 
@@ -322,7 +369,8 @@ public class ProcesoCertificacionController : ControllerBase
                 procesoId,
                 appUser.Lenguage,
                 _logger,
-                null,
+                _serviceScopeFactory,
+                result.Value.NewStatus,
                 "Auditor asignado"
             );
 

@@ -8,6 +8,7 @@ using Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data;
 using Sitca.DataAccess.Data.Repository.Constants;
@@ -21,7 +22,7 @@ namespace Sitca.DataAccess.Services.Notification;
 
 public class NotificationService : INotificationService
 {
-    private readonly ApplicationDbContext _db; // Database context for entity operations
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IDapper _dapper; // Dapper for optimized database queries
     private readonly IEmailSender _emailSender; // Email sending service
     private readonly IViewRenderService _viewRenderService; // Service for rendering email templates
@@ -30,7 +31,7 @@ public class NotificationService : INotificationService
     private const string GET_USERS_BY_ROLE_SP = "[dbo].[GetUsersByRole]";
 
     public NotificationService(
-        ApplicationDbContext db,
+        IServiceScopeFactory serviceScopeFactory,
         IDapper dapper,
         IEmailSender emailSender,
         IViewRenderService viewRenderService,
@@ -38,7 +39,8 @@ public class NotificationService : INotificationService
         ILogger<NotificationService> logger
     )
     {
-        _db = db ?? throw new ArgumentNullException(nameof(db));
+        _serviceScopeFactory =
+            serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         _dapper = dapper ?? throw new ArgumentNullException(nameof(dapper));
         _emailSender = emailSender ?? throw new ArgumentNullException(nameof(emailSender));
         _viewRenderService =
@@ -50,12 +52,12 @@ public class NotificationService : INotificationService
     /// <summary>
     /// Checks if a user has been notified about a specific certification within the last month
     /// </summary>
-    /// <param name="userId">The ID of the user to check</param>
-    /// <param name="certificacionId">The ID of the certification</param>
-    /// <returns>True if the user has been notified in the last month, false otherwise</returns>
     public async Task<bool> HasBeenNotifiedAsync(string userId, int certificacionId)
     {
-        return await _db.NotificacionesEnviadas.AnyAsync(n =>
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await dbContext.NotificacionesEnviadas.AnyAsync(n =>
             n.UserId == userId
             && n.CertificacionId == certificacionId
             && n.FechaNotificacion >= DateTime.UtcNow.AddMonths(-1)
@@ -114,12 +116,18 @@ public class NotificationService : INotificationService
 
     private async Task<Empresa> GetEmpresaForId(int id)
     {
-        return await _db.Empresa.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await dbContext.Empresa.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
     }
 
     private async Task<Notificacion> GetNotificationTemplate(NotificationTypes type)
     {
-        return await _db
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await dbContext
             .Notificacion.AsNoTracking()
             .Include(x => x.NotificationGroups)
             .FirstOrDefaultAsync(s => s.Status == (int)type);
@@ -190,14 +198,17 @@ public class NotificationService : INotificationService
         int empresaId
     )
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
         var recipients = new NotificationRecipientGroups();
 
         // Obtener usuarios internos (Admin, TecnicoPais)
-        var internalRoles = await _db
+        var internalRoles = await dbContext
             .Roles.Where(r => r.Name == ConstantRoles.Admin || r.Name == ConstantRoles.TecnicoPais)
             .ToListAsync();
 
-        var empresa = await _db
+        var empresa = await dbContext
             .Empresa.AsNoTracking()
             .Include(x => x.Pais)
             .Where(x => x.Id == empresaId)
@@ -223,8 +234,11 @@ public class NotificationService : INotificationService
     /// <returns>List of users from the company</returns>
     private async Task<List<UsersListVm>> GetCompanyUsers(int empresaId)
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
         var users = new List<UsersListVm>();
-        var encargado = await _db.ApplicationUser.FirstOrDefaultAsync(x =>
+        var encargado = await dbContext.ApplicationUser.FirstOrDefaultAsync(x =>
             x.EmpresaId == empresaId
         );
 
@@ -270,6 +284,9 @@ public class NotificationService : INotificationService
 
     private async Task RegisterNotificationSentAsync(string userId, int certificacionId)
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
         var notificacion = new NotificacionesEnviadas
         {
             UserId = userId,
@@ -277,8 +294,8 @@ public class NotificationService : INotificationService
             FechaNotificacion = DateTime.UtcNow,
         };
 
-        _db.NotificacionesEnviadas.Add(notificacion);
-        await _db.SaveChangesAsync();
+        dbContext.NotificacionesEnviadas.Add(notificacion);
+        await dbContext.SaveChangesAsync();
     }
 
     /// <summary>
@@ -362,8 +379,11 @@ public class NotificationService : INotificationService
     {
         try
         {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
             var empresa =
-                await _db.Empresa.FindAsync(idEmpresa)
+                await dbContext.Empresa.FindAsync(idEmpresa)
                 ?? throw new KeyNotFoundException($"Empresa {idEmpresa} not found");
 
             var notifData = await GetNotificationDataAsync((int)notifType);
@@ -376,7 +396,7 @@ public class NotificationService : INotificationService
             }
 
             var usersToNotify = await GetUsersToNotifyForSpecialAsync(notifData, empresa);
-            var paisData = await _db.Pais.FindAsync(empresa.PaisId);
+            var paisData = await dbContext.Pais.FindAsync(empresa.PaisId);
 
             await SendNotificationsToAllUsersAsync(
                 usersToNotify,
@@ -404,12 +424,15 @@ public class NotificationService : INotificationService
         Empresa empresa
     )
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
         var usersToNotify = new List<UsersListVm>();
 
         try
         {
             // Obtener rol de empresa
-            var empresaRole = await _db
+            var empresaRole = await dbContext
                 .Roles.AsNoTracking()
                 .FirstAsync(s => s.Name == ConstantRoles.Empresa);
 
@@ -433,7 +456,7 @@ public class NotificationService : INotificationService
                     )
                 );
 
-                if (users.Any())
+                if (users.Count != 0)
                 {
                     // Agregar solo usuarios activos con notificaciones habilitadas
                     usersToNotify.AddRange(users.Where(s => s.Notificaciones && s.Active));
@@ -446,7 +469,7 @@ public class NotificationService : INotificationService
                 .ToList();
             usersToNotify.AddRange(adminUsers);
 
-            var cuentasEspeciales = await _db
+            var cuentasEspeciales = await dbContext
                 .NotificationCustomUsers.AsNoTracking()
                 .Where(s => s.PaisId == empresa.PaisId || s.Global)
                 .ToListAsync();
@@ -484,8 +507,11 @@ public class NotificationService : INotificationService
         Pais paisData
     )> GetCertificationDetailsAsync(int idCertificacion)
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
         // 1. Obtiene la certificación con su empresa relacionada
-        var certificacion = await _db
+        var certificacion = await dbContext
             .ProcesoCertificacion.AsNoTracking()
             .Include(s => s.Empresa)
             .FirstOrDefaultAsync(x => x.Id == idCertificacion);
@@ -494,7 +520,9 @@ public class NotificationService : INotificationService
             return (null, null, null);
 
         // 2. Obtiene los datos del país relacionado
-        var paisData = await _db.Pais.FindAsync(certificacion.Empresa.PaisId);
+        var paisData = await dbContext
+            .Pais.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == certificacion.Empresa.PaisId);
 
         // 3. Retorna una tupla con todos los datos
         return (certificacion, certificacion.Empresa, paisData);
@@ -503,8 +531,10 @@ public class NotificationService : INotificationService
     // Método que obtiene la plantilla de notificación según el estado
     private async Task<Notificacion> GetNotificationDataAsync(decimal? status)
     {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         // Obtiene la plantilla de notificación incluyendo los grupos de notificación
-        return await _db
+        return await dbContext
             .Notificacion.AsNoTracking()
             .Include(x => x.NotificationGroups)
             .FirstOrDefaultAsync(s => s.Status == status);
@@ -529,7 +559,8 @@ public class NotificationService : INotificationService
         await AddSpecificRoleUsersAsync(usersToNotify, certificacion);
 
         // 5. Retorna la lista sin duplicados
-        return usersToNotify.Distinct().ToList();
+        return usersToNotify.GroupBy(u => u.Email).Select(g => g.First()).ToList();
+        //return usersToNotify.Distinct().ToList();
     }
 
     /// <summary>
@@ -539,7 +570,10 @@ public class NotificationService : INotificationService
     /// <exception cref="InvalidOperationException">Si no se encuentra el rol Empresa</exception>
     private async Task<IdentityRole> GetEmpresaRoleAsync()
     {
-        return await _db
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await dbContext
                 .Roles.AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Name == ConstantRoles.Empresa)
             ?? throw new InvalidOperationException($"Rol {ConstantRoles.Empresa} no encontrado");
@@ -551,7 +585,10 @@ public class NotificationService : INotificationService
         string[] additionalRoles = null
     )
     {
-        var users = await _db
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var users = await dbContext
             .Users.AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
@@ -643,7 +680,10 @@ public class NotificationService : INotificationService
     {
         try
         {
-            var specialAccounts = await _db
+            using var scope = _serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var specialAccounts = await dbContext
                 .NotificationCustomUsers.AsNoTracking()
                 .Where(s => s.PaisId == paisId || s.Global)
                 .Select(account => new UsersListVm
@@ -731,6 +771,7 @@ public class NotificationService : INotificationService
     {
         // 1. Obtiene el email del remitente desde la configuración
         var senderEmail = _config["EmailSender:UserName"];
+
         // 2. Obtiene el usuario de la empresa
         var empresaUser = await GetCompanyUserAsync(empresa);
 
@@ -752,7 +793,10 @@ public class NotificationService : INotificationService
         if (empresa == null)
             return null;
 
-        var encargado = await _db
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var encargado = await dbContext
             .ApplicationUser.AsNoTracking()
             .FirstOrDefaultAsync(x => x.EmpresaId == empresa.Id);
 
@@ -761,6 +805,7 @@ public class NotificationService : INotificationService
 
         return new UsersListVm
         {
+            Id = encargado.Id,
             Rol = ConstantRoles.Empresa,
             FirstName = empresa.Nombre ?? $"{encargado.FirstName} {encargado.LastName}",
             Email = encargado.Email,

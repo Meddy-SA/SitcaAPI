@@ -14,6 +14,7 @@ using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.ViewModels;
 using Utilities.Common;
+using static Utilities.Common.Constants;
 
 namespace Sitca.DataAccess.Data.Repository;
 
@@ -25,6 +26,7 @@ public class AuthRepository : IAuthRepository
     private readonly IConfiguration _config;
     private readonly IViewRenderService _viewRenderService;
     private readonly IEmpresaRepository _empresa;
+    private readonly ApplicationDbContext _db;
     private readonly ILogger<AuthRepository> _logger;
     private readonly string _url;
 
@@ -35,6 +37,7 @@ public class AuthRepository : IAuthRepository
         IConfiguration config,
         IViewRenderService viewRenderService,
         IEmpresaRepository empresa,
+        ApplicationDbContext db,
         ILogger<AuthRepository> logger
     )
     {
@@ -44,6 +47,7 @@ public class AuthRepository : IAuthRepository
         _config = config;
         _viewRenderService = viewRenderService;
         _empresa = empresa;
+        _db = db;
         _logger = logger;
         _url =
             _config["ExternalServices:WebUrl"]
@@ -91,40 +95,122 @@ public class AuthRepository : IAuthRepository
                 return AuthResult.Failed(GetLocalizedMessage("EmailExists", register.Language));
             }
 
-            var company = await _empresa.SaveEmpresaAsync(register);
+            // Aplicar el patrón Strategy para la transacción
+            var strategy = _db.Database.CreateExecutionStrategy();
 
-            if (!company.IsSuccess)
+            return await strategy.ExecuteAsync(async () =>
             {
-                _logger.LogError(
-                    company.Error,
-                    "Error al crear la empresa: {Email}",
-                    register.Email
-                );
-                return AuthResult.Failed(company.Error);
-            }
+                // Iniciar transacción explícita
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    // Paso 1: Crear la empresa
+                    var company = await _empresa.SaveEmpresaAsync(register);
+                    if (!company.IsSuccess)
+                    {
+                        _logger.LogError(
+                            "Error al crear la empresa: {Email}, Error: {Error}",
+                            register.Email,
+                            company.Error
+                        );
+                        return AuthResult.Failed(company.Error);
+                    }
 
-            register.CompanyId = company.Value;
+                    register.CompanyId = company.Value;
 
-            var newUser = CreateApplicationUser(register);
-            var result = await CreateUserAsync(newUser, register);
+                    // Paso 2: Crear el usuario
+                    var newUser = CreateApplicationUser(register);
+                    var result = await CreateUserAsync(newUser, register);
+                    if (!result.Succeeded)
+                    {
+                        return AuthResult.Failed(
+                            GetLocalizedMessage("RegistrationError", register.Language)
+                                + string.Join(", ", result.Errors.Select(e => e.Description))
+                        );
+                    }
 
-            if (!result.Succeeded)
-            {
-                return AuthResult.Failed(
-                    GetLocalizedMessage("RegistrationError", register.Language)
-                        + string.Join(", ", result.Errors.Select(e => e.Description))
-                );
-            }
+                    // Paso 3: Asignar rol por defecto
+                    await AssignDefaultRoleAsync(newUser);
 
-            await AssignDefaultRoleAsync(newUser);
-            await SendWelcomeEmailAsync(newUser, register.Language);
+                    // Paso 4: Crear proceso de certificación inicial
+                    var procesoResult = await CreateInitialCertificationProcessAsync(
+                        company.Value,
+                        newUser.Id,
+                        register.Tipologias.FirstOrDefault()?.id ?? 1
+                    );
+                    if (!procesoResult.IsSuccess)
+                    {
+                        _logger.LogError(
+                            "Error al crear proceso inicial: {Error}",
+                            procesoResult.Error
+                        );
+                        return AuthResult.Failed(
+                            GetLocalizedMessage("ProcessCreationError", register.Language)
+                                ?? "Error al crear el proceso de certificación inicial"
+                        );
+                    }
 
-            return await GenerateAuthResultAsync(newUser, register.Language);
+                    // Si todo ha ido bien, confirmar la transacción
+                    await transaction.CommitAsync();
+
+                    // Paso 5: Enviar email de bienvenida (fuera de la transacción)
+                    await SendWelcomeEmailAsync(newUser, register.Language);
+
+                    // Generar resultado de autenticación
+                    return await GenerateAuthResultAsync(newUser, register.Language);
+                }
+                catch (Exception ex)
+                {
+                    // Si ocurre cualquier error, hacer rollback de la transacción
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error en el proceso de registro: {Message}", ex.Message);
+                    return AuthResult.Failed(
+                        GetLocalizedMessage("GeneralError", register.Language)
+                    );
+                }
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration for user: {Email}", register.Email);
             return AuthResult.Failed(GetLocalizedMessage("GeneralError", register.Language));
+        }
+    }
+
+    private async Task<Result<int>> CreateInitialCertificationProcessAsync(
+        int empresaId,
+        string userId,
+        int tipologiaId
+    )
+    {
+        try
+        {
+            var procesoCertificacion = new ProcesoCertificacion
+            {
+                EmpresaId = empresaId,
+                FechaInicio = DateTime.UtcNow,
+                NumeroExpediente = string.Empty,
+                Status = ProcessStatusText.Spanish.Initial,
+                UserGeneraId = userId,
+                CreatedBy = userId,
+                CreatedAt = DateTime.UtcNow,
+                Enabled = true,
+                TipologiaId = tipologiaId,
+            };
+
+            await _db.ProcesoCertificacion.AddAsync(procesoCertificacion);
+            await _db.SaveChangesAsync();
+
+            return Result<int>.Success(procesoCertificacion.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al crear proceso de certificación inicial para empresa {EmpresaId}",
+                empresaId
+            );
+            return Result<int>.Failure($"Error al crear proceso de certificación: {ex.Message}");
         }
     }
 
@@ -306,6 +392,9 @@ public class AuthRepository : IAuthRepository
             "GeneralError" => language == "en"
                 ? "An unexpected error occurred"
                 : "Ocurrió un error inesperado",
+            "ProcessCreationError" => language == "en"
+                ? "Error creating initial certification process"
+                : "Error al crear el proceso de certificación inicial",
             "WelcomeEmailSubject" => language == "en"
                 ? "Confirm your account"
                 : "Confirma tu dirección de correo",

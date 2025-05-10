@@ -9,6 +9,11 @@ public interface IProcesoRepository : IRepository<ProcesoCertificacion>
 {
     Task<Result<ProcesoCertificacionDTO>> GetProcesoForIdAsync(int id, string userId);
 
+    Task<Result<ProcesoCertificacionDTO>> GetUltimoProcesoByEmpresaIdAsync(
+        int empresaId,
+        string userId
+    );
+
     Task<Result<ExpedienteDTO>> UpdateCaseNumberAsync(ExpedienteDTO expediente, string userId);
 
     Task<BlockResult<ProcesoCertificacionVm>> GetProcessesBlockAsync(
@@ -29,4 +34,7 @@ public interface IProcesoRepository : IRepository<ProcesoCertificacion>
     );
 
     Task<Result<AsignaAuditoriaVm>> AsignarAuditorAsync(AsignaAuditoriaVm process, string user);
+
+    Task<Result<bool>> ValidarProcesoEmpresaAsync(int procesoId, int empresaId);
+    Task<Result<bool>> SolicitarAuditoriaAsync(int procesoId, string userId);
 }

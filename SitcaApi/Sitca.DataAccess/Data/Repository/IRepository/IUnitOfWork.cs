@@ -23,6 +23,7 @@ public interface IUnitOfWork : IAsyncDisposable, IDisposable
     IProcesoRepository Proceso { get; }
     IEmpresasRepository Empresas { get; }
     IProcesoArchivosRepository ProcesoArchivos { get; }
+    IEmpresaReportRepository EmpresaReport { get; }
 
     // Métodos síncronos
     int SaveChanges();
