@@ -77,6 +77,16 @@ public class ProcesoCertificacionDTO
         new List<CuestionarioBasicoDTO>();
 
     /// <summary>
+    /// Cantidad total de procesos de certificación para la empresa
+    /// </summary>
+    public int TotalProcesos { get; set; }
+
+    /// <summary>
+    /// Indica si este proceso es el último (más reciente) para la empresa
+    /// </summary>
+    public bool EsUltimoProceso { get; set; }
+
+    /// <summary>
     /// Información de auditoría
     /// </summary>
     public string? CreadoPor { get; set; }
