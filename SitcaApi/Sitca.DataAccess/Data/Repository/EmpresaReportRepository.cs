@@ -42,6 +42,12 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                 .Include(e => e.Certificaciones.Where(c => c.Enabled))
                 .ThenInclude(c => c.Resultados)
                 .ThenInclude(r => r.Distintivo)
+                .Include(e => e.Certificaciones.Where(c => c.Enabled))
+                .ThenInclude(c =>
+                    c.ProcesosArchivos.Where(pa =>
+                        pa.Enabled && pa.FileTypesCompany == FileCompany.Adhesion
+                    )
+                )
                 .AsSplitQuery();
 
             // Aplicar filtros
@@ -88,6 +94,20 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                 // Si ambos están incluidos o ninguno, no aplicamos filtro
             }
 
+            // FILTRO: Solo empresas con protocolo (cuando IncludeWithoutProtocol = false)
+            if (filter.IncludeWithoutProtocol == false)
+            {
+                query = query.Where(e =>
+                    e.Certificaciones.Any(c =>
+                        c.Enabled
+                        && c.ProcesosArchivos.Any(pa =>
+                            pa.Enabled && pa.FileTypesCompany == FileCompany.Adhesion
+                        )
+                    )
+                );
+            }
+            // Si IncludeWithoutProtocol es true o null, no se aplica filtro (incluye todas)
+
             // Manejar el filtro de distintivos y "En Proceso"
             bool incluirDistintivos =
                 filter.DistintivoIds != null && filter.DistintivoIds.Any(d => d != -1);
@@ -108,6 +128,7 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                                 distintivosParaFiltrar.Contains(r.DistintivoId ?? 0)
                             )
                         )
+                        && !e.Certificaciones.Any(c => c.Enabled && !c.Resultados.Any())
                     )
                     ||
                     // Condición 2: Empresas en proceso (sin distintivo)

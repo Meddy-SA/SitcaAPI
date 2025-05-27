@@ -17,8 +17,8 @@ namespace Sitca.DataAccess.Migrations
                 maxLength: 150,
                 nullable: false,
                 oldClrType: typeof(string),
-                oldType: "nvarchar(50)",
-                oldMaxLength: 50);
+                oldType: "nvarchar(150)",
+                oldMaxLength: 150);
 
             migrationBuilder.AlterColumn<string>(
                 name: "Ruta",
@@ -27,8 +27,8 @@ namespace Sitca.DataAccess.Migrations
                 maxLength: 150,
                 nullable: false,
                 oldClrType: typeof(string),
-                oldType: "nvarchar(50)",
-                oldMaxLength: 50);
+                oldType: "nvarchar(150)",
+                oldMaxLength: 150);
         }
 
         /// <inheritdoc />
@@ -37,7 +37,7 @@ namespace Sitca.DataAccess.Migrations
             migrationBuilder.AlterColumn<string>(
                 name: "Ruta",
                 table: "ProcesoArchivos",
-                type: "nvarchar(50)",
+                type: "nvarchar(150)",
                 maxLength: 50,
                 nullable: false,
                 oldClrType: typeof(string),
@@ -47,7 +47,7 @@ namespace Sitca.DataAccess.Migrations
             migrationBuilder.AlterColumn<string>(
                 name: "Ruta",
                 table: "Archivo",
-                type: "nvarchar(50)",
+                type: "nvarchar(150)",
                 maxLength: 50,
                 nullable: false,
                 oldClrType: typeof(string),

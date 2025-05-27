@@ -336,12 +336,45 @@ namespace Sitca.DataAccess.Data.Repository
                     using var transaction = await _db.Database.BeginTransactionAsync();
                     try
                     {
-                        var proceso = await _db.ProcesoCertificacion.FindAsync(data.idProceso);
+                        var proceso = await _db
+                            .ProcesoCertificacion.Include(p => p.Empresa)
+                            .FirstOrDefaultAsync(p => p.Id == data.idProceso);
 
                         if (proceso == null)
                             return Result<bool>.Failure(
                                 $"No se encontró el proceso con ID {data.idProceso}"
                             );
+
+                        // Validaciones específicas para auditores
+                        if (data.auditor)
+                        {
+                            // Validar que el auditor puede ser asignado a esta empresa
+                            var canAssignAuditor = await CanAssignAuditorToCompanyAsync(
+                                data.userId,
+                                proceso.Empresa.Id
+                            );
+                            if (!canAssignAuditor.IsSuccess)
+                                return canAssignAuditor;
+
+                            // Verificar que el usuario tiene rol de auditor
+                            var isAuditor = await VerifyUserHasAuditorRoleAsync(data.userId);
+                            if (!isAuditor)
+                                return Result<bool>.Failure(
+                                    "El usuario seleccionado no tiene rol de auditor o no está activo"
+                                );
+                        }
+                        else
+                        {
+                            // Para asesores, verificar que sea del mismo país (lógica existente)
+                            var isValidAsesor = await VerifyUserHasAsesorRoleAsync(
+                                data.userId,
+                                proceso.Empresa.PaisId
+                            );
+                            if (!isValidAsesor)
+                                return Result<bool>.Failure(
+                                    "El usuario seleccionado no tiene rol de asesor o no pertenece al país correcto"
+                                );
+                        }
 
                         // Obtener todos los cuestionarios que necesitan actualización
                         var cuestionarios = await _db
@@ -383,6 +416,8 @@ namespace Sitca.DataAccess.Data.Repository
                             );
                         }
 
+                        proceso.UpdatedAt = DateTime.UtcNow;
+
                         // Guardar todos los cambios de una vez
                         await _db.SaveChangesAsync();
                         await transaction.CommitAsync();
@@ -410,6 +445,183 @@ namespace Sitca.DataAccess.Data.Repository
                 return Result<bool>.Failure(
                     $"Error al cambiar {(data.auditor ? "auditor" : "asesor")}: {ex.Message}"
                 );
+            }
+        }
+
+        private async Task<Result<bool>> CanAssignAuditorToCompanyAsync(
+            string auditorId,
+            int companyId
+        )
+        {
+            try
+            {
+                // Verificar si el auditor está asignado a alguna solicitud de auditoría cruzada aprobada
+                var crossAuditRequest = await _db
+                    .CrossCountryAuditRequests.AsNoTracking()
+                    .Include(r => r.RequestingCountry)
+                    .Include(r => r.ApprovingCountry)
+                    .FirstOrDefaultAsync(r =>
+                        r.AssignedAuditorId == auditorId
+                        && r.Status == CrossCountryAuditRequestStatus.Approved
+                        && r.Enabled
+                    );
+
+                // Si no hay solicitud, el auditor es local
+                if (crossAuditRequest == null)
+                {
+                    // Para auditores locales, verificar que pertenecen al mismo país que la empresa
+                    var company = await _db.Empresa.FindAsync(companyId);
+                    if (company == null)
+                        return Result<bool>.Failure("No se encontró la empresa especificada");
+
+                    var auditor = await _db.ApplicationUser.FindAsync(auditorId);
+                    if (auditor == null)
+                        return Result<bool>.Failure("No se encontró el auditor especificado");
+
+                    if (auditor.PaisId != company.PaisId)
+                        return Result<bool>.Failure(
+                            "El auditor local debe pertenecer al mismo país que la empresa"
+                        );
+
+                    return Result<bool>.Success(true);
+                }
+
+                // Si hay solicitud, verificar si la fecha límite ha pasado
+                if (
+                    crossAuditRequest.DeadlineDate.HasValue
+                    && crossAuditRequest.DeadlineDate.Value < DateTime.UtcNow
+                )
+                {
+                    _logger.LogWarning(
+                        "Intento de asignar auditor externo {AuditorId} cuya colaboración venció el {DeadlineDate}",
+                        auditorId,
+                        crossAuditRequest.DeadlineDate.Value
+                    );
+                    return Result<bool>.Failure(
+                        $"La colaboración de este auditor externo venció el {crossAuditRequest.DeadlineDate.Value:dd/MM/yyyy}. "
+                            + $"No puede ser asignado a nuevas empresas."
+                    );
+                }
+
+                // Obtener el país de la empresa
+                var targetCompany = await _db.Empresa.FindAsync(companyId);
+                if (targetCompany == null)
+                    return Result<bool>.Failure("No se encontró la empresa especificada");
+
+                // Verificar si la empresa pertenece al país solicitante de la auditoría cruzada
+                if (targetCompany.PaisId != crossAuditRequest.RequestingCountryId)
+                {
+                    _logger.LogWarning(
+                        "Intento de asignar auditor externo {AuditorId} de {ApprovingCountry} a empresa {CompanyId} de país {CompanyCountry}, "
+                            + "pero la colaboración es solo para {RequestingCountry}",
+                        auditorId,
+                        crossAuditRequest.ApprovingCountry.Name,
+                        companyId,
+                        targetCompany.PaisId,
+                        crossAuditRequest.RequestingCountry.Name
+                    );
+                    return Result<bool>.Failure(
+                        $"Este auditor externo de {crossAuditRequest.ApprovingCountry.Name} solo puede ser asignado "
+                            + $"a empresas de {crossAuditRequest.RequestingCountry.Name}."
+                    );
+                }
+
+                _logger.LogInformation(
+                    "Validación exitosa para auditor externo {AuditorId} de {ApprovingCountry} "
+                        + "para empresa {CompanyId} de {RequestingCountry}. Vence: {DeadlineDate}",
+                    auditorId,
+                    crossAuditRequest.ApprovingCountry.Name,
+                    companyId,
+                    crossAuditRequest.RequestingCountry.Name,
+                    crossAuditRequest.DeadlineDate
+                );
+
+                return Result<bool>.Success(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error al verificar si el auditor {AuditorId} puede ser asignado a la empresa {CompanyId}",
+                    auditorId,
+                    companyId
+                );
+
+                return Result<bool>.Failure(
+                    $"Error al validar la asignación del auditor: {ex.Message}"
+                );
+            }
+        }
+
+        /// <summary>
+        /// Verifica que un usuario tenga rol de auditor y esté activo
+        /// </summary>
+        public async Task<bool> VerifyUserHasAuditorRoleAsync(string userId)
+        {
+            try
+            {
+                var userWithRole = await _db
+                    .ApplicationUser.Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == userId && u.Active);
+
+                if (userWithRole == null)
+                    return false;
+
+                return userWithRole.UserRoles.Any(ur =>
+                    ur.Role.Name == Roles.Auditor || ur.Role.Name == Roles.AsesorAuditor
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error verificando rol de auditor para usuario {UserId}",
+                    userId
+                );
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Verifica que un usuario tenga rol de asesor y pertenezca al país correcto
+        /// </summary>
+        public async Task<bool> VerifyUserHasAsesorRoleAsync(string userId, int? companyCountryId)
+        {
+            try
+            {
+                var userWithRole = await _db
+                    .ApplicationUser.Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == userId && u.Active);
+
+                if (userWithRole == null)
+                    return false;
+
+                // Verificar rol
+                var hasAsesorRole = userWithRole.UserRoles.Any(ur =>
+                    ur.Role.Name == Roles.Asesor || ur.Role.Name == Roles.AsesorAuditor
+                );
+
+                if (!hasAsesorRole)
+                    return false;
+
+                // Para asesores, deben ser del mismo país que la empresa
+                if (companyCountryId.HasValue && userWithRole.PaisId != companyCountryId.Value)
+                    return false;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error verificando rol de asesor para usuario {UserId}",
+                    userId
+                );
+                return false;
             }
         }
 
@@ -1260,6 +1472,9 @@ namespace Sitca.DataAccess.Data.Repository
                                 "El cuestionario ya fue revisado por un auditor"
                             );
                         cuestionario.FechaRevisionAuditor = DateTime.UtcNow;
+                        toStatus = 6; // Auditoría finalizada
+                        cuestionario.FechaFinalizado = DateTime.UtcNow;
+                        cuestionario.Resultado = 1;
                         var resultadoSugerido = await SaveResultadoSugerido(
                             idCuestionario,
                             appUser,
@@ -1278,10 +1493,14 @@ namespace Sitca.DataAccess.Data.Repository
                             return Result<int>.Failure(
                                 "El cuestionario ya fue finalizado por un técnico país"
                             );
-                        toStatus = 6; // Auditoría finalizada
-                        cuestionario.TecnicoPaisId = appUser.Id;
-                        cuestionario.FechaFinalizado = DateTime.UtcNow;
-                        cuestionario.Resultado = 1;
+                        // Voy a eliminar esta parte, ya que en la reunion del 26/5/25
+                        // no lo querian, lo voy a implementar con una configuracion por pais si lo
+                        // quiere habilitar, tambien crear una pantalla para que pueda habilitar a
+                        // editar el cuestionario nuevamente antes de que se envie al CTC.
+                        // toStatus = 6; // Auditoría finalizada
+                        // cuestionario.TecnicoPaisId = appUser.Id;
+                        // cuestionario.FechaFinalizado = DateTime.UtcNow;
+                        // cuestionario.Resultado = 1;
                         break;
                     default:
                         return Result<int>.Failure("Rol no autorizado");

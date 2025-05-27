@@ -8,6 +8,7 @@ public class EmpresaReportFilterDTO
     public List<int>? StatusIds { get; set; }
     public List<string>? CertificationTypes { get; set; } // Certificación/Homologación
     public List<int>? DistintivoIds { get; set; } // Distintivo verde, rojo, azul, en proceso.
+    public bool? IncludeWithoutProtocol { get; set; }
 
     // Idioma para localización de textos
     public string Language { get; set; } = "es";

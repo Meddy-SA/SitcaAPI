@@ -10,6 +10,7 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Data.Repository.Repository;
 using Sitca.Models;
 using Sitca.Models.DTOs;
+using Sitca.Models.Enums;
 using Sitca.Models.ViewModels;
 using Roles = Utilities.Common.Constants.Roles;
 
@@ -396,12 +397,13 @@ namespace Sitca.DataAccess.Data.Repository
                 role = (role ?? "All").Trim();
                 query = (query ?? string.Empty).Trim();
 
-                // Construir la consulta base
+                // Construir la consulta base para usuarios locales
                 var usersQuery = _db
                     .ApplicationUser.AsNoTracking()
                     .Include(u => u.Pais)
                     .Where(u =>
                         u.EmpresaId == null
+                        && u.Active
                         && (paisId == 0 || u.PaisId == paisId)
                         && (
                             string.IsNullOrEmpty(query)
@@ -409,7 +411,7 @@ namespace Sitca.DataAccess.Data.Repository
                         )
                     );
 
-                // Obtener los roles de los usuarios
+                // Obtener los roles de los usuarios locales
                 var userRoles = await (
                     from user in usersQuery
                     join userRole in _db.ApplicationUserRoles on user.Id equals userRole.UserId
@@ -431,6 +433,13 @@ namespace Sitca.DataAccess.Data.Repository
                 ).TagWith("GetUsers_Query") // Para facilitar la identificación en logs
                 .ToListAsync();
 
+                // Si se está buscando auditores o "All", incluir auditores externos
+                if (role == "All" || role == Roles.Auditor)
+                {
+                    var externalAuditors = await GetExternalAuditorsAsync(paisId, query);
+                    userRoles.AddRange(externalAuditors);
+                }
+
                 // Agrupar y transformar resultados
                 var groupedUsers = AgruparYTransformarUsuarios(userRoles);
 
@@ -448,6 +457,65 @@ namespace Sitca.DataAccess.Data.Repository
                 return Result<List<UsersListVm>>.Failure(
                     $"Error al obtener usuarios: {ex.Message}"
                 );
+            }
+        }
+
+        /// <summary>
+        /// Obtiene los auditores externos aprobados para un país específico
+        /// </summary>
+        private async Task<List<UsersListVm>> GetExternalAuditorsAsync(int paisId, string query)
+        {
+            try
+            {
+                if (paisId == 0)
+                    return new List<UsersListVm>();
+
+                var now = DateTime.UtcNow;
+
+                // Obtener auditores externos aprobados para este país
+                var externalAuditorsQuery =
+                    from request in _db.CrossCountryAuditRequests
+                    join auditor in _db.ApplicationUser
+                        on request.AssignedAuditorId equals auditor.Id
+                    join pais in _db.Pais on auditor.PaisId equals pais.Id
+                    where
+                        request.RequestingCountryId == paisId
+                        && request.Status == CrossCountryAuditRequestStatus.Approved
+                        && request.Enabled
+                        && request.AssignedAuditorId != null
+                        && request.DeadlineDate > now
+                        && auditor.Active
+                        && (
+                            string.IsNullOrEmpty(query)
+                            || auditor.FirstName.Contains(query)
+                            || auditor.LastName.Contains(query)
+                        )
+                    select new UsersListVm
+                    {
+                        Id = auditor.Id,
+                        Email = auditor.Email,
+                        EmailConfirmed = auditor.EmailConfirmed.ToString(),
+                        PhoneNumber = auditor.PhoneNumber,
+                        FirstName = auditor.FirstName,
+                        LastName = auditor.LastName,
+                        PaisId = auditor.PaisId ?? 0,
+                        Active = auditor.Active,
+                        Rol = Roles.Auditor,
+                        Pais = $"Externo - {pais.Name}", // Marcar como externo
+                    };
+
+                return await externalAuditorsQuery
+                    .TagWith("GetExternalAuditors_Query")
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error obteniendo auditores externos para país {PaisId}",
+                    paisId
+                );
+                return new List<UsersListVm>();
             }
         }
 
