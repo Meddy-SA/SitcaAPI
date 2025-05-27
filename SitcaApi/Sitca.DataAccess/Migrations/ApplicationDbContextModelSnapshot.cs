@@ -256,6 +256,10 @@ namespace Sitca.DataAccess.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("DocumentoAcreditacion")
                         .IsRequired()
                         .HasMaxLength(60)
@@ -561,6 +565,67 @@ namespace Sitca.DataAccess.Migrations
                     b.HasIndex("PaisId");
 
                     b.ToTable("CompAuditoras");
+                });
+
+            modelBuilder.Entity("Sitca.Models.CrossCountryAuditRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovingCountryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssignedAuditorId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("DeadlineDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NotesApproval")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NotesRequest")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("RequestingCountryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedAuditorId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ApprovingCountryId", "Status")
+                        .HasDatabaseName("IX_CrossCountryAuditRequest_ApprovingCountry_Status");
+
+                    b.HasIndex("RequestingCountryId", "Status")
+                        .HasDatabaseName("IX_CrossCountryAuditRequest_RequestingCountry_Status");
+
+                    b.ToTable("CrossCountryAuditRequests");
                 });
 
             modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
@@ -1708,6 +1773,38 @@ namespace Sitca.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Pais");
+                });
+
+            modelBuilder.Entity("Sitca.Models.CrossCountryAuditRequest", b =>
+                {
+                    b.HasOne("Sitca.Models.Pais", "ApprovingCountry")
+                        .WithMany()
+                        .HasForeignKey("ApprovingCountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sitca.Models.ApplicationUser", "AssignedAuditor")
+                        .WithMany()
+                        .HasForeignKey("AssignedAuditorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Sitca.Models.Pais", "RequestingCountry")
+                        .WithMany()
+                        .HasForeignKey("RequestingCountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovingCountry");
+
+                    b.Navigation("AssignedAuditor");
+
+                    b.Navigation("RequestingCountry");
+
+                    b.Navigation("UserCreate");
                 });
 
             modelBuilder.Entity("Sitca.Models.Cuestionario", b =>

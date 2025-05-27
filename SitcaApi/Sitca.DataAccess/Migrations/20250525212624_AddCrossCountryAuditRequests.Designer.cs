@@ -12,8 +12,8 @@ using Sitca.DataAccess.Data;
 namespace Sitca.DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241105015148_UpdateArchivoConfiguration")]
-    partial class UpdateArchivoConfiguration
+    [Migration("20250525212624_AddCrossCountryAuditRequests")]
+    partial class AddCrossCountryAuditRequests
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,33 +24,6 @@ namespace Sitca.DataAccess.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
@@ -122,21 +95,6 @@ namespace Sitca.DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -230,6 +188,34 @@ namespace Sitca.DataAccess.Migrations
                     b.ToTable("AppMenu");
                 });
 
+            modelBuilder.Entity("Sitca.Models.ApplicationRole", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
             modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -272,6 +258,10 @@ namespace Sitca.DataAccess.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DocumentoAcreditacion")
                         .IsRequired()
@@ -389,7 +379,27 @@ namespace Sitca.DataAccess.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
+                    b.HasIndex("PaisId")
+                        .HasDatabaseName("IX_AspNetUsers_PaisId");
+
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Sitca.Models.ApplicationUserRole", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RoleId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Sitca.Models.Archivo", b =>
@@ -412,6 +422,9 @@ namespace Sitca.DataAccess.Migrations
                     b.Property<DateTime>("FechaCarga")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("FileTypesCompany")
+                        .HasColumnType("int");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -419,8 +432,8 @@ namespace Sitca.DataAccess.Migrations
 
                     b.Property<string>("Ruta")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
@@ -557,6 +570,67 @@ namespace Sitca.DataAccess.Migrations
                     b.ToTable("CompAuditoras");
                 });
 
+            modelBuilder.Entity("Sitca.Models.CrossCountryAuditRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApprovingCountryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssignedAuditorId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("DeadlineDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NotesApproval")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NotesRequest")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("RequestingCountryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedAuditorId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ApprovingCountryId", "Status")
+                        .HasDatabaseName("IX_CrossCountryAuditRequest_ApprovingCountry_Status");
+
+                    b.HasIndex("RequestingCountryId", "Status")
+                        .HasDatabaseName("IX_CrossCountryAuditRequest_RequestingCountry_Status");
+
+                    b.ToTable("CrossCountryAuditRequests");
+                });
+
             modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
                 {
                     b.Property<int>("Id")
@@ -566,11 +640,9 @@ namespace Sitca.DataAccess.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AsesorId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AuditorId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("FechaFinalizado")
@@ -580,6 +652,9 @@ namespace Sitca.DataAccess.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaRevisionAuditor")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FechaVisita")
@@ -599,6 +674,9 @@ namespace Sitca.DataAccess.Migrations
 
                     b.Property<int>("Resultado")
                         .HasColumnType("int");
+
+                    b.Property<string>("TecnicoPaisId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("TipologiaId")
                         .HasColumnType("int");
@@ -1100,6 +1178,30 @@ namespace Sitca.DataAccess.Migrations
                     b.ToTable("Notificacion");
                 });
 
+            modelBuilder.Entity("Sitca.Models.NotificacionesEnviadas", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CertificacionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaNotificacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificacionesEnviadas");
+                });
+
             modelBuilder.Entity("Sitca.Models.NotificationCustomUsers", b =>
                 {
                     b.Property<int>("Id")
@@ -1235,6 +1337,68 @@ namespace Sitca.DataAccess.Migrations
                     b.ToTable("Pregunta");
                 });
 
+            modelBuilder.Entity("Sitca.Models.ProcesoArchivos", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("FileTypesCompany")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ProcesoCertificacionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ruta")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ProcesoCertificacionId");
+
+                    b.ToTable("ProcesoArchivos", (string)null);
+                });
+
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
                     b.Property<int>("Id")
@@ -1249,8 +1413,25 @@ namespace Sitca.DataAccess.Migrations
                     b.Property<string>("AuditorId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("Cantidad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("EmpresaId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime?>("FechaFijadaAuditoria")
                         .HasColumnType("datetime2");
@@ -1273,7 +1454,9 @@ namespace Sitca.DataAccess.Migrations
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<bool>("Recertificacion")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1282,6 +1465,13 @@ namespace Sitca.DataAccess.Migrations
 
                     b.Property<int?>("TipologiaId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("UserGeneraId")
                         .IsRequired()
@@ -1292,6 +1482,8 @@ namespace Sitca.DataAccess.Migrations
                     b.HasIndex("AsesorId");
 
                     b.HasIndex("AuditorId");
+
+                    b.HasIndex("CreatedBy");
 
                     b.HasIndex("EmpresaId");
 
@@ -1462,7 +1654,7 @@ namespace Sitca.DataAccess.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                    b.HasOne("Sitca.Models.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1487,21 +1679,6 @@ namespace Sitca.DataAccess.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Sitca.Models.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
                     b.HasOne("Sitca.Models.ApplicationUser", null)
@@ -1514,11 +1691,37 @@ namespace Sitca.DataAccess.Migrations
             modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
                 {
                     b.HasOne("Sitca.Models.CompAuditoras", "CompAuditora")
-                        .WithMany()
+                        .WithMany("Usuarios")
                         .HasForeignKey("CompAuditoraId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Sitca.Models.Pais", "Pais")
+                        .WithMany("Users")
+                        .HasForeignKey("PaisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CompAuditora");
+
+                    b.Navigation("Pais");
+                });
+
+            modelBuilder.Entity("Sitca.Models.ApplicationUserRole", b =>
+                {
+                    b.HasOne("Sitca.Models.ApplicationRole", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Sitca.Models.ApplicationUser", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Sitca.Models.Archivo", b =>
@@ -1575,10 +1778,42 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Pais");
                 });
 
+            modelBuilder.Entity("Sitca.Models.CrossCountryAuditRequest", b =>
+                {
+                    b.HasOne("Sitca.Models.Pais", "ApprovingCountry")
+                        .WithMany()
+                        .HasForeignKey("ApprovingCountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Sitca.Models.ApplicationUser", "AssignedAuditor")
+                        .WithMany()
+                        .HasForeignKey("AssignedAuditorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.HasOne("Sitca.Models.Pais", "RequestingCountry")
+                        .WithMany()
+                        .HasForeignKey("RequestingCountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovingCountry");
+
+                    b.Navigation("AssignedAuditor");
+
+                    b.Navigation("RequestingCountry");
+
+                    b.Navigation("UserCreate");
+                });
+
             modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
                 {
                     b.HasOne("Sitca.Models.ProcesoCertificacion", "Certificacion")
-                        .WithMany()
+                        .WithMany("Cuestionarios")
                         .HasForeignKey("ProcesoCertificacionId");
 
                     b.HasOne("Sitca.Models.Tipologia", "Tipologia")
@@ -1752,6 +1987,24 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Tipologia");
                 });
 
+            modelBuilder.Entity("Sitca.Models.ProcesoArchivos", b =>
+                {
+                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Sitca.Models.ProcesoCertificacion", "ProcesoCertificacion")
+                        .WithMany("ProcesosArchivos")
+                        .HasForeignKey("ProcesoCertificacionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProcesoCertificacion");
+
+                    b.Navigation("UserCreate");
+                });
+
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
                     b.HasOne("Sitca.Models.ApplicationUser", "AsesorProceso")
@@ -1764,10 +2017,15 @@ namespace Sitca.DataAccess.Migrations
                         .HasForeignKey("AuditorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Sitca.Models.ApplicationUser", "UserCreate")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Sitca.Models.Empresa", "Empresa")
                         .WithMany("Certificaciones")
                         .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Sitca.Models.Tipologia", "Tipologia")
@@ -1788,6 +2046,8 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Empresa");
 
                     b.Navigation("Tipologia");
+
+                    b.Navigation("UserCreate");
 
                     b.Navigation("UserGenerador");
                 });
@@ -1856,6 +2116,21 @@ namespace Sitca.DataAccess.Migrations
                     b.Navigation("Tipologia");
                 });
 
+            modelBuilder.Entity("Sitca.Models.ApplicationRole", b =>
+                {
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Sitca.Models.ApplicationUser", b =>
+                {
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Sitca.Models.CompAuditoras", b =>
+                {
+                    b.Navigation("Usuarios");
+                });
+
             modelBuilder.Entity("Sitca.Models.Cuestionario", b =>
                 {
                     b.Navigation("Items");
@@ -1894,10 +2169,16 @@ namespace Sitca.DataAccess.Migrations
             modelBuilder.Entity("Sitca.Models.Pais", b =>
                 {
                     b.Navigation("Empresas");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("Sitca.Models.ProcesoCertificacion", b =>
                 {
+                    b.Navigation("Cuestionarios");
+
+                    b.Navigation("ProcesosArchivos");
+
                     b.Navigation("Resultados");
                 });
 

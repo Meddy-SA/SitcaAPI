@@ -24,6 +24,8 @@ public interface IUnitOfWork : IAsyncDisposable, IDisposable
     IEmpresasRepository Empresas { get; }
     IProcesoArchivosRepository ProcesoArchivos { get; }
     IEmpresaReportRepository EmpresaReport { get; }
+    IAuthenticationRepository Authentication { get; }
+    ICrossCountryAuditRequestRepository CrossCountryAuditRequest { get; }
 
     // Métodos síncronos
     int SaveChanges();

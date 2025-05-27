@@ -1186,6 +1186,16 @@ namespace Sitca.Controllers
                 if (string.IsNullOrEmpty(user.Rol))
                     continue;
 
+                // Si es un auditor externo, mantener la información del país externo
+                if (user.Pais?.StartsWith("Externo -") == true)
+                {
+                    // Opcional: traducir "Externo" según el idioma
+                    if (language == "en")
+                    {
+                        user.Pais = user.Pais.Replace("Externo -", "External -");
+                    }
+                }
+
                 var roles = user
                     .Rol.Split('/', StringSplitOptions.RemoveEmptyEntries)
                     .Select(role =>

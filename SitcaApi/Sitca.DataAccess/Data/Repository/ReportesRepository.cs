@@ -135,25 +135,17 @@ namespace Sitca.DataAccess.Data.Repository
                     )
                     .ToArray();
 
-                // Realizar consultas en paralelo para mejorar el rendimiento
                 var archivoFilter = new ArchivoFilterVm
                 {
                     idCuestionario = cuestionarioId,
                     type = "cuestionario",
                 };
 
-                // Ejecutar las consultas en paralelo
-                var tareaObservaciones = _unitOfWork.ProcesoCertificacion.GetListObservaciones(
+                // Ejecutar las consultas secuencialmente
+                var observaciones = await _unitOfWork.ProcesoCertificacion.GetListObservaciones(
                     respuestasIds
                 );
-                var tareaArchivos = _unitOfWork.Archivo.GetList(archivoFilter, user, role);
-
-                // Esperar que ambas tareas finalicen
-                await Task.WhenAll(tareaObservaciones, tareaArchivos);
-
-                // Obtener resultados
-                var observaciones = await tareaObservaciones;
-                var archivos = await tareaArchivos;
+                var archivos = await _unitOfWork.Archivo.GetList(archivoFilter, user, role);
 
                 // Crear un diccionario de observaciones para búsqueda eficiente
                 var observacionesPorRespuesta = observaciones.ToDictionary(

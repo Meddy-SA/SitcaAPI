@@ -161,6 +161,16 @@ public class UnitOfWork : IUnitOfWork
             _loggerFactory.CreateLogger<EmpresaReportRepository>()
         );
 
+        Authentication = new AuthenticationRepository(
+            _db,
+            _loggerFactory.CreateLogger<AuthenticationRepository>()
+        );
+
+        CrossCountryAuditRequest = new CrossCountryAuditRequestRepository(
+            _db,
+            _loggerFactory.CreateLogger<CrossCountryAuditRequestRepository>()
+        );
+
         // Asignar el UnitOfWork después de crear todos los repositorios
         if (Reportes is ReportesRepository reportesRepo)
         {
@@ -182,10 +192,12 @@ public class UnitOfWork : IUnitOfWork
     public ITipologiaRepository Tipologias { get; private set; }
     public IHomologacionRepository Homologacion { get; private set; }
     public IAuthRepository Auth { get; private set; }
+    public IAuthenticationRepository Authentication { get; private set; }
     public IProcesoRepository Proceso { get; private set; }
     public IEmpresasRepository Empresas { get; private set; }
     public IProcesoArchivosRepository ProcesoArchivos { get; private set; }
     public IEmpresaReportRepository EmpresaReport { get; private set; }
+    public ICrossCountryAuditRequestRepository CrossCountryAuditRequest { get; private set; }
 
     // Implementación de IUnitOfWork
     public int SaveChanges() => _db.SaveChanges();

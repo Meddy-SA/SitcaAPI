@@ -31,6 +31,7 @@ namespace Sitca.DataAccess.Data
 
         // C
         public DbSet<Capacitaciones> Capacitaciones { get; set; }
+        public DbSet<CrossCountryAuditRequest> CrossCountryAuditRequests { get; set; }
         public DbSet<CompAuditoras> CompAuditoras { get; set; }
         public DbSet<Cumplimiento> Cumplimiento { get; set; }
         public DbSet<Cuestionario> Cuestionario { get; set; }
@@ -84,6 +85,7 @@ namespace Sitca.DataAccess.Data
             builder.ApplyConfiguration(new ApplicationUserConfiguration());
             builder.ApplyConfiguration(new ArchivoConfiguration());
             builder.ApplyConfiguration(new CapacitacionesConfiguration());
+            builder.ApplyConfiguration(new CrossCountryAuditRequestConfiguration());
             builder.ApplyConfiguration(new CompAuditorasConfiguration());
             builder.ApplyConfiguration(new ProcesoArchivosConfiguration());
             builder.ApplyConfiguration(new ProcesoCertificacionConfiguration());
