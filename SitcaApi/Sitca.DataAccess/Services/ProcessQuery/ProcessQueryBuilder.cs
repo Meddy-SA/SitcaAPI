@@ -81,7 +81,8 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
         {
             Roles.Asesor => query.Where(p => p.AsesorId == user.Id),
             Roles.Auditor => query.Where(p => p.AuditorId == user.Id),
-            Roles.CTC or Roles.Consultor or Roles.EmpresaAuditora or Roles.TecnicoPais =>
+            Roles.CTC or Roles.Consultor or Roles.EmpresaAuditora
+                or Roles.TecnicoPais or Roles.ATP =>
                 query.Where(p => p.Empresa.PaisId == user.PaisId),
             Roles.Empresa => query.Where(p => p.EmpresaId == user.EmpresaId),
             _ => throw new ArgumentException($"Role {role} not supported", nameof(role)),

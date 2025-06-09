@@ -36,6 +36,7 @@ public class DbUserInitializer(
                 (CreateUserModel("auditor", "Auditor", "Test"), "Auditor"),
                 (CreateUserModel("consultor", "Consultor", "Test"), "Consultor"),
                 (CreateUserModel("empresa_auditora", "Empresa", "Auditora", 42), "EmpresaAuditora"),
+                (CreateUserModel("atp", "ATP", "Test"), "ATP"),
             };
 
             foreach (var (user, role) in users)

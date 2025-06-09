@@ -58,7 +58,7 @@ namespace Sitca.DataAccess.Data.Repository.Repository
             return await query.ToListAsync();
         }
 
-        public async Task<T> GetFirstOrDefault(Expression<Func<T, bool>> filter = null, string includeProperties = null)
+        public async Task<T> GetFirstOrDefault(Expression<Func<T, bool>> filter = null, string includeProperties = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null)
         {
             IQueryable<T> query = dbSet;
 
@@ -76,8 +76,12 @@ namespace Sitca.DataAccess.Data.Repository.Repository
                 }
             }
 
-            return await query.FirstOrDefaultAsync();
+            if (orderBy != null)
+            {
+                return await orderBy(query).FirstOrDefaultAsync();
+            }
 
+            return await query.FirstOrDefaultAsync();
         }
 
         public void Remove(T entity)

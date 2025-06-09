@@ -23,6 +23,7 @@ public static class LocalizationUtilities
         { Constants.Roles.CTC, ("CTC", "CCT") },
         { Constants.Roles.AsesorAuditor, ("Asesor/Auditor", "Consultant/Auditor") },
         { Constants.Roles.EmpresaAuditora, ("EmpresaAuditora", "AuditingCompany") },
+        { Constants.Roles.ATP, ("ATP", "ATP") },
     };
 
     private static readonly Dictionary<int, (string Es, string En)> StatusTranslations = new()

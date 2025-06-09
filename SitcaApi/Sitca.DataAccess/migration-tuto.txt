@@ -1,6 +1,0 @@
-﻿remove-migration name_of_bad_migration
-
-
-many-to-many
-
-Script-Migration -From 20220331234258_campos-ingles-notificaciones

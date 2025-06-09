@@ -61,6 +61,7 @@ namespace Sitca.DataAccess.Data.Repository
                 // Obtener certificación con empresa en una sola consulta
                 var certificacion = await _db
                     .ProcesoCertificacion.Include(s => s.Empresa)
+                    .OrderBy(x => x.Id)
                     .FirstOrDefaultAsync(x => x.Id == data.idProceso);
 
                 if (certificacion == null)
@@ -851,8 +852,12 @@ namespace Sitca.DataAccess.Data.Repository
             {
                 Rol.Asesor => proceso.AsesorId == user.Id,
                 Rol.Auditor => proceso.AuditorId == user.Id,
-                Rol.Admin or Rol.TecnicoPais or Rol.CTC or Rol.EmpresaAuditora or Rol.Consultor =>
-                    true,
+                Rol.Admin
+                or Rol.TecnicoPais
+                or Rol.CTC
+                or Rol.EmpresaAuditora
+                or Rol.Consultor
+                or Rol.ATP => true,
                 _ => false,
             };
         }
