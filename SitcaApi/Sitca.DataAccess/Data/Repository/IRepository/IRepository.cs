@@ -18,7 +18,8 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
 
         Task<T> GetFirstOrDefault(
             Expression<Func<T, bool>> filter = null,
-            string includeProperties = null
+            string includeProperties = null,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null
             );
 
         Task Add(T entity);

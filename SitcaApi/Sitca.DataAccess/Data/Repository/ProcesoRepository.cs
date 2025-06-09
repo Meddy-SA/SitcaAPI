@@ -118,26 +118,24 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
     {
         try
         {
-            var infoQuery = await _db
+            // Obtener todos los procesos habilitados de la empresa
+            var procesos = await _db
                 .ProcesoCertificacion.AsNoTracking()
                 .Where(p => p.EmpresaId == empresaId && p.Enabled)
-                .GroupBy(p => 1) // Agrupamos por una constante para poder usar agregaciones
-                .Select(g => new
-                {
-                    TotalProcesos = g.Count(),
-                    UltimoProcesoId = g.OrderByDescending(p => p.FechaInicio)
-                        .Select(p => p.Id)
-                        .FirstOrDefault(),
-                })
-                .FirstOrDefaultAsync();
+                .OrderByDescending(p => p.FechaInicio)
+                .ToListAsync();
 
-            // Si no hay resultados, devolvemos valores por defecto
-            if (infoQuery == null)
+            // Si no hay procesos, devolvemos valores por defecto
+            if (!procesos.Any())
             {
                 return (0, 0);
             }
 
-            return (infoQuery.TotalProcesos, infoQuery.UltimoProcesoId);
+            // Calcular el total de procesos y obtener el ID del más reciente
+            var totalProcesos = procesos.Count;
+            var ultimoProcesoId = procesos.First().Id;
+
+            return (totalProcesos, ultimoProcesoId);
         }
         catch (Exception ex)
         {

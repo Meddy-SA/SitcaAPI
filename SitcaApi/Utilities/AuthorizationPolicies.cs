@@ -30,7 +30,7 @@ public static class AuthorizationPolicies
         public const string SaveCalification = $"{Rol.Admin}, {Rol.CTC}";
         public const string CreateRecertification = $"{Rol.Admin}, {Rol.TecnicoPais}";
         public const string StartedConsulting =
-            $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}";
+            $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.EmpresaAuditora}, {Rol.ATP}";
         public const string AssignAuditor = $"{Rol.TecnicoPais},{Rol.EmpresaAuditora},{Rol.Admin}";
     }
 

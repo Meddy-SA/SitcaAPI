@@ -67,6 +67,7 @@ namespace Sitca.DataAccess.Data.Repository
 
             var empresa = await _db
                 .Empresa.Include("Tipologias")
+                .OrderBy(s => s.Id)
                 .FirstOrDefaultAsync(s => s.Id == empresaId);
 
             empresa.Direccion = datos.Direccion;
@@ -226,7 +227,8 @@ namespace Sitca.DataAccess.Data.Repository
                     Status = x.Estado.ToString(),
                     Vencimiento = x.ResultadoVencimiento.ToStringArg(),
                     Responsable = _db
-                        .ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id)
+                        .ApplicationUser.OrderBy(s => s.Id)
+                        .FirstOrDefault(s => s.EmpresaId == x.Id)
                         .FirstName,
                     Certificacion = x.ResultadoActual,
                     Tipologias = x.Tipologias.Any()
@@ -269,7 +271,8 @@ namespace Sitca.DataAccess.Data.Repository
                     Status = x.Estado.ToString(),
                     Vencimiento = x.ResultadoVencimiento.ToStringArg(),
                     Responsable = _db
-                        .ApplicationUser.FirstOrDefault(s => s.EmpresaId == x.Id)
+                        .ApplicationUser.OrderBy(s => s.Id)
+                        .FirstOrDefault(s => s.EmpresaId == x.Id)
                         .FirstName,
                     Certificacion = x.ResultadoActual,
                     Tipologias = x.Tipologias.Any()
@@ -491,7 +494,7 @@ namespace Sitca.DataAccess.Data.Repository
                         Id = x.Id,
                         EmpresaId = x.EmpresaId,
                         Name = x.Empresa.Nombre,
-                        Aprobado = x.Resultados.First().Aprobado,
+                        Aprobado = x.Resultados.OrderByDescending(r => r.Id).First().Aprobado,
                         Asesor =
                             x.AsesorProceso != null
                                 ? new CommonUserVm
@@ -521,18 +524,18 @@ namespace Sitca.DataAccess.Data.Repository
                                     ? x.Empresa.Tipologias.First().Tipologia.Name
                                     : x.Empresa.Tipologias.First().Tipologia.NameEnglish,
                         },
-                        Observaciones = x.Resultados.First().Observaciones,
+                        Observaciones = x.Resultados.OrderByDescending(r => r.Id).First().Observaciones,
                         FechaDictamen = x.FechaFinalizacion.Value.AddHours(-6).ToStringArg(),
-                        Distintivo = x.Resultados.First().Aprobado
+                        Distintivo = x.Resultados.OrderByDescending(r => r.Id).First().Aprobado
                             ? language == "es"
                                 ? distintivos
-                                    .FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId)
+                                    .FirstOrDefault(u => u.Id == x.Resultados.OrderByDescending(r => r.Id).First().DistintivoId)
                                     .Name
                                 : distintivos
-                                    .FirstOrDefault(u => u.Id == x.Resultados.First().DistintivoId)
+                                    .FirstOrDefault(u => u.Id == x.Resultados.OrderByDescending(r => r.Id).First().DistintivoId)
                                     .NameEnglish
                             : noCertificado,
-                        NumeroDictamen = x.Resultados.First().NumeroDictamen,
+                        NumeroDictamen = x.Resultados.OrderByDescending(r => r.Id).First().NumeroDictamen,
                     })
                     .ToList();
 
@@ -586,6 +589,7 @@ namespace Sitca.DataAccess.Data.Repository
                     .Include(t => t.Tipologias)
                     .Include(x => x.Archivos.Where(a => a.Activo))
                     .ThenInclude(c => c.UsuarioCarga)
+                    .OrderBy(s => s.Id)
                     .FirstOrDefaultAsync(s => s.Id == empresaId && s.Active);
 
                 if (empresa == null)

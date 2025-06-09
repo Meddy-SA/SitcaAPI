@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
                     );
                 }
             )
+            .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning))
         );
 
         // Configuración de Dapper

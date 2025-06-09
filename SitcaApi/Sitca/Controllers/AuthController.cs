@@ -306,7 +306,7 @@ namespace Sitca.Controllers
         {
             var excludedRoles = new HashSet<string> { Constants.Roles.Empresa };
 
-            if (User.IsInRole(Constants.Roles.TecnicoPais))
+            if (!User.IsInRole(Constants.Roles.Admin))
             {
                 excludedRoles.Add(Constants.Roles.Admin);
             }
@@ -365,6 +365,10 @@ namespace Sitca.Controllers
                 var appUser = await this.GetCurrentUserAsync(_userManager);
                 if (appUser == null)
                     return Unauthorized();
+
+                // ATP role cannot view users
+                if (User.IsInRole(Constants.Roles.ATP))
+                    return Forbid();
 
                 var paisId = User.IsInRole(Constants.Roles.Admin)
                     ? ParsePaisId(request.PaisId)
@@ -616,6 +620,12 @@ namespace Sitca.Controllers
                 if (currentUser == null)
                 {
                     return Unauthorized();
+                }
+
+                // ATP role cannot view other users
+                if (User.IsInRole(Constants.Roles.ATP) && currentUser.Id != id)
+                {
+                    return Forbid();
                 }
 
                 // Obtener usuario buscado
@@ -967,6 +977,12 @@ namespace Sitca.Controllers
             {
                 model.Country = currentUser.PaisId ?? 0;
                 return true;
+            }
+
+            // ATP role cannot edit users
+            if (User.IsInRole(Constants.Roles.ATP))
+            {
+                return false;
             }
 
             return currentUser.Id == model.Id;

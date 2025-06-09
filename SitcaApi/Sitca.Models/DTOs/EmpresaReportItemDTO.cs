@@ -13,6 +13,7 @@ public class EmpresaReportItemDTO
     public string Estado { get; set; } = string.Empty;
     public int EstadoId { get; set; }
     public string Certificacion { get; set; } = string.Empty;
+    public int ProcesoId { get; set; } = 0;
 
     // Distintivo principal (del proceso más reciente)
     public string? Distintivo { get; set; }
