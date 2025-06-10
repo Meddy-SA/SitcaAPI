@@ -2,35 +2,35 @@ namespace Sitca.Models.DTOs;
 
 public class EmpresaReportItemDTO
 {
-    public int Id { get; set; }
-    public string Nombre { get; set; } = string.Empty;
+    // Datos de la empresa
+    public int EmpresaId { get; set; }
+    public string NombreEmpresa { get; set; } = string.Empty;
     public string Pais { get; set; } = string.Empty;
     public int PaisId { get; set; }
     public string Responsable { get; set; } = string.Empty;
     public string Tipologias { get; set; } = string.Empty; // Tipologías concatenadas
     public List<string> TipologiasList { get; set; } = new List<string>();
     public List<int> TipologiasIds { get; set; } = new List<int>();
+    public bool EmpresaActiva { get; set; } = true;
+    
+    // Datos del proceso de certificación
+    public int ProcesoId { get; set; }
     public string Estado { get; set; } = string.Empty;
     public int EstadoId { get; set; }
-    public string Certificacion { get; set; } = string.Empty;
-    public int ProcesoId { get; set; } = 0;
-
-    // Distintivo principal (del proceso más reciente)
+    public string TipoCertificacion { get; set; } = string.Empty; // Certificación o Homologación
+    public DateTime? FechaInicioProceso { get; set; }
+    public DateTime? FechaFinProceso { get; set; }
+    public string NumeroExpediente { get; set; } = string.Empty;
+    
+    // Distintivo del proceso
     public string? Distintivo { get; set; }
     public int? DistintivoId { get; set; }
-
-    // Todos los distintivos de la empresa
-    public List<string> Distintivos { get; set; } = new List<string>();
-    public List<int> DistintivosIds { get; set; } = new List<int>();
-
-    // Procesos en trámite
-    public bool EnProceso { get; set; } // Si el proceso más reciente está en proceso
-    public int ProcesosEnProceso { get; set; } // Número de procesos en trámite
-
-    public int TotalProcesos { get; set; }
-
-    public bool Activa { get; set; } = true;
-    public DateTime? FechaVencimiento { get; set; } // Fecha de vencimiento del distintivo
+    public bool EnProceso { get; set; } // Si el proceso está en trámite
+    public DateTime? FechaVencimientoDistintivo { get; set; }
+    
+    // Auditoría
+    public DateTime? FechaAuditoria { get; set; }
+    public DateTime? FechaAuditoriaFin { get; set; }
 }
 
 public class EmpresaReportResponseDTO
@@ -49,4 +49,5 @@ public class EmpresaReportResponseDTO
     public int CurrentBlock { get; set; }
     public int TotalBlocks { get; set; }
     public int BlockSize { get; set; }
+    public int totalUniqueCompanies { get; set; }
 }

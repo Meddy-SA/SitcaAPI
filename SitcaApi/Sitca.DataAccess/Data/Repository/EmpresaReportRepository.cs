@@ -32,34 +32,33 @@ public class EmpresaReportRepository : IEmpresaReportRepository
         {
             // Validación del filtro
             filter ??= new EmpresaReportFilterDTO();
+            filter.Language ??= "es";
 
-            // Consulta base - Empresas con sus procesos
+            // Consulta base - Procesos de certificación con sus empresas y relaciones
             var query = _db
-                .Empresa.AsNoTracking()
-                .Include(e => e.Pais)
-                .Include(e => e.Tipologias)
+                .ProcesoCertificacion.AsNoTracking()
+                .Include(p => p.Empresa)
+                .ThenInclude(e => e.Pais)
+                .Include(p => p.Empresa)
+                .ThenInclude(e => e.Tipologias)
                 .ThenInclude(t => t.Tipologia)
-                .Include(e => e.Certificaciones.Where(c => c.Enabled))
-                .ThenInclude(c => c.Resultados)
+                .Include(p => p.Resultados)
                 .ThenInclude(r => r.Distintivo)
-                .Include(e => e.Certificaciones.Where(c => c.Enabled))
-                .ThenInclude(c =>
-                    c.ProcesosArchivos.Where(pa =>
-                        pa.Enabled && pa.FileTypesCompany == FileCompany.Adhesion
-                    )
-                )
+                .Include(p => p.ProcesosArchivos.Where(pa => pa.Enabled))
+                .Include(p => p.Tipologia)
+                .Where(p => p.Enabled) // Solo procesos activos
                 .AsSplitQuery();
 
             // Aplicar filtros
             if (filter.CountryIds != null && filter.CountryIds.Any())
             {
-                query = query.Where(e => filter.CountryIds.Contains(e.PaisId ?? 0));
+                query = query.Where(p => filter.CountryIds.Contains(p.Empresa.PaisId ?? 0));
             }
 
             if (filter.TypologyIds != null && filter.TypologyIds.Any())
             {
-                query = query.Where(e =>
-                    e.Tipologias.Any(t => filter.TypologyIds.Contains(t.IdTipologia))
+                query = query.Where(p =>
+                    p.Empresa.Tipologias.Any(t => filter.TypologyIds.Contains(t.IdTipologia))
                 );
             }
 
@@ -70,10 +69,8 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                 // Por ejemplo, si StatusIds = [0, 1], buscaremos Status que empiecen con "0 -" o "1 -"
                 var statusPrefixes = filter.StatusIds.Select(id => $"{id} -").ToList();
 
-                query = query.Where(e =>
-                    e.Certificaciones.Any(c =>
-                        statusPrefixes.Any(prefix => c.Status.StartsWith(prefix))
-                    )
+                query = query.Where(p =>
+                    statusPrefixes.Any(prefix => p.Status.StartsWith(prefix))
                 );
             }
 
@@ -85,28 +82,25 @@ public class EmpresaReportRepository : IEmpresaReportRepository
 
                 if (incluirCertificacion && !incluirHomologacion)
                 {
-                    query = query.Where(e => !e.EsHomologacion);
+                    query = query.Where(p => !p.Empresa.EsHomologacion);
                 }
                 else if (!incluirCertificacion && incluirHomologacion)
                 {
-                    query = query.Where(e => e.EsHomologacion);
+                    query = query.Where(p => p.Empresa.EsHomologacion);
                 }
                 // Si ambos están incluidos o ninguno, no aplicamos filtro
             }
 
-            // FILTRO: Solo empresas con protocolo (cuando IncludeWithoutProtocol = false)
+            // FILTRO: Solo procesos con protocolo (cuando IncludeWithoutProtocol = false)
             if (filter.IncludeWithoutProtocol == false)
             {
-                query = query.Where(e =>
-                    e.Certificaciones.Any(c =>
-                        c.Enabled
-                        && c.ProcesosArchivos.Any(pa =>
-                            pa.Enabled && pa.FileTypesCompany == FileCompany.Adhesion
-                        )
+                query = query.Where(p =>
+                    p.ProcesosArchivos.Any(pa =>
+                        pa.Enabled && pa.FileTypesCompany == FileCompany.Adhesion
                     )
                 );
             }
-            // Si IncludeWithoutProtocol es true o null, no se aplica filtro (incluye todas)
+            // Si IncludeWithoutProtocol es true o null, no se aplica filtro (incluye todos)
 
             // Manejar el filtro de distintivos y "En Proceso"
             bool incluirDistintivos =
@@ -119,29 +113,26 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                 // Construir la expresión con operadores OR para combinar las condiciones
                 var distintivosParaFiltrar = filter.DistintivoIds?.Where(d => d != -1).ToList();
 
-                query = query.Where(e =>
-                    // Condición 1: Empresas con los distintivos seleccionados
+                query = query.Where(p =>
+                    // Condición 1: Procesos con los distintivos seleccionados
                     (
                         incluirDistintivos
-                        && e.Certificaciones.Any(c =>
-                            c.Resultados.Any(r =>
-                                distintivosParaFiltrar.Contains(r.DistintivoId ?? 0)
-                            )
+                        && p.Resultados.Any(r =>
+                            distintivosParaFiltrar.Contains(r.DistintivoId ?? 0)
                         )
-                        && !e.Certificaciones.Any(c => c.Enabled && !c.Resultados.Any())
                     )
                     ||
-                    // Condición 2: Empresas en proceso (sin distintivo)
+                    // Condición 2: Procesos en trámite (sin distintivo)
                     (
                         incluirEnProceso
-                        && e.Certificaciones.Any(c => c.Enabled && !c.Resultados.Any())
+                        && !p.Resultados.Any()
                     )
                 );
             }
 
             // Contar total de registros para paginación
             var totalItems = await query.CountAsync();
-            var totalActives = await query.CountAsync(e => e.Active);
+            var totalActives = await query.CountAsync(p => p.Empresa.Active);
             var totalInactives = totalItems - totalActives;
 
             // Calcular bloques para paginación
@@ -150,15 +141,16 @@ public class EmpresaReportRepository : IEmpresaReportRepository
             int totalBlocks = (int)Math.Ceiling(totalItems / (double)blockSize);
 
             // Aplicar paginación
-            var empresas = await query
-                .OrderBy(e => e.Nombre)
+            var procesos = await query
+                .OrderBy(p => p.Empresa.Nombre)
+                .ThenByDescending(p => p.FechaInicio)
                 .Skip((blockNumber - 1) * blockSize)
                 .Take(blockSize)
                 .ToListAsync();
 
-            // Obtener todas las empresas sin paginación para calcular conteos
-            var todasEmpresas = await query.ToListAsync();
-            // Conteo de empresas por distintivo
+            // Obtener todos los procesos sin paginación para calcular conteos
+            var todosProcesos = await query.ToListAsync();
+            // Conteo de procesos por distintivo
             var distintivosCount = new Dictionary<int, int>();
             var distintivosNameCount = new Dictionary<string, int>();
 
@@ -177,13 +169,38 @@ public class EmpresaReportRepository : IEmpresaReportRepository
                 distintivosNameCount[distintivo.Value] = 0;
             }
 
+            // Calcular contadores de distintivos
+            foreach (var proceso in todosProcesos)
+            {
+                var ultimoResultado = proceso.Resultados
+                    .OrderByDescending(r => r.Id)
+                    .FirstOrDefault();
+                    
+                if (ultimoResultado?.DistintivoId != null && distintivos.ContainsKey(ultimoResultado.DistintivoId.Value))
+                {
+                    distintivosCount[ultimoResultado.DistintivoId.Value]++;
+                    var nombreDistintivo = distintivos[ultimoResultado.DistintivoId.Value];
+                    distintivosNameCount[nombreDistintivo]++;
+                }
+            }
+            
+            // Contar procesos en trámite
+            var totalEnProceso = todosProcesos.Count(p => !p.Resultados.Any());
+            
+            // Contar empresas únicas
+            var empresasUnicas = todosProcesos.Select(p => p.EmpresaId).Distinct().Count();
+
             // Mapear resultados
             var result = new EmpresaReportResponseDTO
             {
-                Items = MapEmpresasToReportItems(empresas, filter.Language),
+                Items = MapProcesosToReportItems(procesos, filter.Language),
                 TotalCount = totalItems,
                 TotalActive = totalActives,
                 TotalInactive = totalInactives,
+                TotalEnProceso = totalEnProceso,
+                DistintivosCount = distintivosCount,
+                DistintivosNameCount = distintivosNameCount,
+                totalUniqueCompanies = empresasUnicas,
                 CurrentBlock = blockNumber,
                 TotalBlocks = totalBlocks,
                 BlockSize = blockSize,
@@ -273,22 +290,18 @@ public class EmpresaReportRepository : IEmpresaReportRepository
         }
     }
 
-    private List<EmpresaReportItemDTO> MapEmpresasToReportItems(
-        List<Empresa> empresas,
+    private List<EmpresaReportItemDTO> MapProcesosToReportItems(
+        List<ProcesoCertificacion> procesos,
         string language
     )
     {
         var result = new List<EmpresaReportItemDTO>();
 
-        foreach (var empresa in empresas)
+        foreach (var proceso in procesos)
         {
-            // Obtener todos los procesos activos
-            var procesosActivos = empresa
-                .Certificaciones.Where(c => c.Enabled)
-                .OrderByDescending(c => c.FechaInicio)
-                .ToList();
-
-            // Mapear las tipologías
+            var empresa = proceso.Empresa;
+            
+            // Mapear las tipologías de la empresa
             var tipologias = empresa
                 .Tipologias.Select(t =>
                     language == "es" ? t.Tipologia.Name : t.Tipologia.NameEnglish
@@ -297,97 +310,67 @@ public class EmpresaReportRepository : IEmpresaReportRepository
 
             var tipologiasIds = empresa.Tipologias.Select(t => t.IdTipologia).ToList();
 
-            // Crear ítem básico de empresa
+            // Obtener el último resultado del proceso
+            var ultimoResultado = proceso.Resultados
+                .OrderByDescending(r => r.Id)
+                .FirstOrDefault();
+
+            // Extraer estado del proceso
+            int estadoId = 0;
+            var statusParts = proceso.Status.Split('-');
+            if (statusParts.Length > 0 && int.TryParse(statusParts[0].Trim(), out int parsedId))
+            {
+                estadoId = parsedId;
+            }
+
+            string estado;
+            if (Enum.IsDefined(typeof(CertificationStatus), estadoId))
+            {
+                var estadoEnum = (CertificationStatus)estadoId;
+                estado = estadoEnum.ToLocalizedString(language);
+            }
+            else
+            {
+                estado = proceso.Status;
+            }
+
+            // Crear ítem del proceso
             var item = new EmpresaReportItemDTO
             {
-                Id = empresa.Id,
-                Nombre = empresa.Nombre,
+                // Datos de la empresa
+                EmpresaId = empresa.Id,
+                NombreEmpresa = empresa.Nombre,
                 Pais = empresa.Pais?.Name ?? string.Empty,
                 PaisId = empresa.PaisId ?? 0,
                 Responsable = empresa.NombreRepresentante,
                 TipologiasList = tipologias,
                 TipologiasIds = tipologiasIds,
                 Tipologias = string.Join(", ", tipologias),
-                TotalProcesos = procesosActivos.Count,
-                Activa = empresa.Active,
-                Certificacion = empresa.EsHomologacion ? "Homologación" : "Certificación",
-                FechaVencimiento = empresa.ResultadoVencimiento,
-                // Inicializar colecciones para almacenar información sobre todos los procesos
-                Distintivos = new List<string>(),
-                DistintivosIds = new List<int>(),
-                ProcesosEnProceso = 0,
+                EmpresaActiva = empresa.Active,
+                
+                // Datos del proceso
+                ProcesoId = proceso.Id,
+                Estado = estado,
+                EstadoId = estadoId,
+                TipoCertificacion = empresa.EsHomologacion ? "Homologación" : "Certificación",
+                FechaInicioProceso = proceso.FechaInicio,
+                FechaFinProceso = proceso.FechaFinalizacion,
+                NumeroExpediente = proceso.NumeroExpediente,
+                FechaAuditoria = proceso.FechaSolicitudAuditoria,
+                FechaAuditoriaFin = proceso.FechaFijadaAuditoria,
+                
+                // Distintivo del proceso
+                EnProceso = ultimoResultado == null || !ultimoResultado.DistintivoId.HasValue,
             };
 
-            // Proceso más reciente para establecer el estado actual
-            var procesoMasReciente = procesosActivos.FirstOrDefault();
-
-            if (procesoMasReciente != null)
+            // Establecer información del distintivo si existe
+            if (ultimoResultado?.DistintivoId.HasValue == true && ultimoResultado.Distintivo != null)
             {
-                // Establecer estado según el proceso más reciente
-                int estadoId = 0;
-                var statusParts = procesoMasReciente.Status.Split('-');
-                if (statusParts.Length > 0 && int.TryParse(statusParts[0].Trim(), out int parsedId))
-                {
-                    estadoId = parsedId;
-                }
-
-                item.EstadoId = estadoId;
-
-                if (Enum.IsDefined(typeof(CertificationStatus), estadoId))
-                {
-                    var estado = (CertificationStatus)estadoId;
-                    item.Estado = estado.ToLocalizedString(language);
-                }
-                else
-                {
-                    item.Estado = procesoMasReciente.Status;
-                }
-            }
-            else
-            {
-                item.Estado = CertificationStatus.Initial.ToLocalizedString(language);
-                item.EstadoId = 0;
-            }
-
-            // Procesar cada proceso activo para recopilar información de distintivos
-            foreach (var proceso in procesosActivos)
-            {
-                var ultimoResultado = proceso
-                    .Resultados.OrderByDescending(r => r.Id)
-                    .FirstOrDefault();
-
-                if (
-                    ultimoResultado != null
-                    && ultimoResultado.DistintivoId.HasValue
-                    && ultimoResultado.Distintivo != null
-                )
-                {
-                    var distintivoNombre =
-                        language == "es"
-                            ? ultimoResultado.Distintivo.Name
-                            : ultimoResultado.Distintivo.NameEnglish;
-
-                    item.Distintivos.Add(distintivoNombre);
-                    item.DistintivosIds.Add(ultimoResultado.DistintivoId.Value);
-
-                    // Si es el proceso más reciente, establecer como distintivo principal
-                    if (proceso == procesoMasReciente)
-                    {
-                        item.Distintivo = distintivoNombre;
-                        item.DistintivoId = ultimoResultado.DistintivoId.Value;
-                    }
-                }
-                else
-                {
-                    // Proceso en trámite
-                    item.ProcesosEnProceso++;
-
-                    // Si es el proceso más reciente y no tiene distintivo, marcar la empresa como en proceso
-                    if (proceso == procesoMasReciente)
-                    {
-                        item.EnProceso = true;
-                    }
-                }
+                item.Distintivo = language == "es" 
+                    ? ultimoResultado.Distintivo.Name 
+                    : ultimoResultado.Distintivo.NameEnglish;
+                item.DistintivoId = ultimoResultado.DistintivoId.Value;
+                item.FechaVencimientoDistintivo = proceso.FechaVencimiento;
             }
 
             result.Add(item);
