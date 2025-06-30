@@ -145,7 +145,7 @@ public class ProfesionalesRepository : IProfesionalesRepository
         }
     }
 
-    private ProfesionalDTO MapUserToProfesionalDTO(ApplicationUser user)
+    private static ProfesionalDTO MapUserToProfesionalDTO(ApplicationUser user)
     {
         // Determinar el tipo de profesional basado en los roles
         var userRoles = user.UserRoles.Select(ur => ur.Role.Name).ToList();

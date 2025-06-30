@@ -268,6 +268,13 @@ public class JobsService : IJobsServices
       Notificacion notifData,
       string senderEmail)
   {
+    // Obtener nombre del país
+    var paisNombre = await _db.Pais
+        .AsNoTracking()
+        .Where(p => p.Id == empresa.PaisId)
+        .Select(p => p.Name)
+        .FirstOrDefaultAsync() ?? "País no especificado";
+
     var roles = await _db.Roles
         .Where(s => s.Name == "Admin" || s.Name == "TecnicoPais")
         .ToListAsync();
@@ -295,7 +302,7 @@ public class JobsService : IJobsServices
 
           var contenidoEmail = await _viewRenderService
               .RenderToStringAsync("EmailStatusTemplate", notificacion);
-          contenidoEmail = contenidoEmail.Replace("{0}", empresa.Nombre);
+          contenidoEmail = contenidoEmail.Replace("{0}", $"{empresa.Nombre} ({paisNombre})");
 
           await _emailSender.SendEmailBrevoAsync(
               usuario.Email,
