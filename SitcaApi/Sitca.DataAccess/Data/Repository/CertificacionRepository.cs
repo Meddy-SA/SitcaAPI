@@ -325,9 +325,6 @@ namespace Sitca.DataAccess.Data.Repository
             if (data == null)
                 return Result<bool>.Failure("Los datos de cambio son requeridos");
 
-            if (string.IsNullOrEmpty(data.userId))
-                return Result<bool>.Failure("El ID del usuario es requerido");
-
             var strategy = _db.Database.CreateExecutionStrategy();
 
             try
@@ -346,75 +343,130 @@ namespace Sitca.DataAccess.Data.Repository
                                 $"No se encontró el proceso con ID {data.idProceso}"
                             );
 
-                        // Validaciones específicas para auditores
-                        if (data.auditor)
-                        {
-                            // Validar que el auditor puede ser asignado a esta empresa
-                            var canAssignAuditor = await CanAssignAuditorToCompanyAsync(
-                                data.userId,
-                                proceso.Empresa.Id
-                            );
-                            if (!canAssignAuditor.IsSuccess)
-                                return canAssignAuditor;
+                        // Obtener el estado actual del proceso
+                        var statusNumber = GetStatusNumber(proceso.Status);
 
-                            // Verificar que el usuario tiene rol de auditor
-                            var isAuditor = await VerifyUserHasAuditorRoleAsync(data.userId);
-                            if (!isAuditor)
-                                return Result<bool>.Failure(
-                                    "El usuario seleccionado no tiene rol de auditor o no está activo"
+                        // Si userId está vacío, verificar si se puede eliminar la asignación
+                        if (string.IsNullOrEmpty(data.userId))
+                        {
+                            if (!data.auditor && statusNumber == 1)
+                            {
+                                // Estado 1 - Para Asesorar: Se puede eliminar asesor
+                                proceso.AsesorId = null;
+
+                                // Actualizar Estados
+                                proceso.Status = StatusConstants.GetLocalizedStatus(
+                                    ProcessStatus.Initial,
+                                    "es"
                                 );
+                                proceso.Empresa.Estado = ProcessStatus.Initial;
+
+                                _logger.LogInformation(
+                                    "Eliminando asesor del proceso {ProcesoId} en estado {Estado}",
+                                    data.idProceso,
+                                    proceso.Status
+                                );
+                            }
+                            else if (data.auditor && statusNumber == 4)
+                            {
+                                // Estado 4 - Para Auditar: Se puede eliminar auditor
+                                proceso.AuditorId = null;
+
+                                // Actualizar Estados
+                                proceso.Status = StatusConstants.GetLocalizedStatus(
+                                    ProcessStatus.ConsultancyCompleted,
+                                    "es"
+                                );
+                                proceso.Empresa.Estado = ProcessStatus.ConsultancyCompleted;
+
+                                _logger.LogInformation(
+                                    "Eliminando auditor del proceso {ProcesoId} en estado {Estado}",
+                                    data.idProceso,
+                                    proceso.Status
+                                );
+                            }
+                            else
+                            {
+                                return Result<bool>.Failure(
+                                    data.auditor
+                                        ? "Solo se puede eliminar la asignación del auditor cuando el proceso está en estado '4 - Para Auditar'"
+                                        : "Solo se puede eliminar la asignación del asesor cuando el proceso está en estado '1 - Para Asesorar'"
+                                );
+                            }
                         }
                         else
                         {
-                            // Para asesores, verificar que sea del mismo país (lógica existente)
-                            var isValidAsesor = await VerifyUserHasAsesorRoleAsync(
-                                data.userId,
-                                proceso.Empresa.PaisId
-                            );
-                            if (!isValidAsesor)
-                                return Result<bool>.Failure(
-                                    "El usuario seleccionado no tiene rol de asesor o no pertenece al país correcto"
+                            // Lógica existente para asignar usuario
+                            // Validaciones específicas para auditores
+                            if (data.auditor)
+                            {
+                                // Validar que el auditor puede ser asignado a esta empresa
+                                var canAssignAuditor = await CanAssignAuditorToCompanyAsync(
+                                    data.userId,
+                                    proceso.Empresa.Id
                                 );
-                        }
+                                if (!canAssignAuditor.IsSuccess)
+                                    return canAssignAuditor;
 
-                        // Obtener todos los cuestionarios que necesitan actualización
-                        var cuestionarios = await _db
-                            .Cuestionario.Where(s =>
-                                s.ProcesoCertificacionId == proceso.Id
-                                && !s.Prueba
-                                && s.FechaFinalizado == null
-                            )
-                            .ToListAsync();
-
-                        if (data.auditor)
-                        {
-                            // Actualizar Auditor
-                            proceso.AuditorId = data.userId;
-                            foreach (var cuestionario in cuestionarios)
+                                // Verificar que el usuario tiene rol de auditor
+                                var isAuditor = await VerifyUserHasAuditorRoleAsync(data.userId);
+                                if (!isAuditor)
+                                    return Result<bool>.Failure(
+                                        "El usuario seleccionado no tiene rol de auditor o no está activo"
+                                    );
+                            }
+                            else
                             {
-                                cuestionario.AuditorId = proceso.AuditorId;
+                                // Para asesores, verificar que sea del mismo país (lógica existente)
+                                var isValidAsesor = await VerifyUserHasAsesorRoleAsync(
+                                    data.userId,
+                                    proceso.Empresa.PaisId
+                                );
+                                if (!isValidAsesor)
+                                    return Result<bool>.Failure(
+                                        "El usuario seleccionado no tiene rol de asesor o no pertenece al país correcto"
+                                    );
                             }
 
-                            _logger.LogInformation(
-                                "Cambiando auditor del proceso {ProcesoId} al usuario {UserId}",
-                                data.idProceso,
-                                data.userId
-                            );
-                        }
-                        else
-                        {
-                            // Actualizar Asesor
-                            proceso.AsesorId = data.userId;
-                            foreach (var cuestionario in cuestionarios)
-                            {
-                                cuestionario.AsesorId = proceso.AsesorId;
-                            }
+                            // Obtener todos los cuestionarios que necesitan actualización
+                            var cuestionarios = await _db
+                                .Cuestionario.Where(s =>
+                                    s.ProcesoCertificacionId == proceso.Id
+                                    && !s.Prueba
+                                    && s.FechaFinalizado == null
+                                )
+                                .ToListAsync();
 
-                            _logger.LogInformation(
-                                "Cambiando asesor del proceso {ProcesoId} al usuario {UserId}",
-                                data.idProceso,
-                                data.userId
-                            );
+                            if (data.auditor)
+                            {
+                                // Actualizar Auditor
+                                proceso.AuditorId = data.userId;
+                                foreach (var cuestionario in cuestionarios)
+                                {
+                                    cuestionario.AuditorId = proceso.AuditorId;
+                                }
+
+                                _logger.LogInformation(
+                                    "Cambiando auditor del proceso {ProcesoId} al usuario {UserId}",
+                                    data.idProceso,
+                                    data.userId
+                                );
+                            }
+                            else
+                            {
+                                // Actualizar Asesor
+                                proceso.AsesorId = data.userId;
+                                foreach (var cuestionario in cuestionarios)
+                                {
+                                    cuestionario.AsesorId = proceso.AsesorId;
+                                }
+
+                                _logger.LogInformation(
+                                    "Cambiando asesor del proceso {ProcesoId} al usuario {UserId}",
+                                    data.idProceso,
+                                    data.userId
+                                );
+                            }
                         }
 
                         proceso.UpdatedAt = DateTime.UtcNow;
@@ -447,6 +499,21 @@ namespace Sitca.DataAccess.Data.Repository
                     $"Error al cambiar {(data.auditor ? "auditor" : "asesor")}: {ex.Message}"
                 );
             }
+        }
+
+        private int GetStatusNumber(string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return 0;
+
+            // El estado está en formato "X - Descripción"
+            var parts = status.Split('-');
+            if (parts.Length > 0 && int.TryParse(parts[0].Trim(), out int statusNumber))
+            {
+                return statusNumber;
+            }
+
+            return 0;
         }
 
         private async Task<Result<bool>> CanAssignAuditorToCompanyAsync(

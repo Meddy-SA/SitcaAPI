@@ -20,43 +20,41 @@ INSERT INTO Cuestionario (
     AsesorId,
     AuditorId,
     FechaInicio,
+    FechaGenerado,
     FechaVisita,
-    FechaFinalizacion,
+    FechaFinalizado,
     Resultado,
-    Observaciones,
     Prueba,
     FechaRevisionAuditor,
-    CreatedBy,
-    CreatedAt,
-    UpdatedBy,
-    UpdatedAt,
-    Enabled
+    IdTipologia,
+    TipologiaId,
+    TecnicoPaisId
 ) VALUES
 -- Questionnaires for completed certifications
-(1, 2, 2, @AsesorCRId, @AuditorId, DATEADD(day, -85, GETDATE()), DATEADD(day, -70, GETDATE()), DATEADD(day, -15, GETDATE()), 'Aprobado', 'Eco Lodge cumple con todos los requisitos de sostenibilidad', 0, DATEADD(day, -12, GETDATE()), @AsesorCRId, DATEADD(day, -85, GETDATE()), @AuditorId, DATEADD(day, -12, GETDATE()), 1),
+(1, 2, 2, @AsesorCRId, @AuditorId, DATEADD(day, -85, GETDATE()), DATEADD(day, -85, GETDATE()), DATEADD(day, -70, GETDATE()), DATEADD(day, -15, GETDATE()), 1, 0, DATEADD(day, -12, GETDATE()), 1, 1, NULL),
 
-(2, 5, 5, @AsesorCRId, @AuditorId, DATEADD(day, -115, GETDATE()), DATEADD(day, -100, GETDATE()), DATEADD(day, -35, GETDATE()), 'Aprobado', 'Soda típica con excelente higiene y calidad de servicio', 0, DATEADD(day, -32, GETDATE()), @AsesorCRId, DATEADD(day, -115, GETDATE()), @AuditorId, DATEADD(day, -32, GETDATE()), 1),
+(2, 5, 5, @AsesorCRId, @AuditorId, DATEADD(day, -115, GETDATE()), DATEADD(day, -115, GETDATE()), DATEADD(day, -100, GETDATE()), DATEADD(day, -35, GETDATE()), 1, 0, DATEADD(day, -32, GETDATE()), 2, 2, NULL),
 
-(3, 6, 6, @AsesorCRId, @AuditorId, DATEADD(day, -70, GETDATE()), DATEADD(day, -55, GETDATE()), DATEADD(day, -25, GETDATE()), 'Aprobado', 'Operadora con excelentes prácticas de turismo sostenible', 0, DATEADD(day, -22, GETDATE()), @AsesorCRId, DATEADD(day, -70, GETDATE()), @AuditorId, DATEADD(day, -22, GETDATE()), 1),
+(3, 6, 6, @AsesorCRId, @AuditorId, DATEADD(day, -70, GETDATE()), DATEADD(day, -70, GETDATE()), DATEADD(day, -55, GETDATE()), DATEADD(day, -25, GETDATE()), 1, 0, DATEADD(day, -22, GETDATE()), 3, 3, NULL),
 
-(4, 9, 9, @AsesorCRId, @AuditorId, DATEADD(day, -100, GETDATE()), DATEADD(day, -85, GETDATE()), DATEADD(day, -40, GETDATE()), 'Aprobado', 'Servicio de transporte con vehículos en excelente estado', 0, DATEADD(day, -37, GETDATE()), @AsesorCRId, DATEADD(day, -100, GETDATE()), @AuditorId, DATEADD(day, -37, GETDATE()), 1),
+(4, 9, 9, @AsesorCRId, @AuditorId, DATEADD(day, -100, GETDATE()), DATEADD(day, -100, GETDATE()), DATEADD(day, -85, GETDATE()), DATEADD(day, -40, GETDATE()), 1, 0, DATEADD(day, -37, GETDATE()), 4, 4, NULL),
 
-(5, 10, 10, @AsesorCRId, @AuditorId, DATEADD(day, -75, GETDATE()), DATEADD(day, -60, GETDATE()), DATEADD(day, -20, GETDATE()), 'Aprobado', 'Canopy con todas las medidas de seguridad implementadas', 0, DATEADD(day, -17, GETDATE()), @AsesorCRId, DATEADD(day, -75, GETDATE()), @AuditorId, DATEADD(day, -17, GETDATE()), 1),
+(5, 10, 10, @AsesorCRId, @AuditorId, DATEADD(day, -75, GETDATE()), DATEADD(day, -75, GETDATE()), DATEADD(day, -60, GETDATE()), DATEADD(day, -20, GETDATE()), 1, 0, DATEADD(day, -17, GETDATE()), 5, 5, NULL),
 
-(6, 12, 12, @AsesorGTId, @AuditorId, DATEADD(day, -50, GETDATE()), DATEADD(day, -35, GETDATE()), DATEADD(day, -10, GETDATE()), 'Aprobado', 'Hotel colonial con excelente conservación del patrimonio', 0, DATEADD(day, -7, GETDATE()), @AsesorGTId, DATEADD(day, -50, GETDATE()), @AuditorId, DATEADD(day, -7, GETDATE()), 1),
+(6, 12, 12, @AsesorGTId, @AuditorId, DATEADD(day, -50, GETDATE()), DATEADD(day, -50, GETDATE()), DATEADD(day, -35, GETDATE()), DATEADD(day, -10, GETDATE()), 1, 0, DATEADD(day, -7, GETDATE()), 1, 1, NULL),
 
-(7, 15, 15, @AsesorCRId, @AuditorId, DATEADD(day, -60, GETDATE()), DATEADD(day, -45, GETDATE()), DATEADD(day, -30, GETDATE()), 'Aprobado', 'Restaurante con excelente calidad en comida típica', 0, DATEADD(day, -27, GETDATE()), @AsesorCRId, DATEADD(day, -60, GETDATE()), @AuditorId, DATEADD(day, -27, GETDATE()), 1),
+(7, 15, 15, @AsesorCRId, @AuditorId, DATEADD(day, -60, GETDATE()), DATEADD(day, -60, GETDATE()), DATEADD(day, -45, GETDATE()), DATEADD(day, -30, GETDATE()), 1, 0, DATEADD(day, -27, GETDATE()), 2, 2, NULL),
 
 -- Questionnaires for processes in progress (without final results)
-(8, 1, 1, @AsesorCRId, @AuditorId, DATEADD(day, -40, GETDATE()), DATEADD(day, -25, GETDATE()), NULL, 'En Proceso', 'Visita inicial realizada, pendiente documentación adicional', 0, NULL, @AsesorCRId, DATEADD(day, -40, GETDATE()), @AuditorId, DATEADD(day, -5, GETDATE()), 1),
+(8, 1, 1, @AsesorCRId, @AuditorId, DATEADD(day, -40, GETDATE()), DATEADD(day, -40, GETDATE()), DATEADD(day, -25, GETDATE()), NULL, 0, 0, NULL, 1, 1, NULL),
 
-(9, 4, 4, @AsesorCRId, @AuditorId, DATEADD(day, -55, GETDATE()), DATEADD(day, -40, GETDATE()), NULL, 'En Auditoría', 'Auditoría en curso, resultados preliminares positivos', 0, NULL, @AsesorCRId, DATEADD(day, -55, GETDATE()), @AuditorId, DATEADD(day, -3, GETDATE()), 1),
+(9, 4, 4, @AsesorCRId, @AuditorId, DATEADD(day, -55, GETDATE()), DATEADD(day, -55, GETDATE()), DATEADD(day, -40, GETDATE()), NULL, 0, 0, NULL, 2, 2, NULL),
 
-(10, 11, 11, @AsesorCRId, @AuditorId, DATEADD(day, -35, GETDATE()), DATEADD(day, -20, GETDATE()), NULL, 'En Auditoría', 'Evaluación de instalaciones termales en proceso', 0, NULL, @AsesorCRId, DATEADD(day, -35, GETDATE()), @AuditorId, DATEADD(day, -8, GETDATE()), 1),
+(10, 11, 11, @AsesorCRId, @AuditorId, DATEADD(day, -35, GETDATE()), DATEADD(day, -35, GETDATE()), DATEADD(day, -20, GETDATE()), NULL, 0, 0, NULL, 5, 5, NULL),
 
-(11, 7, 7, @AsesorCRId, NULL, DATEADD(day, -20, GETDATE()), NULL, NULL, 'Pendiente Visita', 'Cuestionario inicial completado, pendiente programar visita', 0, NULL, @AsesorCRId, DATEADD(day, -20, GETDATE()), @AsesorCRId, DATEADD(day, -2, GETDATE()), 1),
+(11, 7, 7, @AsesorCRId, NULL, DATEADD(day, -20, GETDATE()), DATEADD(day, -20, GETDATE()), NULL, NULL, 0, 0, NULL, 3, 3, NULL),
 
-(12, 13, 13, @AsesorGTId, NULL, DATEADD(day, -30, GETDATE()), NULL, NULL, 'En Proceso', 'Evaluación inicial de Maya Tours', 0, NULL, @AsesorGTId, DATEADD(day, -30, GETDATE()), @AsesorGTId, DATEADD(day, -1, GETDATE()), 1);
+(12, 13, 13, @AsesorGTId, NULL, DATEADD(day, -30, GETDATE()), DATEADD(day, -30, GETDATE()), NULL, NULL, 0, 0, NULL, 3, 3, NULL);
 
 SET IDENTITY_INSERT Cuestionario OFF;
 
