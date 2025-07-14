@@ -81,7 +81,7 @@ public static class ProcesoCertificacionMapper
             Direccion = proceso.Empresa.Direccion,
             WebSite = proceso.Empresa.WebSite,
             Ciudad = proceso.Empresa.Ciudad,
-            ResultadoActual = proceso.Empresa.ResultadoActual,
+            ResultadoActual = proceso.Resultados?.OrderByDescending(r => r.Id).FirstOrDefault()?.Distintivo?.Name ?? proceso.Empresa.ResultadoActual,
             ResultadoVencimiento = proceso.Empresa.ResultadoVencimiento,
             Estado = proceso.Empresa.Estado,
             EsHomologacion = proceso.Empresa.EsHomologacion,

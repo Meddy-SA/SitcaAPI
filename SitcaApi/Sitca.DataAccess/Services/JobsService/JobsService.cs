@@ -268,6 +268,13 @@ public class JobsService : IJobsServices
       Notificacion notifData,
       string senderEmail)
   {
+    // Obtener nombre del país
+    var paisNombre = await _db.Pais
+        .AsNoTracking()
+        .Where(p => p.Id == empresa.PaisId)
+        .Select(p => p.Name)
+        .FirstOrDefaultAsync() ?? "País no especificado";
+
     var roles = await _db.Roles
         .Where(s => s.Name == "Admin" || s.Name == "TecnicoPais")
         .ToListAsync();
@@ -295,7 +302,7 @@ public class JobsService : IJobsServices
 
           var contenidoEmail = await _viewRenderService
               .RenderToStringAsync("EmailStatusTemplate", notificacion);
-          contenidoEmail = contenidoEmail.Replace("{0}", empresa.Nombre);
+          contenidoEmail = contenidoEmail.Replace("{0}", $"{empresa.Nombre} ({paisNombre})");
 
           await _emailSender.SendEmailBrevoAsync(
               usuario.Email,
@@ -321,7 +328,7 @@ public class JobsService : IJobsServices
   {
     try
     {
-      var vencimiento = DateTime.UtcNow.AddMonths(6);
+      var fechaActual = DateTime.UtcNow;
       var senderEmail = _config["EmailSender:SenderEmail"];
 
       var notifDataMain = await _db.Notificacion
@@ -339,30 +346,81 @@ public class JobsService : IJobsServices
         .AsNoTracking()
         .ToDictionaryAsync(p => p.Id, p => p.Name);
 
-      // Obtener usuarios con carnets por vencer
-      var porVencer = await _db.ApplicationUser
-        .Where(s => s.VencimientoCarnet != null
-            && s.VencimientoCarnet < vencimiento
-            && s.AvisoVencimientoCarnet == null)
+      // Obtener todos los usuarios activos con fecha de vencimiento de carnet
+      var usuariosConVencimiento = await _db.ApplicationUser
+        .Where(u => u.VencimientoCarnet != null && u.Active)
         .ToListAsync();
 
-      if (!porVencer.Any())
+      if (!usuariosConVencimiento.Any())
       {
-        _logger.LogInformation("No hay carnets por vencer");
+        _logger.LogInformation("No hay usuarios con carnets por vencer");
         return true;
       }
 
-      foreach (var usuario in porVencer)
+      var notificacionesEnviadas = 0;
+
+      foreach (var usuario in usuariosConVencimiento)
       {
         try
         {
-          await NotificarVencimientoCarnetUsuario(
-              usuario,
-              notifDataMain,
-              senderEmail,
-              paises.GetValueOrDefault(usuario.PaisId ?? 0, "País no especificado")
-              );
-          usuario.AvisoVencimientoCarnet = DateTime.UtcNow;
+          var diasHastaVencimiento = (usuario.VencimientoCarnet.Value - fechaActual).Days;
+          var debeNotificar = false;
+          var periodoNotificacion = "";
+
+          // Determinar si debe notificar según el período
+          if (diasHastaVencimiento <= 180 && diasHastaVencimiento > 90) // 6 meses
+          {
+            // Verificar si no se ha notificado en los últimos 7 días
+            if (usuario.AvisoVencimientoCarnet == null || 
+                (fechaActual - usuario.AvisoVencimientoCarnet.Value).Days >= 7)
+            {
+              debeNotificar = true;
+              periodoNotificacion = "6 meses";
+            }
+          }
+          else if (diasHastaVencimiento <= 90 && diasHastaVencimiento > 30) // 3 meses
+          {
+            // Verificar si no se ha notificado en los últimos 7 días
+            if (usuario.AvisoVencimientoCarnet == null || 
+                (fechaActual - usuario.AvisoVencimientoCarnet.Value).Days >= 7)
+            {
+              debeNotificar = true;
+              periodoNotificacion = "3 meses";
+            }
+          }
+          else if (diasHastaVencimiento <= 30 && diasHastaVencimiento > 0) // 1 mes
+          {
+            // Verificar si no se ha notificado en los últimos 3 días
+            if (usuario.AvisoVencimientoCarnet == null || 
+                (fechaActual - usuario.AvisoVencimientoCarnet.Value).Days >= 3)
+            {
+              debeNotificar = true;
+              periodoNotificacion = "1 mes";
+            }
+          }
+          else if (diasHastaVencimiento <= 0) // Vencido o día de vencimiento
+          {
+            // Verificar si no se ha notificado el día de vencimiento
+            if (usuario.AvisoVencimientoCarnet == null || 
+                usuario.AvisoVencimientoCarnet.Value.Date < usuario.VencimientoCarnet.Value.Date)
+            {
+              debeNotificar = true;
+              periodoNotificacion = diasHastaVencimiento == 0 ? "hoy" : "vencido";
+            }
+          }
+
+          if (debeNotificar)
+          {
+            await NotificarVencimientoCarnetUsuario(
+                usuario,
+                notifDataMain,
+                senderEmail,
+                paises.GetValueOrDefault(usuario.PaisId ?? 0, "País no especificado"),
+                periodoNotificacion
+                );
+            usuario.AvisoVencimientoCarnet = DateTime.UtcNow;
+            notificacionesEnviadas++;
+          }
         }
         catch (Exception ex)
         {
@@ -371,8 +429,12 @@ public class JobsService : IJobsServices
       }
 
       // Guardamos los cambios al final
-      await _db.SaveChangesAsync();
-      _logger.LogInformation("Proceso de notificación de carnets completado. {Count} usuarios notificados", porVencer.Count);
+      if (notificacionesEnviadas > 0)
+      {
+        await _db.SaveChangesAsync();
+      }
+      
+      _logger.LogInformation("Proceso de notificación de carnets completado. {Count} usuarios notificados", notificacionesEnviadas);
       return true;
     }
     catch (Exception ex)
@@ -386,7 +448,8 @@ public class JobsService : IJobsServices
       ApplicationUser user,
       Notificacion notifDataMain,
       string senderEmail,
-      string country)
+      string country,
+      string periodoNotificacion)
   {
     var notifData = CrearNotificacionBase(notifDataMain);
     var destinatarios = await ObtenerDestinatariosNotificacion(user);
@@ -408,16 +471,36 @@ public class JobsService : IJobsServices
               );
 
         contenidoEmail = contenidoEmail
-          .Replace("{user}", $"{user.FirstName} ({country})")
-          .Replace("{fecha}", user.VencimientoCarnet.Value.ToString("dd/MM/yyyy"));
+          .Replace("{user}", $"{user.FirstName} {user.LastName} ({country})")
+          .Replace("{fecha}", user.VencimientoCarnet.Value.ToString("dd/MM/yyyy"))
+          .Replace("{periodo}", periodoNotificacion);
+
+        // Personalizar el asunto según el período
+        var asunto = notifData.TituloInterno;
+        if (periodoNotificacion == "vencido")
+        {
+          asunto = $"URGENTE: {asunto} - Carnet vencido";
+        }
+        else if (periodoNotificacion == "hoy")
+        {
+          asunto = $"URGENTE: {asunto} - Vence hoy";
+        }
+        else
+        {
+          asunto = $"{asunto} - Vence en {periodoNotificacion}";
+        }
 
         await _emailSender.SendEmailBrevoAsync(
             destinatario.Email,
-            notifData.TituloInterno,
+            asunto,
             contenidoEmail
             );
 
-
+        _logger.LogInformation(
+            "Notificación de vencimiento de carnet enviada a {Email} para usuario {Usuario} - Período: {Periodo}",
+            destinatario.Email,
+            user.Email,
+            periodoNotificacion);
       }
       catch (Exception ex)
       {

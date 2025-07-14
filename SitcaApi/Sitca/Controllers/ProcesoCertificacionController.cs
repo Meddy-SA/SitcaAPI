@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.DataAccess.Services.ProcesosDeletion;
 using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -23,6 +24,7 @@ public class ProcesoCertificacionController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly INotificationService _notificationService;
+    private readonly IProcesosDeletionService _procesosDeletionService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<ProcesoCertificacionController> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
@@ -30,6 +32,7 @@ public class ProcesoCertificacionController : ControllerBase
     public ProcesoCertificacionController(
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
+        IProcesosDeletionService procesosDeletionService,
         UserManager<ApplicationUser> userManager,
         ILogger<ProcesoCertificacionController> logger,
         IServiceScopeFactory serviceScopeFactory
@@ -37,6 +40,7 @@ public class ProcesoCertificacionController : ControllerBase
     {
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
+        _procesosDeletionService = procesosDeletionService;
         _userManager = userManager;
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
@@ -389,6 +393,80 @@ public class ProcesoCertificacionController : ControllerBase
                 Result<AsignaAuditoriaVm>.Failure(
                     "Error interno del servidor al procesar la solicitud de asignación de auditor"
                 )
+            );
+        }
+    }
+
+    /// <summary>
+    /// Obtiene información sobre las dependencias de un proceso antes de eliminarlo
+    /// </summary>
+    [Authorize(Roles = Policies.AssignAuditor)] // Usamos una política existente para permisos de eliminación
+    [HttpGet("{id}/deletion-info")]
+    [ProducesResponseType(typeof(Result<ProcesosDeletionInfo>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProcesosDeletionInfo>>> GetDeletionInfo(int id)
+    {
+        try
+        {
+            var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(Result<ProcesosDeletionInfo>.Failure("Usuario no autorizado"));
+
+            var result = await _procesosDeletionService.CanDeleteProcesoAsync(
+                id,
+                appUser.PaisId ?? 0,
+                role
+            );
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al obtener información de eliminación para proceso {ProcesoId}",
+                id
+            );
+            return StatusCode(
+                500,
+                Result<ProcesosDeletionInfo>.Failure("Error interno del servidor")
+            );
+        }
+    }
+
+    /// <summary>
+    /// Elimina un proceso de certificación y todas sus dependencias relacionadas
+    /// </summary>
+    [Authorize(Roles = Policies.AssignAuditor)] // Usamos una política existente para permisos de eliminación
+    [HttpDelete("{id}")]
+    [ProducesResponseType(typeof(Result<ProcesosDeletionResult>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProcesosDeletionResult>>> Delete(int id)
+    {
+        try
+        {
+            var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(
+                    Result<ProcesosDeletionResult>.Failure("Usuario no autorizado")
+                );
+
+            var result = await _procesosDeletionService.DeleteProcesoWithRelatedEntitiesAsync(
+                id,
+                appUser.PaisId ?? 0,
+                role
+            );
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar proceso {ProcesoId}", id);
+            return StatusCode(
+                500,
+                Result<ProcesosDeletionResult>.Failure("Error interno del servidor")
             );
         }
     }

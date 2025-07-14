@@ -39,7 +39,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Obtiene todas las solicitudes para un país, opcionalmente filtradas por estado
     /// </summary>
     [HttpGet("requests")]
-    [Authorize]
+    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<List<CrossCountryAuditRequestDTO>>)

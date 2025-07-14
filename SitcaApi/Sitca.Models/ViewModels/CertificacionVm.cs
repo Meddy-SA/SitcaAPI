@@ -31,13 +31,13 @@ namespace Sitca.Models.ViewModels
     public class CambioAuditor
     {
         public int idProceso { get; set; }
-        public string userId { get; set; } = null!;
+        public string? userId { get; set; }
         public bool auditor { get; set; }
         public string motivo { get; set; } = null!;
 
         public bool IsValid()
         {
-            return idProceso > 0 && !string.IsNullOrEmpty(userId);
+            return idProceso > 0;
         }
     }
 
