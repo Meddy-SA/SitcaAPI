@@ -25,4 +25,5 @@ public class ProcesoCertificacionVm
     public Personnal? Auditor { get; set; }
     public bool? Activo { get; set; }
     public string? FechaRevision { get; set; }
+    public int TotalProcesosActivos { get; set; } = 0;
 }

@@ -15,7 +15,10 @@ using Sitca.DataAccess.Data.Repository;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.CompanyQuery;
 using Sitca.DataAccess.Services.Cuestionarios;
+using Sitca.DataAccess.Services.Dashboard;
 using Sitca.DataAccess.Services.Email;
+using Sitca.DataAccess.Services.EmpresaDeletion;
+using Sitca.DataAccess.Services.ProcesosDeletion;
 using Sitca.DataAccess.Services.Files;
 using Sitca.DataAccess.Services.JobsService;
 using Sitca.DataAccess.Services.Notification;
@@ -215,12 +218,22 @@ public static class ServiceCollectionExtensions
 
         // Servicio de Procesos
         services.AddScoped<IProcessQueryBuilder, ProcessQueryBuilder>();
+        // Servicio de Eliminación de Empresas
+        services.AddScoped<IEmpresaDeletionService, EmpresaDeletionService>();
+        // Servicio de Eliminación de Procesos
+        services.AddScoped<IProcesosDeletionService, ProcesosDeletionService>();
 
         // Servicios de Manejo de Archivos.
         services.AddScoped<IFileService, FileService>();
 
         // Servicio Manejo de Iconos.
         services.AddSingleton<IIconService, IconService>();
+
+        // Dashboard Services
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IActivityService, ActivityService>();
+        services.AddScoped<IRoleDashboardService, RoleDashboardService>();
 
         return services;
     }

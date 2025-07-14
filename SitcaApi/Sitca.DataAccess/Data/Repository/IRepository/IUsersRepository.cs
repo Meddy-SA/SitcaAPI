@@ -10,7 +10,7 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
     {
         Task<bool> SetLanguageAsync(string lang, string user);
 
-        Task<Result<List<UsersListVm>>> GetUsersAsync(string query, int paisId, string role);
+        Task<Result<List<UsersListVm>>> GetUsersAsync(string query, int paisId, string role, string activeFilter = "Todos");
 
         Task<UsersListVm> GetUserById(string id);
 

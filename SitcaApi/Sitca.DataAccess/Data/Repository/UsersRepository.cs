@@ -389,7 +389,8 @@ namespace Sitca.DataAccess.Data.Repository
         public async Task<Result<List<UsersListVm>>> GetUsersAsync(
             string query,
             int paisId,
-            string role = "All"
+            string role = "All",
+            string activeFilter = "Todos"
         )
         {
             try
@@ -403,13 +404,27 @@ namespace Sitca.DataAccess.Data.Repository
                     .Include(u => u.Pais)
                     .Where(u =>
                         u.EmpresaId == null
-                        && u.Active
                         && (paisId == 0 || u.PaisId == paisId)
                         && (
                             string.IsNullOrEmpty(query)
                             || (u.FirstName.Contains(query) || u.LastName.Contains(query))
                         )
                     );
+
+                // Aplicar filtro de estado activo
+                switch (activeFilter?.ToLower())
+                {
+                    case "activos":
+                        usersQuery = usersQuery.Where(u => u.Active);
+                        break;
+                    case "inactivos":
+                        usersQuery = usersQuery.Where(u => !u.Active);
+                        break;
+                    case "todos":
+                    default:
+                        // No aplicar filtro, mostrar todos
+                        break;
+                }
 
                 // Obtener los roles de los usuarios locales
                 var userRoles = await (

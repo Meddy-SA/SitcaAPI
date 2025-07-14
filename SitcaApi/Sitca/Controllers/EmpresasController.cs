@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
+using Sitca.DataAccess.Services.EmpresaDeletion;
 using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -29,13 +30,15 @@ public class EmpresasController : ControllerBase
     private readonly IConfiguration _config;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<EmpresasController> _logger;
+    private readonly IEmpresaDeletionService _empresaDeletionService;
 
     public EmpresasController(
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
         IConfiguration config,
         UserManager<ApplicationUser> userManager,
-        ILogger<EmpresasController> logger
+        ILogger<EmpresasController> logger,
+        IEmpresaDeletionService empresaDeletionService
     )
     {
         _unitOfWork = unitOfWork;
@@ -43,6 +46,7 @@ public class EmpresasController : ControllerBase
         _config = config;
         _userManager = userManager;
         _logger = logger;
+        _empresaDeletionService = empresaDeletionService;
     }
 
     /// <summary>
@@ -370,15 +374,15 @@ public class EmpresasController : ControllerBase
     }
 
     /// <summary>
-    /// Elimina una empresa
+    /// Obtiene información sobre las dependencias de una empresa antes de eliminarla
     /// </summary>
     [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
-    [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<bool>))]
+    [HttpGet("{id}/deletion-info")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<EmpresaDeletionInfo>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Result<bool>>> Delete(int id)
+    public async Task<ActionResult<Result<EmpresaDeletionInfo>>> GetDeletionInfo(int id)
     {
         try
         {
@@ -388,40 +392,56 @@ public class EmpresasController : ControllerBase
 
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrEmpty(role))
-                return BadRequest(Result<bool>.Failure("No se encontró el rol del usuario"));
+                return BadRequest(Result<EmpresaDeletionInfo>.Failure("No se encontró el rol del usuario"));
 
-            var res = await _unitOfWork.Empresa.Delete(
+            var result = await _empresaDeletionService.CanDeleteEmpresaAsync(
                 id,
                 appUser.PaisId.GetValueOrDefault(),
                 role
             );
 
-            if (res.Success)
-            {
-                try
-                {
-                    var userToDelete = await _unitOfWork.Users.GetAll(s => s.EmpresaId == id);
-                    if (userToDelete.Any())
-                    {
-                        await _userManager.DeleteAsync(userToDelete.FirstOrDefault());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Error al eliminar usuario asociado a la empresa {EmpresaId}",
-                        id
-                    );
-                }
-            }
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener información de eliminación para empresa: {EmpresaId}", id);
+            return StatusCode(500, Result<EmpresaDeletionInfo>.Failure("Error interno del servidor"));
+        }
+    }
 
-            return Ok(Result<bool>.Success(res.Success));
+    /// <summary>
+    /// Elimina una empresa y todas sus entidades relacionadas
+    /// </summary>
+    [Authorize(Roles = AuthorizationPolicies.Empresa.AdminTecnico)]
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<EmpresaDeletionResult>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<EmpresaDeletionResult>>> Delete(int id)
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized();
+
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (string.IsNullOrEmpty(role))
+                return BadRequest(Result<EmpresaDeletionResult>.Failure("No se encontró el rol del usuario"));
+
+            var result = await _empresaDeletionService.DeleteEmpresaWithRelatedEntitiesAsync(
+                id,
+                appUser.PaisId.GetValueOrDefault(),
+                role
+            );
+
+            return this.HandleResponse(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al eliminar empresa: {EmpresaId}", id);
-            return StatusCode(500, Result<bool>.Failure("Error interno del servidor"));
+            return StatusCode(500, Result<EmpresaDeletionResult>.Failure("Error interno del servidor"));
         }
     }
 

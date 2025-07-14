@@ -225,6 +225,11 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
                     ),
                 })
                 .FirstOrDefault(),
+
+            // Contar procesos activos por empresa
+            TotalProcesosActivos = _db.ProcesoCertificacion
+                .Where(proc => proc.EmpresaId == p.EmpresaId && proc.Empresa.Active)
+                .Count(),
         });
 
         // 1.1 Contamos la cantidad de procesos por estado
@@ -295,6 +300,7 @@ public class ProcessQueryBuilder : IProcessQueryBuilder
                             : new Personnal { Id = p.AuditorId, Name = p.AuditorNombre },
                     FechaRevision = p.FechaRevision?.ToString("yyyy-MM-dd"),
                     Activo = p.Activo,
+                    TotalProcesosActivos = p.TotalProcesosActivos,
                 };
             })
             .ToList();

@@ -226,6 +226,7 @@ namespace Sitca.Controllers
             }
         }
 
+        [HttpGet]
         [Route("CheckEmailDisponible")]
         public async Task<IActionResult> CheckEmailDisponible(string email, string userId)
         {
@@ -385,7 +386,8 @@ namespace Sitca.Controllers
                 var users = await _unitOfWork.Users.GetUsersAsync(
                     searchQuery,
                     paisId,
-                    request.RoleName ?? "All"
+                    request.RoleName ?? "All",
+                    request.ActiveFilter ?? "Todos"
                 );
 
                 var userList = TranslateUserRoles(users.Value, appUser.Lenguage);
@@ -601,6 +603,7 @@ namespace Sitca.Controllers
         /// <response code="200">Retorna la información del usuario</response>
         /// <response code="404">Usuario no encontrado</response>
         /// <response code="400">ID de usuario inválido</response>
+        [HttpGet]
         [Route("GetUser")]
         [Authorize]
         [ProducesResponseType(typeof(UsersListVm), StatusCodes.Status200OK)]
@@ -678,6 +681,7 @@ namespace Sitca.Controllers
             return string.Join('/', translatedRoles);
         }
 
+        [HttpGet]
         [Route("GetMyId")]
         [Authorize]
         public async Task<IActionResult> GetMyId()
@@ -952,7 +956,10 @@ namespace Sitca.Controllers
                 await UpdateUserInformation(userToEdit, model, currentUser);
 
                 // Actualizar roles si es administrador
-                if (User.IsInRole(Constants.Roles.Admin))
+                if (
+                    User.IsInRole(Constants.Roles.Admin)
+                    || User.IsInRole(Constants.Roles.TecnicoPais)
+                )
                 {
                     await UpdateUserRoles(userToEdit, model.Role);
                 }
