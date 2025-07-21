@@ -367,10 +367,6 @@ namespace Sitca.Controllers
                 if (appUser == null)
                     return Unauthorized();
 
-                // ATP role cannot view users
-                if (User.IsInRole(Constants.Roles.ATP))
-                    return Forbid();
-
                 var paisId = User.IsInRole(Constants.Roles.Admin)
                     ? ParsePaisId(request.PaisId)
                     : appUser.PaisId ?? 0;
@@ -623,12 +619,6 @@ namespace Sitca.Controllers
                 if (currentUser == null)
                 {
                     return Unauthorized();
-                }
-
-                // ATP role cannot view other users
-                if (User.IsInRole(Constants.Roles.ATP) && currentUser.Id != id)
-                {
-                    return Forbid();
                 }
 
                 // Obtener usuario buscado

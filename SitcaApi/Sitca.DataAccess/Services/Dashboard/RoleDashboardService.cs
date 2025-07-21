@@ -10,6 +10,7 @@ using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.DTOs.Dashboard;
+using Sitca.Models.ViewModels;
 using Utilities.Common;
 using static Utilities.Common.Constants;
 
@@ -322,30 +323,30 @@ namespace Sitca.DataAccess.Services.Dashboard
                     return Result<EmpresaStatisticsDto>.Failure("Usuario no tiene rol de Empresa");
                 }
 
-                // For now, return placeholder data
+                if (!user.EmpresaId.HasValue)
+                {
+                    return Result<EmpresaStatisticsDto>.Failure(
+                        "Usuario no tiene empresa asignada"
+                    );
+                }
+
+                // Get empresa data using the same method as MiEmpresa endpoint
+                var empresaData = await _unitOfWork.Empresa.Data(user.EmpresaId.Value, user);
+                if (empresaData == null)
+                {
+                    return Result<EmpresaStatisticsDto>.Failure(
+                        "No se pudo obtener información de la empresa"
+                    );
+                }
+
+                // Build statistics from real empresa data
                 var empresaStats = new EmpresaStatisticsDto
                 {
-                    CertificacionActual = new CertificacionActualDto
-                    {
-                        Id = 1,
-                        Nivel = "azul",
-                        Estado = "active",
-                        FechaEmision = DateTime.Now.AddDays(-365),
-                        FechaVencimiento = DateTime.Now.AddDays(365),
-                        NumeroCertificado = "SICCS-AZ-2024-001",
-                        Puntuacion = 85,
-                        DiasVigencia = 730,
-                    },
-                    TareasPendientes = new List<TareaPendienteDto>(),
-                    DocumentosRecientes = new List<DocumentoRecienteDto>(),
-                    ProximasActividades = new List<ProximaActividadDto>(),
-                    EstadisticasGenerales = new EstadisticasGeneralesDto
-                    {
-                        ProcesoCompletado = 75,
-                        DocumentosAprobados = 12,
-                        CapacitacionesCompletadas = 8,
-                        ProximaEvaluacion = DateTime.Now.AddDays(180),
-                    },
+                    CertificacionActual = BuildCertificacionActual(empresaData),
+                    TareasPendientes = await BuildTareasPendientes(empresaData),
+                    DocumentosRecientes = BuildDocumentosRecientes(empresaData, userId),
+                    ProximasActividades = await BuildProximasActividades(empresaData),
+                    EstadisticasGenerales = BuildEstadisticasGenerales(empresaData),
                 };
 
                 return Result<EmpresaStatisticsDto>.Success(empresaStats);
@@ -374,7 +375,7 @@ namespace Sitca.DataAccess.Services.Dashboard
                 }
 
                 var userRoles = await _userManager.GetRolesAsync(user);
-                if (!userRoles.Contains(Constants.Roles.Asesor))
+                if (!userRoles.Contains(Constants.Roles.Consultor))
                 {
                     return Result<ConsultorStatisticsDto>.Failure(
                         "Usuario no tiene rol de Consultor"
@@ -519,6 +520,244 @@ namespace Sitca.DataAccess.Services.Dashboard
                 );
             }
         }
+
+        // Helper methods for building empresa statistics from real data
+        private CertificacionActualDto BuildCertificacionActual(EmpresaUpdateVm empresaData)
+        {
+            if (empresaData.CertificacionActual != null)
+            {
+                var cert = empresaData.CertificacionActual;
+                return new CertificacionActualDto
+                {
+                    Id = cert.Id,
+                    Nivel = DetermineNivelFromResultado(cert.Resultado),
+                    Estado = DetermineEstadoFromStatus(cert.Status),
+                    FechaEmision = DateTime.TryParse(cert.FechaInicio, out var fechaInicio)
+                        ? fechaInicio
+                        : DateTime.Now,
+                    FechaVencimiento = DateTime.TryParse(cert.FechaVencimiento, out var fechaVenc)
+                        ? fechaVenc
+                        : DateTime.Now.AddYears(2),
+                    NumeroCertificado = cert.Expediente ?? "N/A",
+                    Puntuacion = 0, // CertificacionDetailsVm doesn't have this property
+                    DiasVigencia = DateTime.TryParse(cert.FechaVencimiento, out var fv)
+                        ? (int)(fv - DateTime.Now).TotalDays
+                        : 0,
+                };
+            }
+
+            // Return default if no current certification
+            return new CertificacionActualDto
+            {
+                Id = 0,
+                Nivel = "inicial",
+                Estado = "pending",
+                FechaEmision = DateTime.Now,
+                FechaVencimiento = DateTime.Now.AddYears(2),
+                NumeroCertificado = "En proceso",
+                Puntuacion = 0,
+                DiasVigencia = 0,
+            };
+        }
+
+        private async Task<List<TareaPendienteDto>> BuildTareasPendientes(
+            EmpresaUpdateVm empresaData
+        )
+        {
+            var tareas = new List<TareaPendienteDto>();
+
+            // Get current certification process for this company
+            var proceso = await _db
+                .ProcesoCertificacion.Where(p => p.EmpresaId == empresaData.Id && p.Enabled)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (proceso != null)
+            {
+                // Add tasks based on current process status
+                switch (proceso.Status)
+                {
+                    case var status when status.Contains(ProcessStatusText.Spanish.Initial):
+                        tareas.Add(
+                            new TareaPendienteDto
+                            {
+                                Id = 1,
+                                Titulo = "Asesoría pendiente",
+                                Descripcion = "Su proceso está esperando asignación de asesor",
+                                FechaVencimiento = DateTime.Now.AddMonths(6),
+                                Prioridad = "media",
+                                Tipo = "asesoria",
+                            }
+                        );
+                        break;
+                    case var status
+                        when status.Contains(ProcessStatusText.Spanish.AuditCompletedNoNumber):
+                        tareas.Add(
+                            new TareaPendienteDto
+                            {
+                                Id = 2,
+                                Titulo = "Auditoría Pendiente",
+                                Descripcion = "Su proceso está esperando asignación de auditor",
+                                FechaVencimiento = DateTime.Now.AddMonths(6),
+                                Prioridad = "alta",
+                                Tipo = "auditoria",
+                            }
+                        );
+                        break;
+                }
+            }
+
+            return tareas;
+        }
+
+        private List<DocumentoRecienteDto> BuildDocumentosRecientes(
+            EmpresaUpdateVm empresaData,
+            string userId
+        )
+        {
+            var documentos = new List<DocumentoRecienteDto>();
+
+            if (empresaData.Archivos != null && empresaData.Archivos.Any())
+            {
+                documentos = empresaData
+                    .Archivos.OrderByDescending(a =>
+                        DateTime.TryParse(a.FechaCarga, out var fecha) ? fecha : DateTime.MinValue
+                    )
+                    .Where(f => f.Cargador == userId)
+                    .Take(5)
+                    .Select(a => new DocumentoRecienteDto
+                    {
+                        Id = a.Id,
+                        Titulo = a.Nombre,
+                        Tipo = a.Tipo ?? "documento",
+                        FechaSubida = DateTime.TryParse(a.FechaCarga, out var fecha)
+                            ? fecha
+                            : DateTime.Now,
+                        Estado = "ok", // Default since ArchivoVm doesn't have approval status
+                        Url = a.Ruta,
+                    })
+                    .ToList();
+            }
+
+            return documentos;
+        }
+
+        private async Task<List<ProximaActividadDto>> BuildProximasActividades(
+            EmpresaUpdateVm empresaData
+        )
+        {
+            var actividades = new List<ProximaActividadDto>();
+
+            // Get current certification process
+            var proceso = await _db
+                .ProcesoCertificacion.Where(p => p.EmpresaId == empresaData.Id && p.Enabled)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (proceso != null)
+            {
+                // Add activities based on process dates
+                if (
+                    proceso.FechaFijadaAuditoria.HasValue
+                    && proceso.FechaFijadaAuditoria > DateTime.Now
+                )
+                {
+                    actividades.Add(
+                        new ProximaActividadDto
+                        {
+                            Tipo = "auditoria",
+                            Descripcion = "Auditoría de certificación programada",
+                            Fecha = proceso.FechaFijadaAuditoria.Value,
+                            Auditor = proceso.AuditorId ?? "Por asignar",
+                        }
+                    );
+                }
+
+                if (proceso.FechaVencimiento.HasValue && proceso.FechaVencimiento > DateTime.Now)
+                {
+                    var diasParaVencer = (proceso.FechaVencimiento.Value - DateTime.Now).TotalDays;
+                    if (diasParaVencer <= 90) // Alert if expiring within 3 months
+                    {
+                        actividades.Add(
+                            new ProximaActividadDto
+                            {
+                                Tipo = "renovacion",
+                                Descripcion =
+                                    $"Su certificación vence en {diasParaVencer:F0} días - Iniciar proceso de renovación",
+                                Fecha = proceso.FechaVencimiento.Value.AddDays(-30), // Start renewal 30 days before
+                                Auditor = "N/A",
+                            }
+                        );
+                    }
+                }
+            }
+
+            return actividades.OrderBy(a => a.Fecha).ToList();
+        }
+
+        private EstadisticasGeneralesDto BuildEstadisticasGenerales(EmpresaUpdateVm empresaData)
+        {
+            // Calculate process completion percentage based on status
+            int procesoCompletado = CalculateProcessCompletion(empresaData.Estado);
+
+            int documentosAprobados = empresaData.Archivos?.Count ?? 0; // ArchivoVm doesn't have Aprobado property
+            int totalCertificaciones = empresaData.Certificaciones?.Count ?? 0;
+
+            return new EstadisticasGeneralesDto
+            {
+                ProcesoCompletado = procesoCompletado,
+                DocumentosAprobados = documentosAprobados,
+                CapacitacionesCompletadas = totalCertificaciones, // Using certifications as training proxy
+                ProximaEvaluacion = CalculateNextEvaluation(empresaData),
+            };
+        }
+
+        private string DetermineNivelFromResultado(string resultado)
+        {
+            if (string.IsNullOrEmpty(resultado))
+                return "inicial";
+
+            if (resultado.Contains("Verde") || resultado.Contains("Green"))
+                return "verde";
+            if (resultado.Contains("Azul") || resultado.Contains("Blue"))
+                return "azul";
+            if (resultado.Contains("Rojo") || resultado.Contains("Red"))
+                return "rojo";
+
+            return "inicial";
+        }
+
+        private string DetermineEstadoFromStatus(string status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "pending";
+
+            return status.ToLower();
+        }
+
+        private int CalculateProcessCompletion(decimal estado)
+        {
+            // Map estado decimal to percentage
+            // Based on ProcessStatus constants: 0=Initial, 1=ForConsulting, etc.
+            return (int)((estado / 8.0m) * 100); // 8 is max status (Completed)
+        }
+
+        private DateTime CalculateNextEvaluation(EmpresaUpdateVm empresaData)
+        {
+            if (
+                !string.IsNullOrEmpty(empresaData.CertificacionActual?.FechaVencimiento)
+                && DateTime.TryParse(
+                    empresaData.CertificacionActual.FechaVencimiento,
+                    out var fechaVenc
+                )
+            )
+            {
+                // Next evaluation typically 6 months before expiration
+                return fechaVenc.AddMonths(-6);
+            }
+
+            // Default to 180 days from now
+            return DateTime.Now.AddDays(180);
+        }
     }
 }
-

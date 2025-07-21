@@ -145,12 +145,9 @@ namespace Sitca.DataAccess.Services.Dashboard
             // Apply same filtering logic for EmpresasPorPais
             var empresasPorPaisQuery = _db.Empresa.Where(e => e.Active);
 
-            if (
-                userRoles.Contains(Constants.Roles.TecnicoPais)
-                && !userRoles.Contains(Constants.Roles.Admin)
-            )
+            if (!userRoles.Contains(Constants.Roles.Admin))
             {
-                // TecnicoPais users can only see data from their country
+                // this users can only see data from their country
                 if (user.PaisId.HasValue)
                 {
                     empresasPorPaisQuery = empresasPorPaisQuery.Where(e => e.IdPais == user.PaisId);

@@ -6,7 +6,7 @@ public static class AuthorizationPolicies
 {
     public static class Auth
     {
-        public const string CreateUser = $"{Rol.Admin}, {Rol.TecnicoPais}";
+        public const string CreateUser = $"{Rol.Admin}, {Rol.TecnicoPais}, {Rol.ATP}";
     }
 
     public static class Capacitaciones

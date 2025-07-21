@@ -107,7 +107,9 @@ namespace Sitca.Controllers
         /// </summary>
         /// <returns>System health and status metrics</returns>
         [HttpGet("system-status")]
-        [Authorize(Roles = $"{Constants.Roles.Admin},{Constants.Roles.TecnicoPais}")]
+        [Authorize(
+            Roles = $"{Constants.Roles.Admin},{Constants.Roles.TecnicoPais},{Constants.Roles.ATP},{Constants.Roles.Consultor}"
+        )]
         [ProducesResponseType(typeof(SystemStatusDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -275,7 +277,7 @@ namespace Sitca.Controllers
         /// </summary>
         /// <returns>Consultor statistics including active projects and scheduled meetings</returns>
         [HttpGet("consultor-statistics")]
-        [Authorize(Roles = Constants.Roles.Asesor)]
+        [Authorize(Roles = Constants.Roles.Consultor)]
         [ProducesResponseType(typeof(ConsultorStatisticsDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]

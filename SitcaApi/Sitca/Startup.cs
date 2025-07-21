@@ -108,13 +108,17 @@ namespace Sitca
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI();
             }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
+            }
+            
+            if (env.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
 
             app.UseHttpsRedirection()
