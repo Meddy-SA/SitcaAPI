@@ -191,7 +191,17 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
                     }
 
                     // Actualizar tipologías si es necesario
-                    await ActualizarTipologiasAsync(empresa);
+                    await ActualizarTipologiasAsync(empresa, datosEmpresa.Tipologias);
+                    
+                    // Actualizar tipología en el proceso de certificación si se cumplen las condiciones
+                    if (datosEmpresa.Tipologias != null && datosEmpresa.Tipologias.Length > 0)
+                    {
+                        var tipologiaId = datosEmpresa.Tipologias.FirstOrDefault()?.Id;
+                        if (tipologiaId.HasValue && tipologiaId.Value > 0)
+                        {
+                            await ActualizarTipologiaProcesoCertificacionAsync(empresa.Id, tipologiaId.Value, role);
+                        }
+                    }
 
                     // Guardar cambios
                     await _db.SaveChangesAsync();
@@ -578,24 +588,83 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
     /// <summary>
     /// Actualiza las tipologías de la empresa
     /// </summary>
-    private async Task ActualizarTipologiasAsync(Empresa empresa)
+    /// <param name="empresa">Entidad empresa a actualizar</param>
+    /// <param name="tipologiasDTO">Array de tipologías desde el DTO</param>
+    private async Task ActualizarTipologiasAsync(Empresa empresa, TipologiaDTO[] tipologiasDTO)
     {
-        if (empresa.Tipologias == null || !empresa.Tipologias.Any())
-            return;
-
         // Limpiar tipologías existentes
         empresa.Tipologias.Clear();
-        await _db.SaveChangesAsync();
+        
+        // Si no hay nuevas tipologías, solo limpiar
+        if (tipologiasDTO == null || tipologiasDTO.Length == 0)
+            return;
 
         // Agregar nuevas tipologías seleccionadas
-        var nuevasTipologias = empresa
-            .Tipologias.Select(t => new TipologiasEmpresa
+        foreach (var tipologia in tipologiasDTO)
+        {
+            empresa.Tipologias.Add(new TipologiasEmpresa
             {
                 IdEmpresa = empresa.Id,
-                IdTipologia = t.IdTipologia,
-            })
-            .ToList();
+                IdTipologia = tipologia.Id
+            });
+        }
+    }
 
-        empresa.Tipologias = nuevasTipologias;
+    /// <summary>
+    /// Actualiza la tipología en el proceso de certificación activo si se cumplen las condiciones
+    /// </summary>
+    /// <param name="empresaId">ID de la empresa</param>
+    /// <param name="tipologiaId">ID de la tipología a asignar</param>
+    /// <param name="role">Rol del usuario</param>
+    private async Task ActualizarTipologiaProcesoCertificacionAsync(int empresaId, int tipologiaId, string role)
+    {
+        // Verificar que el rol sea TecnicoPais o Admin
+        if (role != Rol.TecnicoPais && role != Rol.Admin)
+        {
+            _logger.LogInformation(
+                "Rol {Role} no autorizado para actualizar tipología en proceso de certificación",
+                role
+            );
+            return;
+        }
+
+        // Buscar el proceso de certificación activo más reciente de la empresa
+        var procesoCertificacion = await _db.ProcesoCertificacion
+            .Where(p => p.EmpresaId == empresaId)
+            .OrderByDescending(p => p.FechaInicio)
+            .FirstOrDefaultAsync();
+
+        if (procesoCertificacion == null)
+        {
+            _logger.LogInformation(
+                "No se encontró proceso de certificación para la empresa {EmpresaId}",
+                empresaId
+            );
+            return;
+        }
+
+        // Verificar que el estado sea "0 - Inicial" o "1 - Para Asesorar"
+        bool estadoPermitido = procesoCertificacion.Status.StartsWith("0 - ") || 
+                              procesoCertificacion.Status.StartsWith("1 - ");
+
+        if (!estadoPermitido)
+        {
+            _logger.LogInformation(
+                "Estado del proceso {ProcesoId} no permite actualización de tipología. Estado actual: {Status}",
+                procesoCertificacion.Id,
+                procesoCertificacion.Status
+            );
+            return;
+        }
+
+        // Actualizar la tipología
+        procesoCertificacion.TipologiaId = tipologiaId;
+        
+        _logger.LogInformation(
+            "Actualizada tipología del proceso {ProcesoId} a {TipologiaId} por usuario con rol {Role}",
+            procesoCertificacion.Id,
+            tipologiaId,
+            role
+        );
     }
 }
