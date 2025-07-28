@@ -1889,61 +1889,116 @@ namespace Sitca.DataAccess.Data.Repository
             string role
         )
         {
-            var cuestionario = await _db.Cuestionario.FirstOrDefaultAsync(s =>
-                s.Id == CuestionarioId
-            );
-            var empresa = await _db.Empresa.FindAsync(cuestionario.IdEmpresa);
-            var auditorDB = await _db.Users.FindAsync(cuestionario.AuditorId);
-            ApplicationUser appUser = (ApplicationUser)auditorDB;
-
-            var result = new RegistroHallazgos
+            try
             {
-                Empresa = empresa.Nombre,
-                Generador = appUser.FirstName + " " + appUser.LastName,
-                HallazgosItems = new List<HallazgosDTO>(),
-            };
+                _logger.LogInformation("Iniciando generación de reporte de hallazgos para cuestionario ID: {CuestionarioId}", CuestionarioId);
+                var cuestionario = await _db.Cuestionario
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Id == CuestionarioId);
 
-            var cuestionariosItems = _db
-                .CuestionarioItem.Include(s => s.CuestionarioItemObservaciones)
-                .Where(s => s.CuestionarioId == CuestionarioId && s.Resultado == -1);
-
-            foreach (var item in cuestionariosItems)
-            {
-                var referencia = item.Nomenclatura;
-                var orden = new Version("1.1");
-                if (item.Nomenclatura.Contains("mb"))
+                if (cuestionario == null)
                 {
-                    orden = new Version(item.Nomenclatura.Replace("mb-", ""));
-                }
-                else
-                {
-                    orden = new Version(item.Nomenclatura);
+                    _logger.LogError("Cuestionario con ID {CuestionarioId} no encontrado", CuestionarioId);
+                    throw new ArgumentException($"Cuestionario con ID {CuestionarioId} no encontrado");
                 }
 
-                var hallazgo = new HallazgosDTO
+                var empresa = await _db.Empresa.AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.Id == cuestionario.IdEmpresa);
+
+                if (empresa == null)
                 {
-                    Descripcion = item.CuestionarioItemObservaciones.Any()
-                        ? item.CuestionarioItemObservaciones.First().Observaciones
-                        : "",
-                    Obligatorio = item.Obligatorio ? "Si" : "No",
-                    Referencia = item.Nomenclatura,
-                    ReferenciaOrden = orden,
-                    //Modulo = item.Nomenclatura.Contains("mb")? "BIO": (orden.Major - 3).ToString(),
-                    Modulo = item.Nomenclatura.Contains("mb")
-                        ? "BIO"
-                        : (orden.Major - 3).ToString(),
+                    _logger.LogError("Empresa no encontrada para el cuestionario ID {CuestionarioId}", CuestionarioId);
+                    throw new InvalidOperationException($"Empresa no encontrada para el cuestionario ID {CuestionarioId}");
+                }
+
+                var auditorName = "Sin auditor asignado";
+                var auditor = await _db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == cuestionario.AuditorId);
+                if (auditor != null)
+                {
+                    auditorName = $"{auditor.FirstName ?? ""} {auditor.LastName ?? ""}";
+                }
+
+                var result = new RegistroHallazgos
+                {
+                    Empresa = empresa.Nombre ?? "Sin nombre",
+                    Generador = auditorName.Trim(),
+                    HallazgosItems = [],
                 };
-                result.HallazgosItems.Add(hallazgo);
-            }
 
-            if (result.HallazgosItems.Any())
+                var cuestionariosItems = await _db.CuestionarioItem
+                    .AsNoTracking()
+                    .Include(s => s.CuestionarioItemObservaciones)
+                    .Where(s => s.CuestionarioId == CuestionarioId && s.Resultado == -1)
+                    .ToListAsync();
+
+                foreach (var item in cuestionariosItems)
+                {
+                    if (string.IsNullOrWhiteSpace(item.Nomenclatura))
+                    {
+                        _logger.LogWarning("CuestionarioItem ID {ItemId} tiene nomenclatura vacía, omitiendo", item.Id);
+                        continue;
+                    }
+
+                    Version orden;
+                    try
+                    {
+                        string versionString = item.Nomenclatura;
+                        
+                        if (item.Nomenclatura.Contains("mb-"))
+                        {
+                            versionString = item.Nomenclatura.Replace("mb-", "");
+                        }
+                        else if (item.Nomenclatura.Contains("mb"))
+                        {
+                            versionString = item.Nomenclatura.Replace("mb", "");
+                        }
+
+                        versionString = versionString.Trim();
+                        
+                        if (string.IsNullOrEmpty(versionString) || !System.Text.RegularExpressions.Regex.IsMatch(versionString, @"^\d+(\.\d+)*$"))
+                        {
+                            orden = new Version("1.0");
+                        }
+                        else
+                        {
+                            orden = new Version(versionString);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error al parsear version de nomenclatura '{Nomenclatura}', usando valor por defecto 1.0", item.Nomenclatura);
+                        orden = new Version("1.0");
+                    }
+
+                    var hallazgo = new HallazgosDTO
+                    {
+                        Descripcion = item.CuestionarioItemObservaciones?.FirstOrDefault()?.Observaciones ?? "",
+                        Obligatorio = item.Obligatorio ? "Si" : "No",
+                        Referencia = item.Nomenclatura ?? "",
+                        ReferenciaOrden = orden,
+                        Modulo = item.Nomenclatura?.Contains("mb") == true 
+                            ? "BIO" 
+                            : (orden.Major > 3 ? (orden.Major - 3).ToString() : "0"),
+                    };
+                    
+                    result.HallazgosItems.Add(hallazgo);
+                }
+
+                if (result.HallazgosItems.Any())
+                {
+                    result.HallazgosItems = [.. result.HallazgosItems.OrderBy(s => s.ReferenciaOrden)];
+                }
+
+                _logger.LogInformation("Reporte de hallazgos generado exitosamente con {Count} items", result.HallazgosItems.Count);
+                return result;
+            }
+            catch (Exception ex)
             {
-                result.HallazgosItems = result
-                    .HallazgosItems.OrderBy(s => s.ReferenciaOrden)
-                    .ToList();
+                _logger.LogError(ex, "Error al generar reporte de hallazgos para cuestionario ID: {CuestionarioId}", CuestionarioId);
+                throw new InvalidOperationException($"Error al generar reporte de hallazgos: {ex.Message}", ex);
             }
-
-            return result;
         }
 
         public async Task<List<ObservacionesDTO>> GetListObservaciones(IEnumerable<int> itemIds)

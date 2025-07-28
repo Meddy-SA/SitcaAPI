@@ -355,7 +355,7 @@ namespace Sitca.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin, TecnicoPais, ATP")]
         [HttpGet("GetUsers")]
         public async Task<ActionResult<IEnumerable<UsersListVm>>> GetUsers(
             [FromQuery] GetUsersRequest request
