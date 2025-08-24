@@ -1924,7 +1924,7 @@ namespace Sitca.DataAccess.Data.Repository
                 {
                     Empresa = empresa.Nombre ?? "Sin nombre",
                     Generador = auditorName.Trim(),
-                    HallazgosItems = [],
+                    HallazgosItems = new List<HallazgosDTO>(),
                 };
 
                 var cuestionariosItems = await _db.CuestionarioItem
@@ -1988,7 +1988,9 @@ namespace Sitca.DataAccess.Data.Repository
 
                 if (result.HallazgosItems.Any())
                 {
-                    result.HallazgosItems = [.. result.HallazgosItems.OrderBy(s => s.ReferenciaOrden)];
+                    result.HallazgosItems = result.HallazgosItems
+                        .OrderBy(s => s.ReferenciaOrden)
+                        .ToList();
                 }
 
                 _logger.LogInformation("Reporte de hallazgos generado exitosamente con {Count} items", result.HallazgosItems.Count);

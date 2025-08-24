@@ -6,7 +6,6 @@ namespace Sitca.Models
   {
     public CuestionarioItem()
     {
-      Archivos = new HashSet<Archivo>();  // Inicializar como HashSet
     }
 
     [Key]
@@ -29,8 +28,8 @@ namespace Sitca.Models
     public Pregunta Pregunta { get; set; } = null!;
     public DateTime? FechaActualizado { get; set; }
 
-    public IEnumerable<Archivo> Archivos { get; set; } = [];
+    public ICollection<Archivo> Archivos { get; set; } = new HashSet<Archivo>();
 
-    public IEnumerable<CuestionarioItemObservaciones> CuestionarioItemObservaciones { get; set; } = [];
+    public ICollection<CuestionarioItemObservaciones> CuestionarioItemObservaciones { get; set; } = new HashSet<CuestionarioItemObservaciones>();
   }
 }

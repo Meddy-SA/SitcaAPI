@@ -119,7 +119,10 @@ public class NotificationService : INotificationService
         using var scope = _serviceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        return await dbContext.Empresa.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
+        return await dbContext.Empresa
+            .AsNoTracking()
+            .Include(e => e.Pais)
+            .FirstOrDefaultAsync(e => e.Id == id);
     }
 
     private async Task<Notificacion> GetNotificationTemplate(NotificationTypes type)
@@ -146,7 +149,7 @@ public class NotificationService : INotificationService
             notificationModel
         );
 
-        emailContent = emailContent.Replace("{0}", $"{empresa.Nombre} ({empresa.Pais})");
+        emailContent = emailContent.Replace("{0}", $"{empresa.Nombre} ({empresa.Pais?.Name ?? "Sin País"})");
 
         await _emailSender.SendEmailBrevoAsync(
             recipient.Email,
