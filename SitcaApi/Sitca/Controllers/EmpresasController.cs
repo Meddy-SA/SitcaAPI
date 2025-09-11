@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -11,8 +10,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
-using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.EmpresaDeletion;
+using Sitca.DataAccess.Services.Notification;
 using Sitca.Extensions;
 using Sitca.Models;
 using Sitca.Models.DTOs;
@@ -392,7 +391,9 @@ public class EmpresasController : ControllerBase
 
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrEmpty(role))
-                return BadRequest(Result<EmpresaDeletionInfo>.Failure("No se encontró el rol del usuario"));
+                return BadRequest(
+                    Result<EmpresaDeletionInfo>.Failure("No se encontró el rol del usuario")
+                );
 
             var result = await _empresaDeletionService.CanDeleteEmpresaAsync(
                 id,
@@ -404,8 +405,15 @@ public class EmpresasController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener información de eliminación para empresa: {EmpresaId}", id);
-            return StatusCode(500, Result<EmpresaDeletionInfo>.Failure("Error interno del servidor"));
+            _logger.LogError(
+                ex,
+                "Error al obtener información de eliminación para empresa: {EmpresaId}",
+                id
+            );
+            return StatusCode(
+                500,
+                Result<EmpresaDeletionInfo>.Failure("Error interno del servidor")
+            );
         }
     }
 
@@ -428,7 +436,9 @@ public class EmpresasController : ControllerBase
 
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrEmpty(role))
-                return BadRequest(Result<EmpresaDeletionResult>.Failure("No se encontró el rol del usuario"));
+                return BadRequest(
+                    Result<EmpresaDeletionResult>.Failure("No se encontró el rol del usuario")
+                );
 
             var result = await _empresaDeletionService.DeleteEmpresaWithRelatedEntitiesAsync(
                 id,
@@ -441,7 +451,10 @@ public class EmpresasController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al eliminar empresa: {EmpresaId}", id);
-            return StatusCode(500, Result<EmpresaDeletionResult>.Failure("Error interno del servidor"));
+            return StatusCode(
+                500,
+                Result<EmpresaDeletionResult>.Failure("Error interno del servidor")
+            );
         }
     }
 

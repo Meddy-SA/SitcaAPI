@@ -37,4 +37,6 @@ public interface IProcesoRepository : IRepository<ProcesoCertificacion>
 
     Task<Result<bool>> ValidarProcesoEmpresaAsync(int procesoId, int empresaId);
     Task<Result<bool>> SolicitarAuditoriaAsync(int procesoId, string userId);
+    
+    Task<Result<ProcesoCertificacionDTO>> TransicionarEstadoCTCAsync(int procesoId, string userId);
 }

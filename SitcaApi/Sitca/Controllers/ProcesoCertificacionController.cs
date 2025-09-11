@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Sitca.DataAccess.Data.Repository.Constants;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.DataAccess.Services.Notification;
 using Sitca.DataAccess.Services.ProcesosDeletion;
@@ -63,7 +64,51 @@ public class ProcesoCertificacionController : ControllerBase
             if (appUser == null)
                 return Unauthorized();
 
+            // Obtener el proceso inicialmente
             var res = await _unitOfWork.Proceso.GetProcesoForIdAsync(id, appUser.Id);
+
+            if (!res.IsSuccess)
+                return this.HandleResponse(res);
+
+            // Si el usuario es CTC y el proceso está en estado 6 (Auditoría Finalizada),
+            // transicionar automáticamente a estado 7 (En Revisión CTC)
+            if (User.IsInRole(Constants.Roles.CTC))
+            {
+                const int estadoAuditoriaFinalizada = 6;
+
+                // Verificar si el proceso está en estado "6 - Auditoria Finalizada"
+                var estadoActual = StatusConstants.GetStatusId(res.Value.Status, "es");
+                if (estadoActual == estadoAuditoriaFinalizada)
+                {
+                    _logger.LogInformation(
+                        "Usuario CTC {UserId} accediendo a proceso {ProcesoId} en estado Auditoría Finalizada. Transicionando a En Revisión CTC.",
+                        appUser.Id,
+                        id
+                    );
+
+                    // Transicionar el estado automáticamente
+                    var transicionResult = await _unitOfWork.Proceso.TransicionarEstadoCTCAsync(
+                        id,
+                        appUser.Id
+                    );
+
+                    // Si la transición fue exitosa, usar el proceso actualizado
+                    if (transicionResult.IsSuccess)
+                    {
+                        return this.HandleResponse(transicionResult);
+                    }
+                    else
+                    {
+                        // Log el error pero devolver el proceso original
+                        _logger.LogWarning(
+                            "Error al transicionar automáticamente el proceso {ProcesoId} a estado CTC: {Error}",
+                            id,
+                            transicionResult.Error
+                        );
+                    }
+                }
+            }
+
             return this.HandleResponse(res);
         }
         catch (Exception ex)
@@ -431,6 +476,40 @@ public class ProcesoCertificacionController : ControllerBase
             return StatusCode(
                 500,
                 Result<ProcesosDeletionInfo>.Failure("Error interno del servidor")
+            );
+        }
+    }
+
+    /// <summary>
+    /// Transiciona un proceso de certificación de estado 6 (Auditoría Finalizada) a estado 7 (En Revisión CTC)
+    /// Solo disponible para usuarios con rol CTC
+    /// </summary>
+    [Authorize(Roles = Constants.Roles.CTC)]
+    [HttpPatch("{id}/transicion-ctc")]
+    [ProducesResponseType(typeof(Result<ProcesoCertificacionDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<ProcesoCertificacionDTO>>> TransicionarEstadoCTC(int id)
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(
+                    Result<ProcesoCertificacionDTO>.Failure("Usuario no autorizado")
+                );
+
+            var result = await _unitOfWork.Proceso.TransicionarEstadoCTCAsync(id, appUser.Id);
+            return this.HandleResponse(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al transicionar proceso {ProcesoId} a estado CTC", id);
+            return StatusCode(
+                500,
+                Result<ProcesoCertificacionDTO>.Failure("Error interno del servidor")
             );
         }
     }

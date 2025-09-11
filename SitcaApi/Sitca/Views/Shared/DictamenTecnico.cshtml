@@ -39,7 +39,7 @@
   y realizado el an&aacute;lisis t&eacute;cnico correspondiente, este comit&eacute; concluye que el establecimiento es
   acreedor al Sello <strong>SICCS &nbsp;<span
       style="background:yellow;">@Model.CertificacionActual.Resultado</span></strong>, bajo la norma de  <strong>
-    @Model.Tipologias.First(s =>s.isSelected).name </strong>, siempre y cuando cumpla con los requerimientos que
+    @(Model.CertificacionActual?.TipologiaName ?? "Tipología no especificada") </strong>, siempre y cuando cumpla con los requerimientos que
   establece dicha norma.&nbsp;</p>
 <p style='margin: 0in; font-size: 16px; font-family: "Times New Roman", serif; text-align: justify; line-height: 1.5;'>
   &nbsp;</p>
@@ -77,8 +77,7 @@
 <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
       style="font-size:13px;">VoBo&nbsp;___________________________</span></strong></p>
 <p style='margin:0in;font-size:18px;font-family:"Times New Roman",serif;text-align:center;'><strong><span
-      style="font-size:13px;">REPRESENTANTE DE LA NORMA DE &nbsp; <u>@Model.Tipologias.First(s
-        =>s.isSelected).name</u>  </span></strong></p>
+      style="font-size:13px;">REPRESENTANTE DE LA NORMA DE &nbsp; <u>@(Model.CertificacionActual?.TipologiaName ?? "Tipología no especificada")</u>  </span></strong></p>
 
 
 

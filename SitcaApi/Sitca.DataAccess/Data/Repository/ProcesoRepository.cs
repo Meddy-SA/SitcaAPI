@@ -772,6 +772,118 @@ public class ProcesoRepository : Repository<ProcesoCertificacion>, IProcesoRepos
         }
     }
 
+    public async Task<Result<ProcesoCertificacionDTO>> TransicionarEstadoCTCAsync(
+        int procesoId,
+        string userId
+    )
+    {
+        try
+        {
+            const int estadoAuditoriaFinalizada = ProcessStatus.AuditCompleted; // 6
+            const int estadoEnRevisionCTC = ProcessStatus.UnderCCTReview; // 7
+
+            // Crear una estrategia de ejecución para garantizar transacciones resilientes
+            var strategy = _db.Database.CreateExecutionStrategy();
+
+            return await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    // Buscar el proceso con todas sus relaciones necesarias
+                    var proceso = await _db
+                        .ProcesoCertificacion.Include(p => p.Empresa)
+                        .ThenInclude(e => e.Pais)
+                        .Include(p => p.Tipologia)
+                        .Include(p => p.AsesorProceso)
+                        .Include(p => p.AuditorProceso)
+                        .Include(p => p.UserGenerador)
+                        .Include(p => p.Resultados)
+                        .ThenInclude(r => r.Distintivo)
+                        .Include(p => p.ProcesosArchivos.Where(a => a.Enabled))
+                        .ThenInclude(a => a.UserCreate)
+                        .Include(p => p.Cuestionarios)
+                        .FirstOrDefaultAsync(p => p.Id == procesoId && p.Enabled);
+
+                    if (proceso == null)
+                    {
+                        return Result<ProcesoCertificacionDTO>.Failure(
+                            $"No se encontró el proceso de certificación con ID: {procesoId}"
+                        );
+                    }
+
+                    // Verificar el estado actual del proceso
+                    var estadoActual = StatusConstants.GetStatusId(proceso.Status, "es");
+                    
+                    if (estadoActual != estadoAuditoriaFinalizada)
+                    {
+                        _logger.LogInformation(
+                            "El proceso {ProcesoId} no está en estado de Auditoría Finalizada. Estado actual: {EstadoActual}",
+                            procesoId,
+                            estadoActual
+                        );
+                        // Si no está en estado 6, devolvemos el proceso sin cambios
+                        var procesoSinCambios = proceso.ToDto(userId);
+                        return Result<ProcesoCertificacionDTO>.Success(procesoSinCambios);
+                    }
+
+                    // Actualizar el estado del proceso a "En Revisión CTC"
+                    var nuevoEstado = StatusConstants.GetLocalizedStatus(estadoEnRevisionCTC, "es");
+                    proceso.Status = nuevoEstado;
+                    proceso.UpdatedBy = userId;
+                    proceso.UpdatedAt = DateTime.UtcNow;
+
+                    // Actualizar el estado de la empresa
+                    if (proceso.Empresa != null)
+                    {
+                        proceso.Empresa.Estado = estadoEnRevisionCTC;
+                        proceso.Empresa.FechaAutoNotif = null; // Resetear fecha de auto notificación si aplica
+                    }
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation(
+                        "Proceso {ProcesoId} transicionado exitosamente de estado {EstadoAnterior} a {EstadoNuevo} por usuario CTC {UserId}",
+                        procesoId,
+                        estadoAuditoriaFinalizada,
+                        estadoEnRevisionCTC,
+                        userId
+                    );
+
+                    // Mapear y devolver el proceso actualizado
+                    var procesoActualizado = proceso.ToDto(userId);
+                    
+                    // Obtener información adicional sobre los procesos de la empresa
+                    var (totalProcesos, ultimoProcesoId) = await GetProcesoInfoEmpresaAsync(
+                        proceso.EmpresaId
+                    );
+                    
+                    procesoActualizado.TotalProcesos = totalProcesos;
+                    procesoActualizado.EsUltimoProceso = ultimoProcesoId == procesoId;
+
+                    return Result<ProcesoCertificacionDTO>.Success(procesoActualizado);
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al transicionar el proceso {ProcesoId} a estado CTC",
+                procesoId
+            );
+            return Result<ProcesoCertificacionDTO>.Failure(
+                $"Error al actualizar el estado del proceso: {ex.Message}"
+            );
+        }
+    }
+
     private async Task CopiarArchivosProcesoAnteriorAsync(
         int procesoAnteriorId,
         int nuevoProcesoId,

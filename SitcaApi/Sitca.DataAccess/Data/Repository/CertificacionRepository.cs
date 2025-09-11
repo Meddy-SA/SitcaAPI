@@ -75,85 +75,87 @@ namespace Sitca.DataAccess.Data.Repository
                         $"No se encontró la empresa asociada al proceso {data.idProceso}"
                     );
 
-                // Iniciar transacción para garantizar atomicidad
-                using var transaction = await _db.Database.BeginTransactionAsync();
-                try
+                // Crear una estrategia de ejecución para garantizar transacciones resilientes
+                var strategy = _db.Database.CreateExecutionStrategy();
+
+                return await strategy.ExecuteAsync(async () =>
                 {
-                    // Actualizar fechas de certificación
-                    certificacion.FechaFinalizacion = DateTime.UtcNow;
-
-                    if (data.aprobado)
+                    using var transaction = await _db.Database.BeginTransactionAsync();
+                    try
                     {
-                        // Obtener el distintivo en la misma transacción
-                        var distintivo = await _db.Distintivo.FindAsync(data.distintivoId);
-                        if (distintivo == null)
-                            return Result<bool>.Failure(
-                                $"No se encontró el distintivo con ID {data.distintivoId}"
-                            );
+                        // Actualizar fechas de certificación
+                        certificacion.FechaFinalizacion = DateTime.UtcNow;
 
-                        // Actualizar fechas y resultados
-                        certificacion.FechaVencimiento = DateTime.UtcNow.AddYears(2);
-                        empresa.ResultadoVencimiento = certificacion.FechaVencimiento;
-                        empresa.ResultadoActual =
-                            appUser.Lenguage == "es" ? distintivo.Name : distintivo.NameEnglish;
+                        if (data.aprobado)
+                        {
+                            // Obtener el distintivo en la misma transacción
+                            var distintivo = await _db.Distintivo.FindAsync(data.distintivoId);
+                            if (distintivo == null)
+                                return Result<bool>.Failure(
+                                    $"No se encontró el distintivo con ID {data.distintivoId}"
+                                );
+
+                            // Actualizar fechas y resultados
+                            certificacion.FechaVencimiento = DateTime.UtcNow.AddYears(2);
+                            empresa.ResultadoVencimiento = certificacion.FechaVencimiento;
+                            empresa.ResultadoActual =
+                                appUser.Lenguage == "es" ? distintivo.Name : distintivo.NameEnglish;
+                        }
+
+                        // Crear y agregar el resultado de certificación
+                        var resultado = new ResultadoCertificacion
+                        {
+                            Aprobado = data.aprobado,
+                            DistintivoId = data.aprobado ? data.distintivoId : null,
+                            CertificacionId = data.idProceso,
+                            NumeroDictamen = data.Dictamen,
+                            Observaciones = data.Observaciones,
+                        };
+
+                        await _db.ResultadoCertificacion.AddAsync(resultado);
+
+                        // Cambiar el estado del proceso
+                        const int nuevoEstadoId = ProcessStatus.Completed;
+                        var nuevoEstado = new CertificacionStatusVm
+                        {
+                            CertificacionId = data.idProceso,
+                            Status = StatusConstants.GetLocalizedStatus(
+                                nuevoEstadoId,
+                                appUser.Lenguage ?? "es"
+                            ),
+                        };
+
+                        await ChangeStatus(nuevoEstado, nuevoEstadoId);
+
+                        // Guardar todos los cambios
+                        await _db.SaveChangesAsync();
+
+                        // Confirmar la transacción
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "Calificación guardada exitosamente para el proceso {ProcesoId} por usuario {UserId}",
+                            data.idProceso,
+                            appUser.Id
+                        );
+
+                        return Result<bool>.Success(true);
                     }
-
-                    // Crear y agregar el resultado de certificación
-                    var resultado = new ResultadoCertificacion
+                    catch (Exception)
                     {
-                        Aprobado = data.aprobado,
-                        DistintivoId = data.aprobado ? data.distintivoId : null,
-                        CertificacionId = data.idProceso,
-                        NumeroDictamen = data.Dictamen,
-                        Observaciones = data.Observaciones,
-                    };
-
-                    await _db.ResultadoCertificacion.AddAsync(resultado);
-
-                    // Cambiar el estado del proceso
-                    const int nuevoEstadoId = ProcessStatus.Completed; // Considerar usar un enum para los estados
-                    var nuevoEstado = new CertificacionStatusVm
-                    {
-                        CertificacionId = data.idProceso,
-                        Status = StatusConstants.GetLocalizedStatus(
-                            nuevoEstadoId,
-                            appUser.Lenguage ?? "es"
-                        ),
-                    };
-
-                    await ChangeStatus(nuevoEstado, nuevoEstadoId);
-
-                    // Guardar todos los cambios
-                    await _db.SaveChangesAsync();
-
-                    // Confirmar la transacción
-                    await transaction.CommitAsync();
-
-                    return Result<bool>.Success(true);
-                }
-                catch (Exception ex)
-                {
-                    // Revertir la transacción en caso de error
-                    await transaction.RollbackAsync();
-
-                    // Loguear el error específico para debugging
-                    _logger.LogError(
-                        ex,
-                        "Error al guardar la calificación para el proceso {ProcesoId}",
-                        data.idProceso
-                    );
-
-                    return Result<bool>.Failure($"Error al guardar la calificación: {ex.Message}");
-                }
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Error no controlado al acceder a la base de datos para el proceso {ProcesoId}",
+                    "Error al guardar la calificación para el proceso {ProcesoId}",
                     data.idProceso
                 );
-                return Result<bool>.Failure("Error interno al procesar los datos de calificación");
+                return Result<bool>.Failure($"Error al guardar la calificación: {ex.Message}");
             }
         }
 

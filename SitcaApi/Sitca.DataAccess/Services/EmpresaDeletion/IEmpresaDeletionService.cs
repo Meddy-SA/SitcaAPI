@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Sitca.Models;
 using Sitca.Models.DTOs;
 
 namespace Sitca.DataAccess.Services.EmpresaDeletion;
@@ -15,8 +14,8 @@ public interface IEmpresaDeletionService
     /// <param name="userRole">Rol del usuario que realiza la eliminación</param>
     /// <returns>Resultado de la operación con detalles del proceso</returns>
     Task<Result<EmpresaDeletionResult>> DeleteEmpresaWithRelatedEntitiesAsync(
-        int empresaId, 
-        int paisId, 
+        int empresaId,
+        int paisId,
         string userRole
     );
 
@@ -28,8 +27,8 @@ public interface IEmpresaDeletionService
     /// <param name="userRole">Rol del usuario</param>
     /// <returns>Resultado con información sobre las dependencias encontradas</returns>
     Task<Result<EmpresaDeletionInfo>> CanDeleteEmpresaAsync(
-        int empresaId, 
-        int paisId, 
+        int empresaId,
+        int paisId,
         string userRole
     );
 }
@@ -66,3 +65,4 @@ public class EmpresaDeletionResult
     public int UsersDeleted { get; set; }
     public int HomologacionesDeleted { get; set; }
 }
+

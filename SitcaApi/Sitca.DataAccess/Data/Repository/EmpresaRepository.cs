@@ -614,7 +614,7 @@ namespace Sitca.DataAccess.Data.Repository
                 var result = resultBuilder.Build();
 
                 // Obtener y procesar certificaciones
-                await EnrichWithCertificationsAsync(result, user);
+                await EnrichWithCertificationsAsync(result, user, allTipologias);
 
                 return result;
             }
@@ -635,10 +635,11 @@ namespace Sitca.DataAccess.Data.Repository
 
         private async Task EnrichWithCertificationsAsync(
             EmpresaUpdateVm result,
-            ApplicationUser user
+            ApplicationUser user,
+            List<Tipologia> allTipologias
         )
         {
-            result.Certificaciones = await GetCertificacionesAsync(user, result.Id);
+            result.Certificaciones = await GetCertificacionesAsync(user, result.Id, allTipologias);
 
             if (result.Certificaciones.Any())
             {
@@ -715,7 +716,8 @@ namespace Sitca.DataAccess.Data.Repository
 
         private async Task<List<CertificacionDetailsVm>> GetCertificacionesAsync(
             ApplicationUser user,
-            int companyId
+            int companyId,
+            List<Tipologia> allTipologias
         )
         {
             try
@@ -728,6 +730,7 @@ namespace Sitca.DataAccess.Data.Repository
                     .Include(x => x.AsesorProceso)
                     .Include(x => x.AuditorProceso)
                     .Include(x => x.UserGenerador)
+                    .Include(x => x.Tipologia)
                     .Where(s => s.EmpresaId == companyId)
                     .Select(x => new CertificacionDetailsVm
                     {
@@ -746,6 +749,7 @@ namespace Sitca.DataAccess.Data.Repository
                             .Select(e => e.FechaRevisionAuditor)
                             .SingleOrDefault()
                             .ToStringArg(),
+                        TipologiaName = x.Tipologia != null ? x.Tipologia.Name : GetTipologiaName(x.TipologiaId, allTipologias, "Tipologia no encontrada"),
                         Id = x.Id,
                     })
                     .ToListAsync();
@@ -769,6 +773,14 @@ namespace Sitca.DataAccess.Data.Repository
             };
         }
 
+        private static string GetTipologiaName(int? tipologiaId, List<Tipologia> allTipologias, string defaultName)
+        {
+            var tipologia = allTipologias.FirstOrDefault(x => x.Id == tipologiaId);
+            if (tipologia != null)
+                return tipologia.Name;
+            return defaultName;
+        }
+
         private static string GetResultado(
             ICollection<ResultadoCertificacion> resultados,
             string language,
@@ -790,19 +802,61 @@ namespace Sitca.DataAccess.Data.Repository
             List<CertificacionDetailsVm> certificaciones
         )
         {
-            var currentCertification = certificaciones.OrderByDescending(s => s.Id).First();
+            var now = DateTime.Now;
+            
+            // 1. Buscar proceso activo más reciente (estados 0-7)
+            var procesoActivo = certificaciones
+                .Where(c => !IsCompletedStatus(c.Status))
+                .OrderByDescending(c => c.Id)
+                .FirstOrDefault();
+            
+            if (procesoActivo != null)
+                return SetAlertaVencimiento(procesoActivo);
+            
+            // 2. Buscar certificación válida más reciente (estado 8 + vigente)
+            var certificacionVigente = certificaciones
+                .Where(c => IsCompletedStatus(c.Status) 
+                           && c.FechaVencimiento != null 
+                           && c.FechaVencimiento.ToDateArg() > now)
+                .OrderByDescending(c => c.FechaVencimiento.ToDateArg())
+                .FirstOrDefault();
+            
+            if (certificacionVigente != null)
+                return SetAlertaVencimiento(certificacionVigente);
+            
+            // 3. Certificación vencida más reciente por fecha de vencimiento
+            var certificacionVencida = certificaciones
+                .Where(c => IsCompletedStatus(c.Status) && c.FechaVencimiento != null)
+                .OrderByDescending(c => c.FechaVencimiento.ToDateArg())
+                .FirstOrDefault();
+            
+            if (certificacionVencida != null)
+                return SetAlertaVencimiento(certificacionVencida);
+            
+            // 4. Fallback final: cualquier proceso más reciente por ID
+            var ultimoCertificacion = certificaciones.OrderByDescending(c => c.Id).First();
+            return SetAlertaVencimiento(ultimoCertificacion);
+        }
 
-            if (currentCertification.FechaVencimiento != null)
+        private static bool IsCompletedStatus(string status)
+        {
+            return status.Contains("8 -") || 
+                   status.Contains("Finalizado") || 
+                   status.Contains("Completed");
+        }
+
+        private static CertificacionDetailsVm SetAlertaVencimiento(CertificacionDetailsVm certification)
+        {
+            if (certification.FechaVencimiento != null)
             {
                 var dueDate = DateTime.Now.AddMonths(6);
-                var vencimientoSello = currentCertification.FechaVencimiento.ToDateArg();
+                var vencimientoSello = certification.FechaVencimiento.ToDateArg();
                 if (vencimientoSello < dueDate)
                 {
-                    currentCertification.alertaVencimiento = true; //TODO: Hacerlo en el nuevo de procesos.
+                    certification.alertaVencimiento = true;
                 }
             }
-
-            return currentCertification;
+            return certification;
         }
 
         public EstadisticasVm Estadisticas(string lang)
