@@ -11,6 +11,9 @@ namespace Sitca.Models.DTOs.Dashboard
         public EstadisticasEmpresaAuditoraDto Estadisticas { get; set; }
         public List<AlertaGestionDto> AlertasGestion { get; set; }
         public List<DistribucionTrabajoDto> DistribucionTrabajo { get; set; }
+        public List<CountryStatDto> EmpresasPorPais { get; set; }
+        public List<TypologyStatDto> EmpresasPorTipologia { get; set; }
+        public List<RecentActivityDto> ActividadesRecientes { get; set; }
     }
 
     public class AuditorActivoDto
