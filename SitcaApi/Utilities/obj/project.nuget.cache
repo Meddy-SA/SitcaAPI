@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "f9lXW70kJTA=",
+  "dgSpecHash": "gEc0/azzm8o=",
   "success": true,
-  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
   "expectedPackageFiles": [
     "/Users/enzo/.nuget/packages/microsoft.netcore.app.ref/8.0.20/microsoft.netcore.app.ref.8.0.20.nupkg.sha512",
     "/Users/enzo/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.20/microsoft.aspnetcore.app.ref.8.0.20.nupkg.sha512"

@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+      "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
       "projectName": "Utilities",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
       "packagesPath": "/Users/enzo/.nuget/packages/",
-      "outputPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/obj/",
+      "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/enzo/.nuget/NuGet/NuGet.Config"

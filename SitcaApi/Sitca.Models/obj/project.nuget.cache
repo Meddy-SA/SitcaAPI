@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/+tpd9OTyEw=",
+  "dgSpecHash": "iF4/w/uYqJQ=",
   "success": true,
-  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
   "expectedPackageFiles": [
     "/Users/enzo/.nuget/packages/azure.core/1.25.0/azure.core.1.25.0.nupkg.sha512",
     "/Users/enzo/.nuget/packages/azure.identity/1.7.0/azure.identity.1.7.0.nupkg.sha512",

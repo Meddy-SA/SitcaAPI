@@ -763,15 +763,23 @@ namespace Sitca.DataAccess.Data.Repository
         )
         {
             var cuestionario = await _db
-                .Cuestionario.Include("Tipologia")
+                .Cuestionario.AsNoTracking()
+                .Include("Tipologia")
                 .FirstOrDefaultAsync(s => s.Id == id);
-            var empresa = _db.Empresa.Find(cuestionario.IdEmpresa);
+            var empresa = await _db.Empresa
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == cuestionario.IdEmpresa);
 
             var lenguage = user.Lenguage;
 
-            var respuestas = _db.CuestionarioItem.Where(s => s.CuestionarioId == id).ToList();
+            var respuestas = _db.CuestionarioItem
+                .AsNoTracking()
+                .Include(s => s.CuestionarioItemObservaciones)
+                .Where(s => s.CuestionarioId == id)
+                .ToList();
             var proceso = await _db
-                .ProcesoCertificacion.Include(x => x.AsesorProceso)
+                .ProcesoCertificacion.AsNoTracking()
+                .Include(x => x.AsesorProceso)
                 .FirstOrDefaultAsync(x => x.Id == cuestionario.ProcesoCertificacionId);
 
             if (
@@ -805,7 +813,8 @@ namespace Sitca.DataAccess.Data.Repository
             var bioseguridad = _config["Settings:bioseguridad"] == "true";
 
             var pregs = await _db
-                .Pregunta.Where(s =>
+                .Pregunta.AsNoTracking()
+                .Where(s =>
                     (s.TipologiaId == proceso.TipologiaId || s.TipologiaId == null)
                     && (bioseguridad || s.ModuloId < 11)
                 )
@@ -830,6 +839,9 @@ namespace Sitca.DataAccess.Data.Repository
                     var resp = respuestas.First(s => s.PreguntaId == pregunta.Id);
                     pregunta.Result = resp.Resultado;
                     pregunta.IdRespuesta = resp.Id;
+                    pregunta.Observacion = resp.CuestionarioItemObservaciones?
+                        .OrderByDescending(o => o.Date)
+                        .FirstOrDefault()?.Observaciones ?? string.Empty;
                 }
             }
 

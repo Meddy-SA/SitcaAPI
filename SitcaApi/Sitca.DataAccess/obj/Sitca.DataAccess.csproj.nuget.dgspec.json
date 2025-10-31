@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {}
+    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {}
   },
   "projects": {
-    "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {
+    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
         "projectName": "Sitca.DataAccess",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
         "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/obj/",
+        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/enzo/.nuget/NuGet/NuGet.Config"
@@ -27,11 +27,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
-                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
+              "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
               },
-              "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
-                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj"
+              "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
+                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj"
               }
             }
           }
@@ -159,14 +159,14 @@
         }
       }
     },
-    "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
         "projectName": "Sitca.Models",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
         "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.Models/obj/",
+        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/enzo/.nuget/NuGet/NuGet.Config"
@@ -251,14 +251,14 @@
         }
       }
     },
-    "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj": {
+    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
         "projectName": "Utilities",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/Utilities.csproj",
+        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
         "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Utilities/obj/",
+        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/enzo/.nuget/NuGet/NuGet.Config"

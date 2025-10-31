@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ClD9irF1YCU=",
+  "dgSpecHash": "M97eyiDMAIE=",
   "success": true,
-  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+  "projectFilePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
   "expectedPackageFiles": [
     "/Users/enzo/.nuget/packages/azure.core/1.35.0/azure.core.1.35.0.nupkg.sha512",
     "/Users/enzo/.nuget/packages/azure.identity/1.10.3/azure.identity.1.10.3.nupkg.sha512",
@@ -252,9 +252,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "Sitca.DataAccess depends on GemBox.Document (>= 35.0.1775) but GemBox.Document 35.0.1775 was not found. GemBox.Document 35.0.1784 was resolved instead.",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "GemBox.Document",
       "targetGraphs": [
         "net8.0"
@@ -264,9 +264,9 @@
       "code": "NU1603",
       "level": "Warning",
       "message": "Sitca.DataAccess depends on GemBox.Pdf (>= 17.0.1589) but GemBox.Pdf 17.0.1589 was not found. GemBox.Pdf 17.0.1593 was resolved instead.",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "GemBox.Pdf",
       "targetGraphs": [
         "net8.0"
@@ -276,9 +276,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-6hgw-6x87-578x",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -288,9 +288,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-9ccg-6pjw-x645",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -300,9 +300,9 @@
       "code": "NU1901",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known low severity vulnerability, https://github.com/advisories/GHSA-cfh4-9f7v-fhrc",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -312,9 +312,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-cjc8-g9w8-chfw",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -324,9 +324,9 @@
       "code": "NU1901",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known low severity vulnerability, https://github.com/advisories/GHSA-fh55-q5pj-pxgw",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -336,9 +336,9 @@
       "code": "NU1901",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known low severity vulnerability, https://github.com/advisories/GHSA-hm4x-r5hc-794f",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -348,9 +348,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-mxvv-97wh-cfmm",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -360,9 +360,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-qh3h-j545-h8c9",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -372,9 +372,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-qp29-wxp5-wh82",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -384,9 +384,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-vmhh-8rxq-fp9g",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"
@@ -396,9 +396,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'SixLabors.ImageSharp' 2.1.8 has a known high severity vulnerability, https://github.com/advisories/GHSA-2cmq-823j-5qj8",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"
@@ -408,9 +408,9 @@
       "code": "NU1903",
       "level": "Warning",
       "message": "Package 'SixLabors.ImageSharp' 2.1.8 has a known high severity vulnerability, https://github.com/advisories/GHSA-63p8-c4ww-9cg7",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"
@@ -420,9 +420,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Package 'SixLabors.ImageSharp' 2.1.8 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-qxrv-gp6x-rc23",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"
@@ -432,9 +432,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Package 'SixLabors.ImageSharp' 2.1.8 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
-      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "warningLevel": 1,
-      "filePath": "/Users/enzo/Documents/AspNetCore/sitca-2.0/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "filePath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"
