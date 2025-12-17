@@ -4,7 +4,7 @@ namespace Sitca.Models.DTOs.Dashboard
     {
         public ApiStatusDto ApiStatus { get; set; } = new();
         public DatabaseStatusDto DatabaseStatus { get; set; } = new();
-        public LastBackupDto LastBackup { get; set; } = new();
+        public ActivityMetricsDto ActivityMetrics { get; set; } = new();
         public ServerHealthDto ServerHealth { get; set; } = new();
     }
 
@@ -22,11 +22,14 @@ namespace Sitca.Models.DTOs.Dashboard
         public DateTime LastCheck { get; set; }
     }
 
-    public class LastBackupDto
+    public class ActivityMetricsDto
     {
-        public DateTime Timestamp { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public string Size { get; set; } = string.Empty;
+        public int ActiveUsersToday { get; set; }
+        public DateTime? LastSystemActivity { get; set; }
+        public string LastActivityType { get; set; } = string.Empty;
+        public int NotificationsSentToday { get; set; }
+        public int CertificationsStartedThisWeek { get; set; }
+        public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class ServerHealthDto

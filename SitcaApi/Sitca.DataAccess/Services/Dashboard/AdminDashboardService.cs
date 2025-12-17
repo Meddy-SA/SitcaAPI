@@ -209,7 +209,7 @@ namespace Sitca.DataAccess.Services.Dashboard
                     LastCheck = DateTime.UtcNow,
                 },
                 DatabaseStatus = await GetDatabaseStatusAsync(),
-                LastBackup = await GetLastBackupInfoAsync(),
+                ActivityMetrics = await GetActivityMetricsAsync(),
                 ServerHealth = await GetServerHealthAsync(),
             };
 
@@ -248,17 +248,86 @@ namespace Sitca.DataAccess.Services.Dashboard
             }
         }
 
-        private async Task<LastBackupDto> GetLastBackupInfoAsync()
+        private async Task<ActivityMetricsDto> GetActivityMetricsAsync()
         {
-            // This would normally check actual backup logs or status
-            return await Task.FromResult(
-                new LastBackupDto
-                {
-                    Timestamp = DateTime.UtcNow.AddHours(-2),
-                    Status = "success",
-                    Size = "2.4GB",
-                }
-            );
+            var today = DateTime.UtcNow.Date;
+            var endOfToday = today.AddDays(1).AddTicks(-1);
+            var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+
+            var activeUsersToday = await _db.ActivityLog
+                .AsNoTracking()
+                .Where(a => a.Date >= today && a.Date <= endOfToday)
+                .Select(a => a.User)
+                .Distinct()
+                .CountAsync();
+
+            var (lastActivityTime, lastActivityType) = await GetLastSystemActivityAsync();
+
+            var notificationsSentToday = await _db.NotificacionesEnviadas
+                .AsNoTracking()
+                .Where(n => n.FechaNotificacion >= today && n.FechaNotificacion <= endOfToday)
+                .CountAsync();
+
+            var certificationsStartedThisWeek = await _db.ProcesoCertificacion
+                .AsNoTracking()
+                .Where(p => p.Enabled && p.CreatedAt.HasValue && p.CreatedAt.Value >= startOfWeek)
+                .CountAsync();
+
+            return new ActivityMetricsDto
+            {
+                ActiveUsersToday = activeUsersToday,
+                LastSystemActivity = lastActivityTime,
+                LastActivityType = lastActivityType,
+                NotificationsSentToday = notificationsSentToday,
+                CertificationsStartedThisWeek = certificationsStartedThisWeek,
+                CalculatedAt = DateTime.UtcNow
+            };
+        }
+
+        private async Task<(DateTime? Timestamp, string Type)> GetLastSystemActivityAsync()
+        {
+            var lastActivityLog = await _db.ActivityLog
+                .AsNoTracking()
+                .OrderByDescending(a => a.Date)
+                .Select(a => new { a.Date, Type = "Actividad de usuario" })
+                .FirstOrDefaultAsync();
+
+            var lastNotification = await _db.NotificacionesEnviadas
+                .AsNoTracking()
+                .OrderByDescending(n => n.FechaNotificacion)
+                .Select(n => new { Date = n.FechaNotificacion, Type = "Notificación enviada" })
+                .FirstOrDefaultAsync();
+
+            var lastCertificationUpdate = await _db.ProcesoCertificacion
+                .AsNoTracking()
+                .Where(p => p.UpdatedAt.HasValue)
+                .OrderByDescending(p => p.UpdatedAt)
+                .Select(p => new { Date = p.UpdatedAt!.Value, Type = "Actualización de certificación" })
+                .FirstOrDefaultAsync();
+
+            var lastCuestionarioActivity = await _db.Cuestionario
+                .AsNoTracking()
+                .Where(c => c.FechaRevisionAuditor.HasValue)
+                .OrderByDescending(c => c.FechaRevisionAuditor)
+                .Select(c => new { Date = c.FechaRevisionAuditor!.Value, Type = "Revisión de cuestionario" })
+                .FirstOrDefaultAsync();
+
+            var activities = new List<(DateTime Date, string Type)>();
+
+            if (lastActivityLog != null)
+                activities.Add((lastActivityLog.Date, lastActivityLog.Type));
+            if (lastNotification != null)
+                activities.Add((lastNotification.Date, lastNotification.Type));
+            if (lastCertificationUpdate != null)
+                activities.Add((lastCertificationUpdate.Date, lastCertificationUpdate.Type));
+            if (lastCuestionarioActivity != null)
+                activities.Add((lastCuestionarioActivity.Date, lastCuestionarioActivity.Type));
+
+            if (!activities.Any())
+                return (null, "Sin actividad reciente");
+
+            var mostRecent = activities.OrderByDescending(a => a.Date).First();
+            return (mostRecent.Date, mostRecent.Type);
         }
 
         private async Task<ServerHealthDto> GetServerHealthAsync()

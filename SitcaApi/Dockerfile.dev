@@ -1,0 +1,43 @@
+# Dockerfile.dev - SITCA API con Hot-Reload para Desarrollo
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /src
+
+# Instalar dependencias para wkhtmltopdf (PDF generation)
+RUN apt-get update && apt-get install -y \
+    libgdiplus \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar archivos de proyecto para restaurar dependencias
+# Esto se cachea mientras no cambien los .csproj
+COPY ["Sitca/Sitca.csproj", "Sitca/"]
+COPY ["Sitca.DataAccess/Sitca.DataAccess.csproj", "Sitca.DataAccess/"]
+COPY ["Sitca.Models/Sitca.Models.csproj", "Sitca.Models/"]
+COPY ["Utilities/Utilities.csproj", "Utilities/"]
+
+# Restaurar dependencias
+RUN dotnet restore "Sitca/Sitca.csproj"
+
+# El código fuente se monta como volumen para hot-reload
+# NO copiar código fuente aquí
+
+WORKDIR /src/Sitca
+
+EXPOSE 5000
+
+ENV ASPNETCORE_URLS=http://+:5000
+ENV ASPNETCORE_ENVIRONMENT=Development
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+
+# dotnet watch para hot-reload automático
+CMD ["dotnet", "watch", "run", "--no-launch-profile"]
+
+# =============================================================================
+# USO (Desarrollo con docker-compose):
+# =============================================================================
+#
+# El código fuente se monta como volumen en docker-compose.yml
+# Cualquier cambio en archivos .cs se detecta y recompila automáticamente
+#
+# =============================================================================

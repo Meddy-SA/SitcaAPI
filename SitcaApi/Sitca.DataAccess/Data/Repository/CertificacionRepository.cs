@@ -1034,7 +1034,7 @@ namespace Sitca.DataAccess.Data.Repository
                     .OrderBy(m => m.Orden)
                     .ToListAsync();
 
-                if (_config.GetValue<bool>("Settings:bioseguridad"))
+                if (!_config.GetValue<bool>("Settings:bioseguridad"))
                 {
                     modulos = modulos.Where(s => s.Id < 11).OrderBy(m => m.Orden).ToList();
                 }
@@ -1484,12 +1484,27 @@ namespace Sitca.DataAccess.Data.Repository
             }
         }
 
-        public async Task<int> SavePregunta(
+        public async Task<Result<int>> SavePregunta(
             CuestionarioItemVm obj,
             ApplicationUser appUser,
             string role
         )
         {
+            // 1. Obtener cuestionario y validar acceso
+            var cuestionario = await _db.Cuestionario
+                .FirstOrDefaultAsync(c => c.Id == obj.CuestionarioId);
+
+            if (cuestionario == null)
+                return Result<int>.Failure("Cuestionario no encontrado");
+
+            var proceso = await _db.ProcesoCertificacion
+                .FirstOrDefaultAsync(p => p.Id == cuestionario.ProcesoCertificacionId);
+
+            // 2. Validar que el usuario sea el asignado según tipo de cuestionario
+            if (!ValidateQuestionnaireEditAccess(cuestionario, proceso, appUser, role))
+                return Result<int>.Failure("No tiene permisos para editar este cuestionario");
+
+            // 3. Guardar pregunta
             var itemCuestionario = await _db.CuestionarioItem.FirstOrDefaultAsync(s =>
                 s.CuestionarioId == obj.CuestionarioId && s.PreguntaId == obj.Id
             );
@@ -1499,7 +1514,7 @@ namespace Sitca.DataAccess.Data.Repository
                 itemCuestionario.Resultado = obj.Result ?? 0;
                 await _db.SaveChangesAsync();
 
-                return itemCuestionario.Id;
+                return Result<int>.Success(itemCuestionario.Id);
             }
 
             var nuevoItem = new CuestionarioItem
@@ -1516,7 +1531,68 @@ namespace Sitca.DataAccess.Data.Repository
             _db.CuestionarioItem.Add(nuevoItem);
             await _db.SaveChangesAsync();
 
-            return nuevoItem.Id;
+            return Result<int>.Success(nuevoItem.Id);
+        }
+
+        /// <summary>
+        /// Valida si el usuario tiene permisos para editar el cuestionario según su tipo y asignación
+        /// </summary>
+        private bool ValidateQuestionnaireEditAccess(
+            Cuestionario cuestionario,
+            ProcesoCertificacion proceso,
+            ApplicationUser user,
+            string role)
+        {
+            if (proceso == null || user == null) return false;
+
+            // Solo Admin puede editar cualquier cuestionario
+            if (role == Rol.Admin)
+                return true;
+
+            // TecnicoPais NO puede editar, solo visualizar
+            if (role == Rol.TecnicoPais)
+                return false;
+
+            // Cuestionario de Asesoría (Prueba=true): solo el asesor asignado
+            if (cuestionario.Prueba && role == Rol.Asesor)
+                return proceso.AsesorId == user.Id;
+
+            // Cuestionario de Auditoría (Prueba=false): solo el auditor asignado
+            if (!cuestionario.Prueba && role == Rol.Auditor)
+                return proceso.AuditorId == user.Id;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Valida si el usuario tiene permisos para finalizar el cuestionario según su tipo y asignación
+        /// Nota: TecnicoPais puede finalizar después del auditor (flujo de aprobación)
+        /// </summary>
+        private bool ValidateQuestionnaireFinalizationAccess(
+            Cuestionario cuestionario,
+            ProcesoCertificacion proceso,
+            ApplicationUser user,
+            string role)
+        {
+            if (proceso == null || user == null) return false;
+
+            // Admin puede finalizar cualquier cuestionario
+            if (role == Rol.Admin)
+                return true;
+
+            // TecnicoPais puede finalizar como parte del flujo de aprobación
+            if (role == Rol.TecnicoPais)
+                return true;
+
+            // Cuestionario de Asesoría (Prueba=true): solo el asesor asignado
+            if (cuestionario.Prueba && role == Rol.Asesor)
+                return proceso.AsesorId == user.Id;
+
+            // Cuestionario de Auditoría (Prueba=false): solo el auditor asignado
+            if (!cuestionario.Prueba && role == Rol.Auditor)
+                return proceso.AuditorId == user.Id;
+
+            return false;
         }
 
         public Task<bool> IsCuestionarioCompleto(CuestionarioDetailsVm data)
@@ -1543,6 +1619,13 @@ namespace Sitca.DataAccess.Data.Repository
 
                 if (cuestionario == null)
                     return Result<int>.Failure("Cuestionario no encontrado");
+
+                var proceso = await _db.ProcesoCertificacion
+                    .FirstOrDefaultAsync(p => p.Id == cuestionario.ProcesoCertificacionId);
+
+                // Validar que el usuario sea el asignado según tipo de cuestionario
+                if (!ValidateQuestionnaireFinalizationAccess(cuestionario, proceso, appUser, role))
+                    return Result<int>.Failure("No tiene permisos para finalizar este cuestionario");
 
                 int toStatus = 0;
                 switch (role)

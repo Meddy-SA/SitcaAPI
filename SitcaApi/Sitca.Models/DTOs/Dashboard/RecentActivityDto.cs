@@ -11,6 +11,7 @@ namespace Sitca.Models.DTOs.Dashboard
         public string Priority { get; set; } = string.Empty;
         public int? CompanyId { get; set; }
         public string? CompanyName { get; set; }
+        public int? ProcesoCertificacionId { get; set; }
         public string? Distintivo { get; set; }
         public DateTime? AuditDate { get; set; }
     }

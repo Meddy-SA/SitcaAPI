@@ -109,11 +109,12 @@ public class CuestionarioController : ControllerBase
     /// </summary>
     [Authorize(Roles = "Asesor, Auditor, Admin")]
     [HttpPut("preguntas")]
-    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Result<int>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<int>> SavePregunta([FromBody] CuestionarioItemVm obj)
+    public async Task<ActionResult<Result<int>>> SavePregunta([FromBody] CuestionarioItemVm obj)
     {
         try
         {
@@ -122,9 +123,19 @@ public class CuestionarioController : ControllerBase
                 return Unauthorized();
 
             if (obj == null)
-                return BadRequest("Los datos de la pregunta son requeridos");
+                return BadRequest(Result<int>.Failure("Los datos de la pregunta son requeridos"));
 
             var result = await _unitOfWork.ProcesoCertificacion.SavePregunta(obj, appUser, role);
+
+            if (!result.IsSuccess)
+            {
+                // Si el error es de permisos, retornar 403 Forbidden
+                if (result.Error?.Contains("permisos") == true)
+                    return StatusCode(403, result);
+
+                return BadRequest(result);
+            }
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -134,7 +145,7 @@ public class CuestionarioController : ControllerBase
                 "Error al guardar pregunta para cuestionario: {CuestionarioId}",
                 obj?.CuestionarioId
             );
-            return StatusCode(500, "Error interno del servidor");
+            return StatusCode(500, Result<int>.Failure("Error interno del servidor"));
         }
     }
 

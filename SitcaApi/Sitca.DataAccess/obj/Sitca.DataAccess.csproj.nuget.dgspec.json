@@ -1,37 +1,36 @@
 {
   "format": 1,
   "restore": {
-    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {}
+    "/src/Sitca.DataAccess/Sitca.DataAccess.csproj": {}
   },
   "projects": {
-    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj": {
+    "/src/Sitca.DataAccess/Sitca.DataAccess.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+        "projectUniqueName": "/src/Sitca.DataAccess/Sitca.DataAccess.csproj",
         "projectName": "Sitca.DataAccess",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
-        "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.DataAccess/obj/",
+        "projectPath": "/src/Sitca.DataAccess/Sitca.DataAccess.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/src/Sitca.DataAccess/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/enzo/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "/usr/local/share/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
-                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
+              "/src/Sitca.Models/Sitca.Models.csproj": {
+                "projectPath": "/src/Sitca.Models/Sitca.Models.csproj"
               },
-              "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
-                "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj"
+              "/src/Utilities/Utilities.csproj": {
+                "projectPath": "/src/Utilities/Utilities.csproj"
               }
             }
           }
@@ -45,8 +44,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -140,42 +138,31 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+    "/src/Sitca.Models/Sitca.Models.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
+        "projectUniqueName": "/src/Sitca.Models/Sitca.Models.csproj",
         "projectName": "Sitca.Models",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj",
-        "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Sitca.Models/obj/",
+        "projectPath": "/src/Sitca.Models/Sitca.Models.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/src/Sitca.Models/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/enzo/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "/usr/local/share/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -193,8 +180,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -232,42 +218,31 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
+    "/src/Utilities/Utilities.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
+        "projectUniqueName": "/src/Utilities/Utilities.csproj",
         "projectName": "Utilities",
-        "projectPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
-        "packagesPath": "/Users/enzo/.nuget/packages/",
-        "outputPath": "/Users/enzo/Documents/AspNetCore/sitca/netcore/SitcaApi/Utilities/obj/",
+        "projectPath": "/src/Utilities/Utilities.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/src/Utilities/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/enzo/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "/usr/local/share/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -285,8 +260,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -302,22 +276,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

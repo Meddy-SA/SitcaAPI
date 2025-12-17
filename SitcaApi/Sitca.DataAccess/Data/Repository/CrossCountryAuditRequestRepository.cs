@@ -111,7 +111,8 @@ public class CrossCountryAuditRequestRepository
     public async Task<Result<List<CrossCountryAuditRequestDTO>>> GetForCountryAsync(
         int countryId,
         CrossCountryAuditRequestStatus? status,
-        string userId
+        string userId,
+        string? countryRole = null
     )
     {
         try
@@ -125,10 +126,24 @@ public class CrossCountryAuditRequestRepository
                 .AsNoTracking()
                 .Where(r => r.Enabled);
 
-            // Filtrar por país (ya sea solicitante o aprobador)
-            query = query.Where(r =>
-                r.RequestingCountryId == countryId || r.ApprovingCountryId == countryId
-            );
+            // Filtrar según el rol del país
+            if (string.Equals(countryRole, "requesting", StringComparison.OrdinalIgnoreCase))
+            {
+                // Solo solicitudes CREADAS por este país
+                query = query.Where(r => r.RequestingCountryId == countryId);
+            }
+            else if (string.Equals(countryRole, "approving", StringComparison.OrdinalIgnoreCase))
+            {
+                // Solo solicitudes que este país debe APROBAR/RECHAZAR
+                query = query.Where(r => r.ApprovingCountryId == countryId);
+            }
+            else
+            {
+                // Comportamiento por defecto: ambas
+                query = query.Where(r =>
+                    r.RequestingCountryId == countryId || r.ApprovingCountryId == countryId
+                );
+            }
 
             // Aplicar filtro opcional por estado
             if (status.HasValue)
@@ -448,6 +463,112 @@ public class CrossCountryAuditRequestRepository
             return Result<CrossCountryAuditRequestDTO>.Failure(
                 $"Error al revocar solicitud: {ex.Message}"
             );
+        }
+    }
+
+    public async Task<Result<CrossCountryAuditRequestDTO>> CancelAsync(
+        int requestId,
+        ApplicationUser cancellingUser
+    )
+    {
+        try
+        {
+            // Validar usuario
+            if (cancellingUser == null || !cancellingUser.PaisId.HasValue)
+                return Result<CrossCountryAuditRequestDTO>.Failure(
+                    "Usuario no autenticado o sin país asignado"
+                );
+
+            var request = await _db
+                .CrossCountryAuditRequests.Include(r => r.RequestingCountry)
+                .Include(r => r.ApprovingCountry)
+                .Include(r => r.UserCreate)
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.Enabled);
+
+            if (request == null)
+                return Result<CrossCountryAuditRequestDTO>.Failure(
+                    $"No se encontró la solicitud con ID {requestId}"
+                );
+
+            // Solo el país solicitante puede cancelar
+            if (cancellingUser.PaisId != request.RequestingCountryId)
+                return Result<CrossCountryAuditRequestDTO>.Failure(
+                    "Solo el país solicitante puede cancelar esta solicitud"
+                );
+
+            // Solo solicitudes pendientes pueden ser canceladas
+            if (request.Status != CrossCountryAuditRequestStatus.Pending)
+                return Result<CrossCountryAuditRequestDTO>.Failure(
+                    $"Solo se pueden cancelar solicitudes pendientes (estado actual: {request.Status})"
+                );
+
+            // Actualizar la solicitud
+            request.Status = CrossCountryAuditRequestStatus.Cancelled;
+            request.UpdatedBy = cancellingUser.Id;
+            request.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            // Mapear a DTO
+            var responseDto = new CrossCountryAuditRequestDTO
+            {
+                Id = request.Id,
+                RequestingCountryId = request.RequestingCountryId,
+                RequestingCountryName = request.RequestingCountry.Name,
+                ApprovingCountryId = request.ApprovingCountryId,
+                ApprovingCountryName = request.ApprovingCountry.Name,
+                Status = request.Status.ToString(),
+                AssignedAuditorId = null,
+                AssignedAuditorName = null,
+                DeadlineDate = null,
+                NotesRequest = request.NotesRequest,
+                NotesApproval = request.NotesApproval,
+                CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
+                CreatedBy = request.CreatedBy ?? "",
+                CreatedByName =
+                    request.UserCreate != null
+                        ? $"{request.UserCreate.FirstName} {request.UserCreate.LastName}"
+                        : null,
+            };
+
+            return Result<CrossCountryAuditRequestDTO>.Success(responseDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al cancelar solicitud de auditoría cruzada {RequestId}",
+                requestId
+            );
+            return Result<CrossCountryAuditRequestDTO>.Failure(
+                $"Error al cancelar solicitud: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Result<int>> GetPendingCountForApproverAsync(int countryId)
+    {
+        try
+        {
+            var count = await _db
+                .CrossCountryAuditRequests.AsNoTracking()
+                .Where(r =>
+                    r.ApprovingCountryId == countryId
+                    && r.Status == CrossCountryAuditRequestStatus.Pending
+                    && r.Enabled
+                )
+                .CountAsync();
+
+            return Result<int>.Success(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al obtener conteo de solicitudes pendientes para el país {CountryId}",
+                countryId
+            );
+            return Result<int>.Failure($"Error al obtener conteo: {ex.Message}");
         }
     }
 

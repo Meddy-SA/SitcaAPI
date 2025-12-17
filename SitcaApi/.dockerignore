@@ -1,0 +1,33 @@
+# Directorios de build
+**/bin/
+**/obj/
+
+# Control de versiones
+**/.git
+**/.gitignore
+
+# IDEs
+**/.vs
+**/.vscode
+**/.idea
+**/*.user
+**/*.suo
+
+# Archivos de configuración sensibles
+**/appsettings.Production.json
+**/*.pfx
+**/*.pem
+
+# Archivos temporales
+**/logs/
+**/TestResults/
+
+# Documentación
+**/*.md
+**/docs/
+
+# Node (si hay algún frontend)
+**/node_modules
+
+# macOS
+**/.DS_Store

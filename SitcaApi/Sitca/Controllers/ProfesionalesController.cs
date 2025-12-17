@@ -2,11 +2,14 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Sitca.DataAccess.Data.Repository.IRepository;
 using Sitca.Extensions;
+using Sitca.Models;
 using Sitca.Models.DTOs;
+using static Utilities.Common.Constants;
 
 namespace Sitca.Controllers;
 
@@ -17,11 +20,16 @@ public class ProfesionalesController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ProfesionalesController> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public ProfesionalesController(IUnitOfWork unitOfWork, ILogger<ProfesionalesController> logger)
+    public ProfesionalesController(
+        IUnitOfWork unitOfWork,
+        ILogger<ProfesionalesController> logger,
+        UserManager<ApplicationUser> userManager)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
     }
 
     /// <summary>
@@ -46,9 +54,19 @@ public class ProfesionalesController : ControllerBase
     {
         try
         {
+            // Obtener usuario actual y rol
+            var (appUser, role) = await this.GetCurrentUserWithRoleAsync(_userManager);
+
+            // Si no es Admin, forzar filtro por país del usuario
+            int? effectivePaisId = paisId;
+            if (role != Roles.Admin && appUser?.PaisId != null)
+            {
+                effectivePaisId = appUser.PaisId;
+            }
+
             var filter = new ProfesionalesHabilitadosFilterDTO
             {
-                PaisId = paisId,
+                PaisId = effectivePaisId,
                 TipoProfesional = tipoProfesional?.ToLower(),
                 SoloActivos = soloActivos,
                 SoloConCarnet = soloConCarnet,

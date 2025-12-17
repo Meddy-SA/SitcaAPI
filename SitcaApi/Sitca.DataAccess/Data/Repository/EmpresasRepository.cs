@@ -191,7 +191,7 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
                     }
 
                     // Actualizar tipologías si es necesario
-                    ActualizarTipologiasAsync(empresa, datosEmpresa.Tipologias);
+                    await ActualizarTipologiasAsync(empresa, datosEmpresa.Tipologias);
 
                     // Actualizar tipología en el proceso de certificación si se cumplen las condiciones
                     if (datosEmpresa.Tipologias != null && datosEmpresa.Tipologias.Length > 0)
@@ -590,26 +590,34 @@ public class EmpresasRepository : Repository<Empresa>, IEmpresasRepository
     }
 
     /// <summary>
-    /// Actualiza las tipologías de la empresa
+    /// Actualiza las tipologías de la empresa en la tabla TipologiasEmpresa
     /// </summary>
     /// <param name="empresa">Entidad empresa a actualizar</param>
     /// <param name="tipologiasDTO">Array de tipologías desde el DTO</param>
-    private void ActualizarTipologiasAsync(Empresa empresa, TipologiaDTO[] tipologiasDTO)
+    private async Task ActualizarTipologiasAsync(Empresa empresa, TipologiaDTO[] tipologiasDTO)
     {
-        // Limpiar tipologías existentes
-        empresa.Tipologias.Clear();
+        // 1. Obtener las tipologías existentes de la empresa desde la tabla TipologiasEmpresa
+        var tipologiasExistentes = await _db
+            .Set<TipologiasEmpresa>()
+            .Where(te => te.IdEmpresa == empresa.Id)
+            .ToListAsync();
 
-        // Si no hay nuevas tipologías, solo limpiar
+        // 2. Eliminar todas las tipologías existentes
+        if (tipologiasExistentes.Any())
+        {
+            _db.Set<TipologiasEmpresa>().RemoveRange(tipologiasExistentes);
+        }
+
+        // 3. Si no hay nuevas tipologías, solo se eliminaron las existentes
         if (tipologiasDTO == null || tipologiasDTO.Length == 0)
             return;
 
-        // Agregar nuevas tipologías seleccionadas
-        foreach (var tipologia in tipologiasDTO)
-        {
-            empresa.Tipologias.Add(
-                new TipologiasEmpresa { IdEmpresa = empresa.Id, IdTipologia = tipologia.Id }
-            );
-        }
+        // 4. Agregar las nuevas tipologías a la tabla TipologiasEmpresa
+        var nuevasTipologias = tipologiasDTO
+            .Select(t => new TipologiasEmpresa { IdEmpresa = empresa.Id, IdTipologia = t.Id })
+            .ToList();
+
+        await _db.Set<TipologiasEmpresa>().AddRangeAsync(nuevasTipologias);
     }
 
     /// <summary>

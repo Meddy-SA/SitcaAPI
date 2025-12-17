@@ -27,7 +27,7 @@ namespace Sitca.DataAccess.Data.Repository.IRepository
             string userGenerador,
             string role
         );
-        Task<int> SavePregunta(CuestionarioItemVm obj, ApplicationUser appUser, string role);
+        Task<Result<int>> SavePregunta(CuestionarioItemVm obj, ApplicationUser appUser, string role);
         Task<Result<int>> FinCuestionario(int idCuestionario, ApplicationUser appUser, string role);
         Task<Result<bool>> CanFinalizeCuestionario(int idCuestionario, string role);
         Task<List<CuestionarioDetailsMinVm>> GetCuestionariosList(

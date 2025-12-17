@@ -15,7 +15,8 @@ public interface ICrossCountryAuditRequestRepository : IRepository<CrossCountryA
     Task<Result<List<CrossCountryAuditRequestDTO>>> GetForCountryAsync(
         int countryId,
         CrossCountryAuditRequestStatus? status,
-        string userId
+        string userId,
+        string? countryRole = null
     );
     Task<Result<CrossCountryAuditRequestDTO>> ApproveAsync(
         int requestId,
@@ -32,6 +33,11 @@ public interface ICrossCountryAuditRequestRepository : IRepository<CrossCountryA
         ApplicationUser revokingUser
     );
     Task<Result<CrossCountryAuditRequestDTO>> GetByIdAsync(int requestId, ApplicationUser user);
+    Task<Result<CrossCountryAuditRequestDTO>> CancelAsync(
+        int requestId,
+        ApplicationUser cancellingUser
+    );
+    Task<Result<int>> GetPendingCountForApproverAsync(int countryId);
     Task<Result<bool>> CanAssignAuditorToCompanyAsync(string auditorId, int companyId);
     Task<List<string>> GetApprovedExternalAuditorIdsForCountryAsync(int countryId);
     Task<bool> VerifyUserHasAuditorRoleAsync(string userId);

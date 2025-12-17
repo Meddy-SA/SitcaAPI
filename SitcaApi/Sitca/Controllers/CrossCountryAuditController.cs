@@ -12,6 +12,7 @@ using Sitca.Models;
 using Sitca.Models.DTOs;
 using Sitca.Models.Enums;
 using Utilities.Common;
+using Policies = Utilities.Common.AuthorizationPolicies.CrossCountryAudit;
 
 namespace Sitca.Controllers;
 
@@ -36,10 +37,12 @@ public class CrossCountryAuditController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todas las solicitudes para un país, opcionalmente filtradas por estado
+    /// Obtiene las solicitudes para un país, opcionalmente filtradas por estado y rol.
+    /// El parámetro role puede ser "requesting" (solicitudes creadas por el país),
+    /// "approving" (solicitudes que el país debe aprobar/rechazar), o null (ambas).
     /// </summary>
     [HttpGet("requests")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<List<CrossCountryAuditRequestDTO>>)
@@ -49,7 +52,8 @@ public class CrossCountryAuditController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Result<List<CrossCountryAuditRequestDTO>>>> GetRequests(
         [FromQuery] int? countryId,
-        [FromQuery] string status
+        [FromQuery] string status,
+        [FromQuery] string role
     )
     {
         try
@@ -104,7 +108,8 @@ public class CrossCountryAuditController : ControllerBase
             var result = await _unitOfWork.CrossCountryAuditRequest.GetForCountryAsync(
                 targetCountryId,
                 statusEnum,
-                appUser.Id
+                appUser.Id,
+                role
             );
             return Ok(result);
         }
@@ -124,7 +129,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Crea una nueva solicitud de auditoría cruzada
     /// </summary>
     [HttpPost("requests")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<CrossCountryAuditRequestDTO>)
@@ -171,7 +176,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Obtiene una solicitud específica por su ID
     /// </summary>
     [HttpGet("requests/{id}")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<CrossCountryAuditRequestDTO>)
@@ -212,7 +217,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Aprueba una solicitud de auditoría cruzada
     /// </summary>
     [HttpPut("requests/{id}/approve")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<CrossCountryAuditRequestDTO>)
@@ -267,7 +272,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Rechaza una solicitud de auditoría cruzada
     /// </summary>
     [HttpPut("requests/{id}/reject")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<CrossCountryAuditRequestDTO>)
@@ -326,7 +331,7 @@ public class CrossCountryAuditController : ControllerBase
     /// Revoca una solicitud de auditoría cruzada previamente aprobada
     /// </summary>
     [HttpPut("requests/{id}/revoke")]
-    [Authorize(Roles = Constants.Roles.Admin + "," + Constants.Roles.TecnicoPais)]
+    [Authorize(Roles = Policies.Manage)]
     [ProducesResponseType(
         StatusCodes.Status200OK,
         Type = typeof(Result<CrossCountryAuditRequestDTO>)
@@ -365,6 +370,88 @@ public class CrossCountryAuditController : ControllerBase
                 Result<CrossCountryAuditRequestDTO>.Failure(
                     "Error interno del servidor: " + ex.Message
                 )
+            );
+        }
+    }
+
+    /// <summary>
+    /// Cancela una solicitud de auditoría cruzada pendiente (solo el país solicitante)
+    /// </summary>
+    [HttpPut("requests/{id}/cancel")]
+    [Authorize(Roles = Policies.Manage)]
+    [ProducesResponseType(
+        StatusCodes.Status200OK,
+        Type = typeof(Result<CrossCountryAuditRequestDTO>)
+    )]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<CrossCountryAuditRequestDTO>>> CancelRequest(int id)
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null)
+                return Unauthorized(
+                    Result<CrossCountryAuditRequestDTO>.Failure("Usuario no autenticado")
+                );
+
+            var result = await _unitOfWork.CrossCountryAuditRequest.CancelAsync(id, appUser);
+            if (!result.IsSuccess)
+            {
+                if (result.Error.Contains("No se encontró"))
+                    return NotFound(result);
+
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error al cancelar solicitud de auditoría cruzada {RequestId}",
+                id
+            );
+            return StatusCode(
+                500,
+                Result<CrossCountryAuditRequestDTO>.Failure(
+                    "Error interno del servidor: " + ex.Message
+                )
+            );
+        }
+    }
+
+    /// <summary>
+    /// Obtiene el conteo de solicitudes pendientes para aprobar por el país del usuario
+    /// </summary>
+    [HttpGet("requests/pending-count")]
+    [Authorize(Roles = Policies.Manage)]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Result<int>>> GetPendingCount()
+    {
+        try
+        {
+            var appUser = await this.GetCurrentUserAsync(_userManager);
+            if (appUser == null || !appUser.PaisId.HasValue)
+                return Unauthorized(Result<int>.Failure("Usuario no autenticado o sin país asignado"));
+
+            var result = await _unitOfWork.CrossCountryAuditRequest.GetPendingCountForApproverAsync(
+                appUser.PaisId.Value
+            );
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener conteo de solicitudes pendientes");
+            return StatusCode(
+                500,
+                Result<int>.Failure("Error interno del servidor: " + ex.Message)
             );
         }
     }

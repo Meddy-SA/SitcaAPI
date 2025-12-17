@@ -140,6 +140,7 @@ namespace Sitca.DataAccess.Services.Dashboard
         private async Task<List<RecentActivityDto>> GetRecentCompanyRegistrations(IQueryable<Models.Empresa> query, int limit)
         {
             return await query
+                .Include(e => e.Certificaciones)
                 .OrderByDescending(e => e.Id) // Using ID as proxy for creation order since CreatedAt doesn't exist
                 .Take(limit)
                 .Select(e => new RecentActivityDto
@@ -152,7 +153,12 @@ namespace Sitca.DataAccess.Services.Dashboard
                     Icon = "business",
                     Priority = "info",
                     CompanyId = e.Id,
-                    CompanyName = e.Nombre
+                    CompanyName = e.Nombre,
+                    ProcesoCertificacionId = e.Certificaciones
+                        .Where(c => c.Enabled)
+                        .OrderByDescending(c => c.Id)
+                        .Select(c => (int?)c.Id)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
         }
@@ -175,6 +181,7 @@ namespace Sitca.DataAccess.Services.Dashboard
                     Priority = "success",
                     CompanyId = p.EmpresaId,
                     CompanyName = p.Empresa.Nombre,
+                    ProcesoCertificacionId = p.Id,
                     Distintivo = p.Empresa.ResultadoActual
                 })
                 .ToListAsync();
@@ -198,6 +205,7 @@ namespace Sitca.DataAccess.Services.Dashboard
                     Priority = "warning",
                     CompanyId = p.EmpresaId,
                     CompanyName = p.Empresa.Nombre,
+                    ProcesoCertificacionId = p.Id,
                     AuditDate = p.FechaFijadaAuditoria
                 })
                 .ToListAsync();

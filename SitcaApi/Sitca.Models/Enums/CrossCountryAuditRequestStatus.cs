@@ -6,4 +6,5 @@ public enum CrossCountryAuditRequestStatus
     Approved = 1,
     Rejected = 2,
     Revoked = 3,
+    Cancelled = 4,
 }

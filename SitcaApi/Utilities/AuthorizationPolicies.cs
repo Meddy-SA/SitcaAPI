@@ -43,4 +43,9 @@ public static class AuthorizationPolicies
         public const string Details =
             $"{Rol.TecnicoPais}, {Rol.Admin}, {Rol.Asesor}, {Rol.Auditor}, {Rol.CTC}, {Rol.Consultor}, {Rol.EmpresaAuditora}";
     }
+
+    public static class CrossCountryAudit
+    {
+        public const string Manage = $"{Rol.Admin}, {Rol.TecnicoPais}";
+    }
 }
