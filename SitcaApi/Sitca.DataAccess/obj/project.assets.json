@@ -12238,35 +12238,36 @@
     ]
   },
   "packageFolders": {
-    "/root/.nuget/packages/": {}
+    "/Users/enzo/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/src/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "projectUniqueName": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
       "projectName": "Sitca.DataAccess",
-      "projectPath": "/src/Sitca.DataAccess/Sitca.DataAccess.csproj",
-      "packagesPath": "/root/.nuget/packages/",
-      "outputPath": "/src/Sitca.DataAccess/obj/",
+      "projectPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Sitca.DataAccess/Sitca.DataAccess.csproj",
+      "packagesPath": "/Users/enzo/.nuget/packages/",
+      "outputPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Sitca.DataAccess/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/root/.nuget/NuGet/NuGet.Config"
+        "/Users/enzo/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
+        "/usr/local/share/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "/src/Sitca.Models/Sitca.Models.csproj": {
-              "projectPath": "/src/Sitca.Models/Sitca.Models.csproj"
+            "/Users/enzo/Documents/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj": {
+              "projectPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Sitca.Models/Sitca.Models.csproj"
             },
-            "/src/Utilities/Utilities.csproj": {
-              "projectPath": "/src/Utilities/Utilities.csproj"
+            "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
+              "projectPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj"
             }
           }
         }
@@ -12280,7 +12281,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net8.0": {
@@ -12374,12 +12376,22 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.22, 8.0.22]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.22, 8.0.22]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json"
       }
     }
   },
@@ -12388,7 +12400,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Sitca.DataAccess depends on GemBox.Document (>= 35.0.1775) but GemBox.Document 35.0.1775 was not found. An approximate best match of GemBox.Document 35.0.1784 was resolved.",
+      "message": "Sitca.DataAccess depends on GemBox.Document (>= 35.0.1775) but GemBox.Document 35.0.1775 was not found. GemBox.Document 35.0.1784 was resolved instead.",
       "libraryId": "GemBox.Document",
       "targetGraphs": [
         "net8.0"
@@ -12398,7 +12410,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "Sitca.DataAccess depends on GemBox.Pdf (>= 17.0.1589) but GemBox.Pdf 17.0.1589 was not found. An approximate best match of GemBox.Pdf 17.0.1593 was resolved.",
+      "message": "Sitca.DataAccess depends on GemBox.Pdf (>= 17.0.1589) but GemBox.Pdf 17.0.1589 was not found. GemBox.Pdf 17.0.1593 was resolved instead.",
       "libraryId": "GemBox.Pdf",
       "targetGraphs": [
         "net8.0"
@@ -12489,16 +12501,6 @@
       "level": "Warning",
       "warningLevel": 1,
       "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-mxvv-97wh-cfmm",
-      "libraryId": "Magick.NET-Q16-AnyCPU",
-      "targetGraphs": [
-        "net8.0"
-      ]
-    },
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'Magick.NET-Q16-AnyCPU' 13.6.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-q3hc-j9x5-mp9m",
       "libraryId": "Magick.NET-Q16-AnyCPU",
       "targetGraphs": [
         "net8.0"

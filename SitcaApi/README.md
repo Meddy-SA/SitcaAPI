@@ -22,7 +22,7 @@ API REST para el Sistema Informático Técnico de Certificación y Acreditación
 El API se ejecuta como parte del stack completo desde el proyecto Angular:
 
 ```bash
-cd /Users/enzo/Documents/Angular/sitca
+cd /Users/enzo/Documents/sitca/angular
 docker-compose up --build
 ```
 

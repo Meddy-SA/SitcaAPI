@@ -93,6 +93,14 @@ namespace Sitca.DataAccess.Services.Dashboard
                 var userRoles = await _userManager.GetRolesAsync(user);
                 var isAuditor = userRoles.Contains(Constants.Roles.Auditor);
                 var isAsesor = userRoles.Contains(Constants.Roles.Asesor);
+                var isAsesorAuditor = userRoles.Contains(Constants.Roles.AsesorAuditor);
+
+                // Si tiene rol combinado, es ambos
+                if (isAsesorAuditor)
+                {
+                    isAuditor = true;
+                    isAsesor = true;
+                }
 
                 if (!isAuditor && !isAsesor)
                 {
@@ -190,9 +198,21 @@ namespace Sitca.DataAccess.Services.Dashboard
             bool isAsesor
         )
         {
-            var query = _db.ProcesoCertificacion.Where(p => p.Enabled);
+            // 1. Query base filtrada por AsesorId o AuditorId
+            var query = _db
+                .ProcesoCertificacion
+                .Include(p => p.Empresa)
+                .ThenInclude(e => e.Pais)
+                .Include(p => p.Tipologia)
+                .Where(p => p.Enabled);
 
-            if (isAuditor)
+            // Filtrar por AsesorId y/o AuditorId según el rol
+            if (isAuditor && isAsesor)
+            {
+                // Si tiene ambos roles, buscar por cualquiera de los dos
+                query = query.Where(p => p.AuditorId == userId || p.AsesorId == userId);
+            }
+            else if (isAuditor)
             {
                 query = query.Where(p => p.AuditorId == userId);
             }
@@ -201,57 +221,306 @@ namespace Sitca.DataAccess.Services.Dashboard
                 query = query.Where(p => p.AsesorId == userId);
             }
 
-            string inProcess = isAsesor
-                ? ProcessStatusText.Spanish.ForConsulting
-                : ProcessStatusText.Spanish.AuditingUnderway;
-            string proccessFinish = isAsesor
-                ? ProcessStatusText.Spanish.ConsultancyCompleted
-                : ProcessStatusText.Spanish.AuditCompleted;
+            var procesos = await query.ToListAsync();
 
-            var procesosAsignados = await query.CountAsync();
-            var certificacionesPendientes = await query
-                .Where(p => p.Status == inProcess)
-                .CountAsync();
-            var certificacionesCompletadas = await query
-                .Where(p => p.Status == proccessFinish)
-                .CountAsync();
+            // 2. Definir estados según rol
+            string[] estadosEnProceso;
+            string[] estadosCompletados;
 
-            var auditoriasProximas = await query
+            if (isAuditor && isAsesor)
+            {
+                // Si tiene ambos roles, considerar todos los estados
+                estadosEnProceso = new[]
+                {
+                    ProcessStatusText.Spanish.ForConsulting,
+                    ProcessStatusText.Spanish.ConsultancyUnderway,
+                    ProcessStatusText.Spanish.ForAuditing,
+                    ProcessStatusText.Spanish.AuditingUnderway,
+                };
+                estadosCompletados = new[]
+                {
+                    ProcessStatusText.Spanish.ConsultancyCompleted,
+                    ProcessStatusText.Spanish.AuditCompleted,
+                    ProcessStatusText.Spanish.Completed,
+                };
+            }
+            else if (isAsesor)
+            {
+                estadosEnProceso = new[]
+                {
+                    ProcessStatusText.Spanish.ForConsulting,
+                    ProcessStatusText.Spanish.ConsultancyUnderway,
+                };
+                estadosCompletados = new[]
+                {
+                    ProcessStatusText.Spanish.ConsultancyCompleted,
+                    ProcessStatusText.Spanish.Completed,
+                };
+            }
+            else
+            {
+                estadosEnProceso = new[]
+                {
+                    ProcessStatusText.Spanish.ForAuditing,
+                    ProcessStatusText.Spanish.AuditingUnderway,
+                };
+                estadosCompletados = new[]
+                {
+                    ProcessStatusText.Spanish.AuditCompleted,
+                    ProcessStatusText.Spanish.Completed,
+                };
+            }
+
+            // 3. Calcular KPIs
+            var empresasEnProceso = procesos.Count(p =>
+                estadosEnProceso.Any(e => p.Status != null && p.Status.Contains(e))
+            );
+            var empresasCompletadas = procesos.Count(p =>
+                estadosCompletados.Any(e => p.Status != null && p.Status.Contains(e))
+            );
+
+            // 4. Construir lista de empresas asignadas
+            var empresasAsignadas = procesos
+                .OrderByDescending(p =>
+                    DeterminePriority(p) == "alta" ? 2 : DeterminePriority(p) == "media" ? 1 : 0
+                )
+                .ThenBy(p => p.FechaFijadaAuditoria ?? DateTime.MaxValue)
+                .Take(20)
+                .Select(p => new EmpresaAsignadaAsesorDto
+                {
+                    EmpresaId = p.EmpresaId,
+                    ProcesoId = p.Id,
+                    NombreEmpresa = p.Empresa?.Nombre ?? "N/A",
+                    Tipologia = p.Tipologia?.Name ?? "N/A",
+                    Pais = p.Empresa?.Pais?.Name ?? "N/A",
+                    EstadoProceso = p.Status ?? "N/A",
+                    EstadoNumerico = ExtractStatusNumber(p.Status),
+                    FechaInicio = p.FechaInicio,
+                    FechaProximaAuditoria = p.FechaFijadaAuditoria,
+                    FechaVencimiento = p.FechaVencimiento,
+                    Prioridad = DeterminePriority(p),
+                    Recertificacion = p.Recertificacion,
+                })
+                .ToList();
+
+            // 5. Próximas auditorías (30 días)
+            var proximasAuditorias = procesos
                 .Where(p =>
                     p.FechaFijadaAuditoria.HasValue
                     && p.FechaFijadaAuditoria > DateTime.Now
                     && p.FechaFijadaAuditoria <= DateTime.Now.AddDays(30)
                 )
-                .Include(p => p.Empresa)
                 .OrderBy(p => p.FechaFijadaAuditoria)
-                .Take(5)
-                .Select(p => new AuditoriaEsteDate
+                .Take(10)
+                .Select(p => new ProximaAuditoriaDto
                 {
+                    ProcesoId = p.Id,
                     EmpresaId = p.EmpresaId,
-                    NombreEmpresa = p.Empresa.Nombre,
-                    FechaAuditoria = p.FechaFijadaAuditoria.Value,
+                    NombreEmpresa = p.Empresa?.Nombre ?? "N/A",
+                    Tipologia = p.Tipologia?.Name ?? "N/A",
+                    Pais = p.Empresa?.Pais?.Name ?? "N/A",
+                    FechaAuditoria = p.FechaFijadaAuditoria!.Value,
                     Tipo = p.Recertificacion ? "recertificacion" : "auditoria_inicial",
+                    DiasRestantes = (int)(p.FechaFijadaAuditoria!.Value - DateTime.Now).TotalDays,
                 })
-                .ToListAsync();
+                .ToList();
 
-            var promedioTiempo = await CalculateAverageCertificationTime(
-                query,
-                certificacionesCompletadas,
-                proccessFinish
+            // 6. Distribución por estado
+            var distribucion = procesos
+                .Where(p => !string.IsNullOrEmpty(p.Status))
+                .GroupBy(p => p.Status)
+                .Select(g => new EstadoDistribucionDto
+                {
+                    Estado = g.Key!,
+                    EstadoCorto = ExtractStatusShortName(g.Key),
+                    Cantidad = g.Count(),
+                    Color = GetStatusColor(g.Key),
+                })
+                .OrderBy(e => ExtractStatusNumber(e.Estado))
+                .ToList();
+
+            // 7. Actividades recientes
+            var actividadesRecientes = await GetActivitiesForUserAsync(
+                userId,
+                isAuditor,
+                isAsesor,
+                10
             );
+
+            // 8. Métricas de rendimiento
+            var metricas = CalculateMetrics(procesos, estadosCompletados);
 
             return new AsesorAuditorStatisticsDto
             {
-                ProcesosAsignados = procesosAsignados,
-                CertificacionesPendientes = certificacionesPendientes,
-                AuditoriasEsteDate = auditoriasProximas,
-                EstadisticasPersonales = new EstadisticasPersonalesDto
-                {
-                    CertificacionesCompletadas = certificacionesCompletadas,
-                    PromedioTiempoCertificacion = promedioTiempo,
-                    SatisfaccionClientes = await CalculateCustomerSatisfaction(userId),
-                },
+                TotalEmpresasAsignadas = procesos.Count,
+                EmpresasEnProceso = empresasEnProceso,
+                EmpresasCompletadas = empresasCompletadas,
+                AuditoriasProgramadas = proximasAuditorias.Count,
+                IsAuditor = isAuditor,
+                IsAsesor = isAsesor,
+                EmpresasAsignadas = empresasAsignadas,
+                ProximasAuditorias = proximasAuditorias,
+                DistribucionPorEstado = distribucion,
+                ActividadesRecientes = actividadesRecientes,
+                Metricas = metricas,
             };
+        }
+
+        private static string ExtractStatusNumber(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "0";
+            var parts = status.Split('-');
+            return parts.Length > 0 ? parts[0].Trim() : "0";
+        }
+
+        private static string ExtractStatusShortName(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "";
+            var parts = status.Split('-');
+            return parts.Length > 1 ? parts[1].Trim() : status;
+        }
+
+        private static string GetStatusColor(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "default";
+            if (status.Contains("Inicial"))
+                return "info";
+            if (status.Contains("Para "))
+                return "primary";
+            if (status.Contains("en Proceso"))
+                return "warning";
+            if (status.Contains("Finalizada") || status.Contains("Finalizado"))
+                return "success";
+            if (status.Contains("revisión"))
+                return "accent";
+            return "default";
+        }
+
+        private MetricasRendimientoDto CalculateMetrics(
+            List<ProcesoCertificacion> procesos,
+            string[] estadosCompletados
+        )
+        {
+            var completados = procesos.Where(p =>
+                estadosCompletados.Any(e => p.Status != null && p.Status.Contains(e))
+            );
+
+            var completadosConFechas = completados
+                .Where(p => p.FechaFinalizacion.HasValue)
+                .ToList();
+
+            var promedioTiempo =
+                completadosConFechas.Count != 0
+                    ? (int)
+                        completadosConFechas.Average(p =>
+                            (p.FechaFinalizacion!.Value - p.FechaInicio).TotalDays
+                        )
+                    : 0;
+
+            var procesoActivo = procesos
+                .Where(p =>
+                    p.Status == null
+                    || !estadosCompletados.Any(e => p.Status.Contains(e))
+                )
+                .OrderBy(p => p.FechaInicio)
+                .FirstOrDefault();
+
+            var procesoMasAntiguo =
+                procesoActivo != null
+                    ? (int)(DateTime.Now - procesoActivo.FechaInicio).TotalDays
+                    : 0;
+
+            var inicioAnio = new DateTime(DateTime.Now.Year, 1, 1);
+            var completadosEsteAnio = completadosConFechas.Count(p =>
+                p.FechaFinalizacion >= inicioAnio
+            );
+
+            return new MetricasRendimientoDto
+            {
+                CertificacionesCompletadas = completados.Count(),
+                CertificacionesEsteAnio = completadosEsteAnio,
+                PromedioTiempoCertificacion = promedioTiempo,
+                ProcesoMasAntiguo = procesoMasAntiguo,
+            };
+        }
+
+        private async Task<List<RecentActivityDto>> GetActivitiesForUserAsync(
+            string userId,
+            bool isAuditor,
+            bool isAsesor,
+            int limit
+        )
+        {
+            var query = _db
+                .ProcesoCertificacion.Include(p => p.Empresa)
+                .Where(p =>
+                    p.Enabled && p.UpdatedAt.HasValue && p.UpdatedAt >= DateTime.Now.AddDays(-30)
+                );
+
+            if (isAuditor)
+                query = query.Where(p => p.AuditorId == userId);
+            else if (isAsesor)
+                query = query.Where(p => p.AsesorId == userId);
+
+            var updates = await query.OrderByDescending(p => p.UpdatedAt).Take(limit).ToListAsync();
+
+            return updates
+                .Select(p => new RecentActivityDto
+                {
+                    Id = p.Id,
+                    Title = DetermineActivityTitle(p.Status),
+                    Description = $"{p.Empresa?.Nombre ?? "N/A"} - {ExtractStatusShortName(p.Status)}",
+                    Timestamp = p.UpdatedAt ?? DateTime.Now,
+                    Type = DetermineActivityType(p.Status),
+                    Icon = DetermineActivityIcon(p.Status),
+                    Priority = DeterminePriority(p) == "alta" ? "warning" : "info",
+                    CompanyId = p.EmpresaId,
+                    CompanyName = p.Empresa?.Nombre,
+                    ProcesoCertificacionId = p.Id,
+                })
+                .ToList();
+        }
+
+        private static string DetermineActivityTitle(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "Proceso actualizado";
+            if (status.Contains("Finalizada") || status.Contains("Finalizado"))
+                return "Proceso completado";
+            if (status.Contains("en Proceso"))
+                return "Proceso en curso";
+            if (status.Contains("Para "))
+                return "Proceso asignado";
+            return "Proceso actualizado";
+        }
+
+        private static string DetermineActivityType(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "process_update";
+            if (status.Contains("Finalizada") || status.Contains("Finalizado"))
+                return "certification_completed";
+            if (status.Contains("en Proceso"))
+                return "audit_in_progress";
+            if (status.Contains("Para "))
+                return "audit_scheduled";
+            return "process_update";
+        }
+
+        private static string DetermineActivityIcon(string? status)
+        {
+            if (string.IsNullOrEmpty(status))
+                return "update";
+            if (status.Contains("Finalizada") || status.Contains("Finalizado"))
+                return "check_circle";
+            if (status.Contains("en Proceso"))
+                return "pending";
+            if (status.Contains("Para "))
+                return "assignment";
+            return "update";
         }
 
         private string DeterminePriority(ProcesoCertificacion proceso)

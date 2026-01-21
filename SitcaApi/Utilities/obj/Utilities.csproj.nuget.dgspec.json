@@ -1,25 +1,26 @@
 {
   "format": 1,
   "restore": {
-    "/src/Utilities/Utilities.csproj": {}
+    "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {}
   },
   "projects": {
-    "/src/Utilities/Utilities.csproj": {
+    "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/src/Utilities/Utilities.csproj",
+        "projectUniqueName": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
         "projectName": "Utilities",
-        "projectPath": "/src/Utilities/Utilities.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/src/Utilities/obj/",
+        "projectPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/Utilities.csproj",
+        "packagesPath": "/Users/enzo/.nuget/packages/",
+        "outputPath": "/Users/enzo/Documents/sitca/netcore/SitcaApi/Utilities/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "/Users/enzo/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
+          "/usr/local/share/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -37,7 +38,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -53,12 +55,22 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.22, 8.0.22]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.22, 8.0.22]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.416/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.101/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
